@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Necessário para o firebase_messaging (Push FCM App-para-App / alerta
+	     híbrido) funcionar no iOS. "development" aqui; ao gerar o build de
+	     produção/App Store no Xcode, troque para "production" (ou deixe o
+	     Xcode trocar automaticamente ao usar um perfil de distribuição). -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

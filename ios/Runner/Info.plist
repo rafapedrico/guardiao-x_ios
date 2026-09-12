@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Security Check App</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>security_check_app</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+
+	<!-- ================================================================
+	     PERMISSÕES NATIVAS (Fase 1 da migração Android → iOS)
+	     Ver docs/migracao-ios-relatorio-2026-09-12.md, seção 2, para o
+	     mapeamento completo com o AndroidManifest.xml original.
+	     ================================================================ -->
+
+	<!-- Câmera — recurso de Captura e Dissuasão (CameraCapturaScreen).
+	     enableAudio: false na CameraController (ver camera_captura_screen.dart),
+	     por isso NÃO é preciso NSMicrophoneUsageDescription. -->
+	<key>NSCameraUsageDescription</key>
+	<string>O Guardião-X usa a câmera para tirar uma foto discreta de dissuasão durante um alerta de emergência, anexada automaticamente ao aviso enviado aos seus contatos de confiança.</string>
+
+	<!-- Localização — par obrigatório para o iOS oferecer a opção "Always".
+	     Equivalente a ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION +
+	     ACCESS_BACKGROUND_LOCATION do AndroidManifest.xml. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O Guardião-X usa sua localização para incluir no alerta de emergência enviado aos seus contatos de confiança e para o compartilhamento em tempo real na aba Monitoramento.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O Guardião-X precisa acompanhar sua localização mesmo em segundo plano durante o cronômetro de check-in de segurança, para que a última posição conhecida esteja sempre pronta caso um alerta de emergência precise ser disparado.</string>
+
+	<!-- Contatos — aba Família (contatos de emergência).
+	     Equivalente a READ_CONTACTS/WRITE_CONTACTS. -->
+	<key>NSContactsUsageDescription</key>
+	<string>O Guardião-X acessa seus contatos para que você escolha quem deve receber os alertas de emergência como contato de confiança.</string>
+
+	<!-- Modos de segundo plano.
+	     - location: acompanhamento contínuo durante o check-in (ver acima).
+	     - remote-notification: Push FCM de alerta híbrido (App-para-App).
+	     - audio: mantém o alarme sonoro (audioplayers) tocando com o app em
+	       segundo plano — ver AlertaRecebidoAlarmService/RotinaAlarmeService
+	       no lado Android. NÃO substitui, por si só, o entitlement de
+	       Critical Alerts necessário para furar o modo Silencioso/Foco
+	       (decisão de produto pendente — ver seção 5 do relatório). -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>remote-notification</string>
+		<string>audio</string>
+	</array>
+
+	<!-- Evita a pergunta de compliance de exportação em todo upload ao
+	     App Store Connect/TestFlight. O app usa `encrypt`/`crypto` só para
+	     criptografia padrão (não é o núcleo do produto) — mesma exceção
+	     que a maioria dos apps se qualifica. CONFIRMAR com o responsável
+	     legal antes do primeiro envio real à App Store. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+</dict>
+</plist>
