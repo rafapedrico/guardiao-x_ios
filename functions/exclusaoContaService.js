@@ -22,6 +22,13 @@
  * / `pin_dialog.dart`) — esta função só executa depois que o PIN correto
  * já foi confirmado localmente e o app chama esta callable autenticado
  * como o próprio usuário (`request.auth.uid`).
+ *
+ * MIGRAÇÃO iOS — Guideline 4.8 da App Store (achado no checklist final,
+ * 2026-09-12): quem tiver logado via Sign in with Apple também tem o
+ * token da Apple revogado aqui (ver [revogarAppleTokenSeExistir] em
+ * `appleSignInService.js`), ANTES de [excluirDadosFirestore] apagar
+ * `usuarios/{uid}` — é de lá que o refresh_token gravado no login é
+ * lido. Best-effort/no-op para quem nunca logou via Apple.
  */
 
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
@@ -29,6 +36,7 @@ const {getFirestore} = require("firebase-admin/firestore");
 const {getAuth} = require("firebase-admin/auth");
 const {getStorage} = require("firebase-admin/storage");
 const logger = require("firebase-functions/logger");
+const {revogarAppleTokenSeExistir, APPLE_SIWA_SECRETS} = require("./appleSignInService");
 
 const db = getFirestore();
 
@@ -238,7 +246,7 @@ exports.excluirDadosFirestore = excluirDadosFirestore;
 exports.excluirArquivosStorage = excluirArquivosStorage;
 exports.excluirHistoricoAlertas = excluirHistoricoAlertas;
 
-exports.excluirContaCompleta = onCall(async (request) => {
+exports.excluirContaCompleta = onCall({secrets: APPLE_SIWA_SECRETS}, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "É necessário estar autenticado.");
   }
@@ -254,6 +262,13 @@ exports.excluirContaCompleta = onCall(async (request) => {
     // preferível a apagar peças de evidência sem o marcador de segurança.
     logger.error(`[excluirContaCompleta] Falha ao registrar revogação de ${uid}:`, e);
   }
+
+  // Guideline 4.8 da App Store — ver documentação completa no topo do
+  // arquivo. ANTES de excluirDadosFirestore: é de usuarios/{uid} que o
+  // refresh_token da Apple é lido. Já é best-effort internamente
+  // ([revogarAppleTokenSeExistir] nunca lança), então nada de try/catch
+  // extra aqui.
+  await revogarAppleTokenSeExistir(uid);
 
   try {
     await excluirDadosFirestore(uid);

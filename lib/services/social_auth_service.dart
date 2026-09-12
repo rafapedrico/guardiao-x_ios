@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -35,6 +37,12 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 ///   + um Services ID + um domínio/endpoint de redirect verificado — ver
 ///   [_appleWebAuthOptions] abaixo (hoje só placeholders). Sem isso o
 ///   botão abre a aba do navegador e falha no redirect de volta pro app.
+///   Além disso (migração iOS, Guideline 4.8 da App Store): a revogação
+///   do token na exclusão de conta (ver [signInWithApple]/
+///   `appleSignInService.js`) exige uma chave "Sign in with Apple"
+///   separada (Apple Developer → Keys) + os segredos `APPLE_TEAM_ID`/
+///   `APPLE_SIWA_KEY_ID`/`APPLE_SIWA_PRIVATE_KEY` da Cloud Function —
+///   ver `docs/checklist-final-mac-app-store-connect-2026-09-12.md`.
 ///
 /// Tempo mínimo para um `GoogleSignInExceptionCode.canceled` ser tratado
 /// como um cancelamento genuíno do usuário (ver [signInWithGoogle]) — um
@@ -340,6 +348,14 @@ class SocialAuthService {
     ),
   );
 
+  /// Mesmo bundle id do app iOS (ver `ios/Runner.xcodeproj`, Fase 0 da
+  /// migração) — `client_id` correto para o backend trocar o
+  /// `authorizationCode` do fluxo NATIVO (iOS/macOS) por um
+  /// refresh_token (ver [signInWithApple]/`appleSignInService.js`). O
+  /// fluxo web/Android usa [_appleWebAuthOptions.clientId] (Services ID)
+  /// em vez deste valor.
+  static const String _appleBundleId = 'com.rmfglobal.guardiaox';
+
   Future<UserCredential?> signInWithApple() async {
     // Nonce aleatório: gerado localmente (helper oficial do próprio
     // pacote), hasheado (SHA-256) e enviado na REQUISIÇÃO à Apple; a Apple
@@ -376,6 +392,41 @@ class SocialAuthService {
       idToken: identityToken,
       rawNonce: rawNonce,
     );
-    return _auth.signInWithCredential(credential);
+    final userCredential = await _auth.signInWithCredential(credential);
+
+    // MIGRAÇÃO iOS — Guideline 4.8 da App Store (achado no checklist
+    // final, 2026-09-12): registra o `authorizationCode` desta
+    // autorização no backend (ver `appleSignInService.js`), que o troca
+    // por um refresh_token para poder revogá-lo de verdade se o usuário
+    // excluir a conta depois (ver `ExclusaoContaService`/
+    // `exclusaoContaService.js`). Fire-and-forget, DEPOIS do login já
+    // ter sido concluído com sucesso acima — nunca atrasa nem faz o
+    // login falhar se o registro em si der errado (best-effort também
+    // do lado do backend, ver documentação completa lá).
+    unawaited(_registrarAutorizacaoApple(appleCredential.authorizationCode));
+
+    return userCredential;
+  }
+
+  /// Ver documentação completa da chamada em [signInWithApple]. Nunca
+  /// lança exceção — qualquer falha (rede, backend indisponível) só é
+  /// logada; o usuário já está logado normalmente de qualquer forma.
+  Future<void> _registrarAutorizacaoApple(String authorizationCode) async {
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('registrarAutorizacaoApple')
+          .call<Map<String, dynamic>>({
+        'authorizationCode': authorizationCode,
+        // Fluxo nativo (iOS/macOS) usa o bundle id como client_id; fluxo
+        // web (Android, via Chrome Custom Tab) usa o Services ID
+        // configurado em [_appleWebAuthOptions] — a Apple recusa a
+        // troca por refresh_token se o client_id não bater com o que
+        // originou o authorizationCode.
+        'clientId': Platform.isIOS ? _appleBundleId : _appleWebAuthOptions.clientId,
+      });
+    } catch (e) {
+      debugPrint('⚠️ [SocialAuthService] Falha ao registrar autorização Apple '
+          '(revogação na exclusão de conta pode não funcionar depois): $e');
+    }
   }
 }

@@ -312,6 +312,15 @@ exports.reverificarAssinaturasPremium =
 exports.reconciliarCompraPremiumAdmin =
   premiumPurchaseService.reconciliarCompraPremiumAdmin;
 
+// Revogação de token do Sign in with Apple na exclusão de conta —
+// Guideline 4.8 da App Store, achado no checklist final da migração iOS
+// (2026-09-12) — ver appleSignInService.js.
+const appleSignInService = require("./appleSignInService");
+// - Callable chamada logo após CADA login bem-sucedido via Apple (ver
+// SocialAuthService.signInWithApple no Flutter) — troca o
+// authorizationCode por um refresh_token e o guarda para uso futuro.
+exports.registrarAutorizacaoApple = appleSignInService.registrarAutorizacaoApple;
+
 // Encurtador de link próprio para o SMS da foto do SOS — ver
 // fotoSosLinkService.js (correção do bug real de SMS multi-parte não
 // entregue, confirmado em teste físico em 2026-09-06).
