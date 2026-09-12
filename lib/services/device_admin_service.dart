@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -27,7 +29,19 @@ class DeviceAdminService {
   /// `true` se o Guardião X já é um administrador do dispositivo ativo
   /// (permissão concedida em uma sessão anterior). `false` em caso de
   /// erro/plataforma não suportada (nunca lança exceção).
+  ///
+  /// MIGRAÇÃO iOS (achado durante a auditoria pós-Fase 4, 2026-09-12):
+  /// Device Admin não existe no iOS — sem esta guarda, o cartão
+  /// permanente em `ConfiguracoesTab._buildCartaoDeviceAdmin` ficaria
+  /// visível PARA SEMPRE, com um botão "Ativar" ([solicitarAtivacao])
+  /// que silenciosamente não faz nada. Retornar `true` (já "ativo", por
+  /// não haver nada do que ativar) esconde o cartão — mesmo padrão já
+  /// usado por `BatteryOptimizationService.estaIsento`. Único ponto de
+  /// bifurcação deste arquivo — [bloquearTelaAgora] já não tinha handler
+  /// nativo no iOS e já retornava `false` com segurança (usado pelo
+  /// fallback do P4, ver `CameraCapturaScreen`).
   Future<bool> estaAtivo() async {
+    if (Platform.isIOS) return true;
     try {
       final ativo = await _canal.invokeMethod<bool>('estaAtivo');
       return ativo ?? false;

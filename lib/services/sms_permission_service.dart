@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -47,6 +49,15 @@ class SmsPermissionService {
   /// logo na primeira entrada na Home — explica o motivo ANTES do
   /// diálogo nativo do Android e solicita as duas permissões.
   Future<void> verificarNoOnboarding(BuildContext context) async {
+    // MIGRAÇÃO iOS (achado durante a auditoria pós-Fase 4, 2026-09-12):
+    // sem esta guarda, TODO usuário iOS veria, na primeira entrada na
+    // Home, um diálogo pedindo pra "ativar o SMS de emergência" — uma
+    // permissão que a Apple nem expõe e que o produto decidiu desativar
+    // por completo no iOS (ver nota de migração em
+    // `emergency_alert_service.dart`, Fase 2). Contradiz diretamente
+    // essa decisão se não for bloqueado aqui. Comportamento Android
+    // 100% inalterado.
+    if (Platform.isIOS) return;
     if (await estaConcedida()) return;
 
     try {
@@ -67,6 +78,8 @@ class SmsPermissionService {
   /// usuário, independente de [verificarNoOnboarding] já ter perguntado
   /// antes. NUNCA bloqueia o cadastro do contato: só informa/pergunta.
   Future<void> verificarAoAdicionarPrimeiroContato(BuildContext context) async {
+    // Ver nota de migração em [verificarNoOnboarding] — mesmo motivo.
+    if (Platform.isIOS) return;
     if (await estaConcedida()) return;
     if (!context.mounted) return;
     await _explicarESolicitar(context);

@@ -519,7 +519,7 @@
   "faqPergunta12": "As mensagens de alerta de emergência só serão enviadas para os números cadastrados que tiverem o aplicativo Guardião-X instalado no celular?",
   "faqResposta12": "Não. Recomendamos que ambos os celulares tenham o aplicativo instalado, mas mesmo se o celular de destino não tiver o Guardião-X, o alerta de emergência ainda é enviado por SMS.",
   "faqPergunta13": "Como posso usar e como funciona os botões de pânico?",
-  "faqResposta13": "Os botões de pânico podem ser usados apertando o botão específico na página Segurança ou apertando o botão de volume para cima, mantendo pressionado por 3 segundos. Em alguns modelos de celulares Android, a câmera já abre, tornando possível o disparo da foto, e em outros modelos requer uma confirmação do sistema nativo para o uso da câmera.",
+  "faqResposta13": "Os botões de pânico podem ser usados de duas formas: apertando o botão específico na página Segurança (disponível em todos os aparelhos) ou, em aparelhos Android, apertando o botão de volume para cima e mantendo pressionado por 3 segundos. Em alguns modelos Android, a câmera já abre automaticamente, tornando possível o disparo da foto; em outros, é necessária uma confirmação do sistema nativo para o uso da câmera. No iPhone, a Apple não permite que aplicativos escutem o botão de volume em segundo plano — por isso, nesse sistema, o botão específico da página Segurança é a forma de acionar o alerta.",
   "termosAppBarTitulo": "Termos e Privacidade",
   "termosTabContrato": "Contrato de Consentimento",
   "termosTabPrivacidade": "Política de Privacidade",

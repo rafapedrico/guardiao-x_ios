@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -36,7 +38,22 @@ class BatteryOptimizationService {
 
   /// `true` quando o app já está isento da otimização de bateria do
   /// sistema.
+  ///
+  /// MIGRAÇÃO iOS (achado durante a auditoria pós-Fase 4, 2026-09-12):
+  /// `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` é um conceito exclusivamente
+  /// Android — sem esta guarda, `Permission.ignoreBatteryOptimizations.status`
+  /// nunca retornaria `granted` no iOS, e os dois consumidores deste
+  /// método ([verificarNoOnboarding] abaixo e o cartão permanente em
+  /// `ConfiguracoesTab._buildCartaoOtimizacaoBateria`) ficariam presos
+  /// PARA SEMPRE mostrando um diálogo/card pedindo uma permissão que
+  /// nem existe nessa plataforma, com um botão "Ativar" que não faz
+  /// nada. Retornar `true` (já "isento", por não haver nada do que
+  /// isentar) é o valor mais honesto para um conceito inaplicável — mesmo
+  /// padrão já usado por `NotificacaoService.podeUsarTelaCheia`. Ponto
+  /// único de bifurcação: nenhuma outra linha deste arquivo precisa de
+  /// `Platform.isIOS`.
   Future<bool> estaIsento() async {
+    if (Platform.isIOS) return true;
     final status = await Permission.ignoreBatteryOptimizations.status;
     return status.isGranted;
   }

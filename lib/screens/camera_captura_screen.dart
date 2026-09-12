@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/device_admin_service.dart';
 import '../services/emergency_alert_service.dart';
 import '../services/sos_disparo_service.dart';
+import 'home_screen.dart';
 
 enum _EstadoCaptura {
   inicializandoCamera,
@@ -419,12 +422,16 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen> {
   /// funciona se o usuário já concedeu a permissão de Administrador do
   /// Dispositivo com antecedência (ver tela de consentimento em
   /// Configurações/Segurança). Sem essa permissão (ou fora do fluxo
-  /// unificado, [widget.origemUnificada] nulo), cai no comportamento
-  /// histórico: apenas fecha/minimiza o app.
+  /// unificado, [widget.origemUnificada] nulo), cai no fallback: no
+  /// Android, `SystemNavigator.pop()` (fecha/minimiza o app, comportamento
+  /// histórico). No iOS, ver [_saidaDeSegurancaFallback] — a Apple não
+  /// permite que um app se encerre programaticamente, então
+  /// `SystemNavigator.pop()` lá seria um no-op silencioso (a tela de
+  /// evidência ficaria presa na tela, o oposto do que o gesto pretende).
   Future<void> _acionarSaidaDeSeguranca() async {
     debugPrint('🛑 Gesto de segurança (Swipe Up) acionado.');
 
-    if (widget.origemUnificada != null) {
+    if (widget.origemUnificada != null && Platform.isAndroid) {
       final bool bloqueou = await DeviceAdminService().bloquearTelaAgora();
       if (bloqueou) {
         debugPrint('🔒 [CameraCapturaScreen] Tela bloqueada nativamente (Device Admin).');
@@ -433,7 +440,44 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen> {
       }
     }
 
-    SystemNavigator.pop();
+    _saidaDeSegurancaFallback();
+  }
+
+  /// Fallback do gesto de saída de segurança quando o bloqueio nativo de
+  /// tela (Device Admin, só Android) não está disponível ou não existe
+  /// nesta plataforma.
+  ///
+  /// MIGRAÇÃO iOS (decisão de produto, 2026-09-12): `SystemNavigator.pop()`
+  /// é um no-op no iOS (Apple não permite encerramento programático do
+  /// app) — usá-lo aqui deixaria a tela de evidência presa na tela, o
+  /// oposto do propósito do gesto. Em vez disso, no iOS volta direto
+  /// para a Home na aba Segurança (`HomeScreen(abaInicial: 0)`,
+  /// removendo TODAS as rotas anteriores da pilha) — a tela de evidência
+  /// some da tela mesmo sem o app se encerrar de fato. `popUntil` até a
+  /// rota raiz é tentado primeiro (mais barato, sem reconstruir a
+  /// HomeScreen do zero) quando já existe uma rota anterior na pilha —
+  /// que é o caso normal no iOS, já que a Captura só é alcançável a
+  /// partir do app já aberto (sem o cold-start via lockscreen do botão
+  /// físico, sem equivalente no iOS). O `pushAndRemoveUntil` só entra
+  /// como rede de segurança extra, caso não exista nenhuma rota anterior.
+  ///
+  /// No Android, comportamento 100% inalterado: continua
+  /// `SystemNavigator.pop()`.
+  void _saidaDeSegurancaFallback() {
+    if (Platform.isAndroid) {
+      SystemNavigator.pop();
+      return;
+    }
+
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.popUntil((route) => route.isFirst);
+      return;
+    }
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      (route) => false,
+    );
   }
 
   Widget _buildTelaDissuasao() {
