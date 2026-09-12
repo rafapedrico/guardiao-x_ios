@@ -51,6 +51,12 @@ const String chaveCronometroFluxoResolvido = 'cronometro_fluxo_resolvido';
 /// (`FirebaseSyncService`/`EmergencyAlertService`) já usados pelo Alarme
 /// de Rotina e pelo próprio Cronômetro (tentativa manual de desarme,
 /// ainda em `seguranca_tab.dart`, inalterada).
+///
+/// **Migração iOS (2026-09-12):** as 2 chamadas a `MethodChannel('.../rotina_alarme')`
+/// aqui já eram protegidas por try/catch — no iOS só logam aviso e
+/// seguem normalmente. O disparo do alerta em si passa por
+/// `EmergencyAlertService`/`FirebaseSyncService`, já cobertos na Fase 2
+/// (SMS desativado no iOS, canal de Push mantido).
 class CronometroDisparadoScreen extends StatefulWidget {
   final bool veioDoForeground;
   const CronometroDisparadoScreen({super.key, this.veioDoForeground = false});

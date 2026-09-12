@@ -16,6 +16,14 @@ import '../services/notificacao_service.dart';
 import '../widgets/pin_dialog.dart';
 import 'package:audioplayers/audioplayers.dart';
 
+/// **Migração iOS (2026-09-12):** as 4 chamadas a `MethodChannel('.../rotina_alarme')`
+/// nesta tela já eram protegidas por try/catch antes desta migração — no
+/// iOS, só logam um aviso e seguem normalmente (o som do alarme, tocado
+/// via `audioplayers`/Dart puro, continua funcionando independente
+/// disso). A garantia real do disparo do alerta de emergência no iOS
+/// (se o usuário nunca chegar a ver esta tela) é da Cloud Function
+/// `functions/scheduledAlarmMonitor.js`, não desta tela — ver
+/// `RotinaAlarmeService`/`docs/migracao-ios-relatorio-2026-09-12.md`.
 class AlarmeDisparadoScreen extends StatefulWidget {
   // --- ADICIONADO: Parâmetro para saber se o app já estava aberto ---
   final bool veioDoForeground;

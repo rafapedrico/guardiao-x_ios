@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
@@ -136,6 +137,29 @@ class RotinaAlarmeService {
     final minuto = alarmeMap['minuto'] as int? ?? 0;
     final diasSemanaCsv = alarmeMap['dias_semana'] as String? ?? '';
 
+    // MIGRAÇÃO iOS (decisão de produto, 2026-09-12): agenda os lembretes
+    // locais via NotificacaoService/zonedSchedule — no-op completo no
+    // Android ([NotificacaoService.agendarLembretesCheckinRotinaIOS] já
+    // guarda `Platform.isIOS` internamente), então o restante deste
+    // método (100% `android_alarm_manager_plus`) continua intacto e sem
+    // nenhuma mudança de comportamento. Fire-and-forget: nunca atrasa o
+    // agendamento nativo abaixo. A garantia real de disparo no iOS é da
+    // Cloud Function `scheduledAlarmMonitor.js`, não deste agendamento —
+    // ver documentação completa no método chamado.
+    unawaited(() async {
+      final l10n = await L10nHeadlessService.obter();
+      final etiqueta = AlarmeRotina.fromMap(alarmeMap).etiquetaExibida(l10n);
+      final minutosTolerancia = alarmeMap['minutos_tolerancia'] as int? ?? 10;
+      await NotificacaoService.agendarLembretesCheckinRotinaIOS(
+        idAlarme: id,
+        etiqueta: etiqueta,
+        hora: hora,
+        minuto: minuto,
+        diasSemanaCsv: diasSemanaCsv,
+        minutosTolerancia: minutosTolerancia,
+      );
+    }());
+
     final proximoDisparo = _calcularProximoDisparo(hora, minuto, diasSemanaCsv);
     if (proximoDisparo == null) {
       final agora = DateTime.now();
@@ -158,32 +182,42 @@ class RotinaAlarmeService {
   }
 
   static Future<void> _agendarNativo(int idAlarme, DateTime dataHoraDisparo) async {
-    await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
+    // MIGRAÇÃO iOS: `android_alarm_manager_plus` não tem NENHUMA
+    // implementação nessa plataforma — chamar seus métodos sem essa
+    // guarda arriscaria lançar uma exceção não tratada (diferente da
+    // maioria dos outros canais deste app, que já eram protegidos por
+    // try/catch). O bloco inteiro fica restrito ao Android; o lembrete
+    // local equivalente do iOS já foi agendado em [agendarAlarme]
+    // (chamador desta função), via
+    // [NotificacaoService.agendarLembretesCheckinRotinaIOS].
+    if (Platform.isAndroid) {
+      await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
 
-    await AndroidAlarmManager.oneShotAt(
-      dataHoraDisparo,
-      _idCheckin(idAlarme),
-      _callbackCheckinRotina,
-      exact: true,
-      wakeup: true,
-      // CORREÇÃO (Doze/deep sleep): sem isto, o Android pode ADIAR o
-      // disparo deste alarme por minutos/horas quando o aparelho está em
-      // repouso profundo, mesmo sendo "exact" — `allowWhileIdle` (que o
-      // pacote traduz para `setExactAndAllowWhileIdle` nativo) é o que
-      // realmente garante o disparo no segundo programado independente
-      // do estado de energia do aparelho.
-      allowWhileIdle: true,
-      rescheduleOnReboot: true,
-      params: {'idAlarme': idAlarme},
-    );
+      await AndroidAlarmManager.oneShotAt(
+        dataHoraDisparo,
+        _idCheckin(idAlarme),
+        _callbackCheckinRotina,
+        exact: true,
+        wakeup: true,
+        // CORREÇÃO (Doze/deep sleep): sem isto, o Android pode ADIAR o
+        // disparo deste alarme por minutos/horas quando o aparelho está em
+        // repouso profundo, mesmo sendo "exact" — `allowWhileIdle` (que o
+        // pacote traduz para `setExactAndAllowWhileIdle` nativo) é o que
+        // realmente garante o disparo no segundo programado independente
+        // do estado de energia do aparelho.
+        allowWhileIdle: true,
+        rescheduleOnReboot: true,
+        params: {'idAlarme': idAlarme},
+      );
 
-    // Agenda também o alarme NATIVO paralelo (100% independente do
-    // Flutter/Dart, ver [RotinaAlarmNativeReceiver]) para o MESMO
-    // horário — é ele quem garante, de forma robusta a Doze, que o
-    // aparelho acorde e a tela do alarme abra mesmo se o isolate
-    // headless do android_alarm_manager_plus for suspenso/encerrado
-    // antes de conseguir agir.
-    await agendarAlarmeNativo(idAlarme, dataHoraDisparo);
+      // Agenda também o alarme NATIVO paralelo (100% independente do
+      // Flutter/Dart, ver [RotinaAlarmNativeReceiver]) para o MESMO
+      // horário — é ele quem garante, de forma robusta a Doze, que o
+      // aparelho acorde e a tela do alarme abra mesmo se o isolate
+      // headless do android_alarm_manager_plus for suspenso/encerrado
+      // antes de conseguir agir.
+      await agendarAlarmeNativo(idAlarme, dataHoraDisparo);
+    }
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('stop_current_alarm');
@@ -330,10 +364,14 @@ class RotinaAlarmeService {
     // [AlarmeAgendadoCloudService.marcarCancelado].
     unawaited(AlarmeAgendadoCloudService().marcarCancelado(idAlarme.toString()));
 
-    await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
-    await AndroidAlarmManager.cancel(_idTolerancia(idAlarme));
-    await AndroidAlarmManager.cancel(_idJanelaFinal(idAlarme));
-    await cancelarAlarmeNativo(idAlarme);
+    if (Platform.isAndroid) {
+      await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
+      await AndroidAlarmManager.cancel(_idTolerancia(idAlarme));
+      await AndroidAlarmManager.cancel(_idJanelaFinal(idAlarme));
+      await cancelarAlarmeNativo(idAlarme);
+    }
+    // No iOS, [cancelarNotificacaoCheckin] já cancela os lembretes
+    // locais equivalentes (ver [NotificacaoService.cancelarLembretesCheckinRotinaIOS]).
     await NotificacaoService.cancelarNotificacaoCheckin(idAlarme);
     await _limparFlagsDeFaseFinal();
     debugPrint('⏰ Alarme de rotina #$idAlarme cancelado.');
@@ -364,10 +402,12 @@ class RotinaAlarmeService {
     unawaited(AlarmeAgendadoCloudService().marcarCancelado(idAlarme.toString()));
     AlarmeAgendadoCloudService().sinalizarNovoCiclo(idAlarme.toString());
 
-    await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
-    await AndroidAlarmManager.cancel(_idTolerancia(idAlarme));
-    await AndroidAlarmManager.cancel(_idJanelaFinal(idAlarme));
-    await cancelarAlarmeNativo(idAlarme);
+    if (Platform.isAndroid) {
+      await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
+      await AndroidAlarmManager.cancel(_idTolerancia(idAlarme));
+      await AndroidAlarmManager.cancel(_idJanelaFinal(idAlarme));
+      await cancelarAlarmeNativo(idAlarme);
+    }
     await NotificacaoService.cancelarNotificacaoCheckin(idAlarme);
     await _limparFlagsDeFaseFinal();
 
@@ -380,6 +420,37 @@ class RotinaAlarmeService {
     if (proximoDisparo != null) {
       await _agendarNativo(idAlarme, proximoDisparo);
     }
+
+    // MIGRAÇÃO iOS — LIMITAÇÃO CONHECIDA: diferente do Android (que
+    // cancela e reagenda um disparo ÚNICO pro próximo dia válido, via
+    // [_agendarNativo] acima), os lembretes locais do iOS são
+    // notificações RECORRENTES semanais (ver
+    // [NotificacaoService.agendarLembretesCheckinRotinaIOS]) — o iOS não
+    // tem como "pular só uma ocorrência" de uma série recorrente.
+    // Rearmar a série aqui é necessário (senão o cancelamento acima
+    // apagaria os lembretes de TODAS as próximas semanas, não só o de
+    // hoje) — mas isso significa que o lembrete LOCAL de hoje pode
+    // continuar disparando no iOS mesmo com "pausar só por hoje"
+    // acionado. Sem risco de alerta falso: quem decide se o alerta de
+    // emergência real dispara é exclusivamente o status CANCELADO já
+    // gravado no Firestore acima
+    // (`AlarmeAgendadoCloudService.marcarCancelado`/
+    // `scheduledAlarmMonitor.js`), nunca a notificação local em si — só
+    // uma imperfeição cosmética (um lembrete a mais, sem consequência
+    // real).
+    unawaited(() async {
+      final l10n = await L10nHeadlessService.obter();
+      final etiqueta = AlarmeRotina.fromMap(alarmeMap).etiquetaExibida(l10n);
+      final minutosToleranciaIOS = alarmeMap['minutos_tolerancia'] as int? ?? 10;
+      await NotificacaoService.agendarLembretesCheckinRotinaIOS(
+        idAlarme: idAlarme,
+        etiqueta: etiqueta,
+        hora: hora,
+        minuto: minuto,
+        diasSemanaCsv: diasSemanaCsv,
+        minutosTolerancia: minutosToleranciaIOS,
+      );
+    }());
 
     debugPrint(
         '⏸️ Alarme de rotina #$idAlarme pausado só por hoje — próximo disparo real: $proximoDisparo.');
@@ -423,10 +494,17 @@ class RotinaAlarmeService {
     // [cancelarAlarme].
     unawaited(AlarmeAgendadoCloudService().marcarPausado(idAlarme.toString()));
 
-    await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
-    await AndroidAlarmManager.cancel(_idTolerancia(idAlarme));
-    await AndroidAlarmManager.cancel(_idJanelaFinal(idAlarme));
-    await cancelarAlarmeNativo(idAlarme);
+    if (Platform.isAndroid) {
+      await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
+      await AndroidAlarmManager.cancel(_idTolerancia(idAlarme));
+      await AndroidAlarmManager.cancel(_idJanelaFinal(idAlarme));
+      await cancelarAlarmeNativo(idAlarme);
+    }
+    // No iOS, cancela por completo a série recorrente (ver
+    // [NotificacaoService.cancelarLembretesCheckinRotinaIOS]) — diferente
+    // de [pausarAlarmePorHoje], esta é uma pausa TOTAL, sem reagendar
+    // nada: o usuário precisa reativar o alarme manualmente (aba
+    // Família), que chama [agendarAlarme] de novo do zero.
     await NotificacaoService.cancelarNotificacaoCheckin(idAlarme);
     await _limparFlagsDeFaseFinal();
 
@@ -650,9 +728,15 @@ class RotinaAlarmeService {
     // 1. Limpa os timers pendentes locais de SMS e notificação — inclui
     // a janela final de 60 segundos, caso o PIN correto tenha sido
     // confirmado dentro dela.
-    await AndroidAlarmManager.cancel(_idTolerancia(idAlarme));
-    await AndroidAlarmManager.cancel(_idJanelaFinal(idAlarme));
-    await cancelarAlarmeNativo(idAlarme);
+    if (Platform.isAndroid) {
+      await AndroidAlarmManager.cancel(_idTolerancia(idAlarme));
+      await AndroidAlarmManager.cancel(_idJanelaFinal(idAlarme));
+      await cancelarAlarmeNativo(idAlarme);
+    }
+    // No iOS, cancela a série recorrente inteira — sem problema: o
+    // `agendarAlarme(dados)` no fim deste método (se `ativo`) já a
+    // rearma para as próximas ocorrências, exatamente como
+    // [pausarAlarmePorHoje] faz explicitamente.
     await NotificacaoService.cancelarNotificacaoCheckin(idAlarme);
     await _limparFlagsDeFaseFinal();
     // Libera o WakeLock (ver RotinaAlarmWakeService) assim que o PIN

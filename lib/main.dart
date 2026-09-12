@@ -372,6 +372,32 @@ Future<void> _inicializarNotificacoesEAbrirAlertaPendente() async {
       debugPrint('⚠️ [main] Falha ao abrir AlertaRecebidoScreen no cold start: $e');
     }
   });
+
+  // ACHADO NA AUDITORIA PÓS-FASE 4 (2026-09-12): cold start via toque na
+  // notificação de check-in de rotina (ver
+  // [NotificacaoService.idAlarmeCheckinPendente]) — sem tratamento
+  // explícito, esse toque não abria nada de especial (o app abria na
+  // LoginScreen normal, sem levar o usuário até a confirmação). Mesma
+  // política do bloco acima: pula a barreira de login — a confirmação
+  // "Cheguei bem" é 100% local/SQLite, sem depender de sessão (ver
+  // `RotinaAlarmeService.confirmarCheckinRotina`). Mais relevante no
+  // iOS, onde este toque é o ÚNICO caminho para o cold start desse
+  // fluxo (sem a `RotinaCheckinAlarmActivity` nativa do Android).
+  final idAlarmeCheckinPendente = NotificacaoService.consumirIdAlarmeCheckinPendente();
+  if (idAlarmeCheckinPendente != null) {
+    debugPrint('📬 [main] Cold start via toque em check-in de rotina '
+        '#$idAlarmeCheckinPendente — abrindo direto, sem login.');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        appNavigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AlarmeDisparadoScreen()),
+          (route) => false,
+        );
+      } catch (e) {
+        debugPrint('⚠️ [main] Falha ao abrir AlarmeDisparadoScreen no cold start: $e');
+      }
+    });
+  }
 }
 
 /// ETAPA 2: o MÍNIMO de Firebase necessário para os botões de login
