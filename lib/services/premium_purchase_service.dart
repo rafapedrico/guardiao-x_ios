@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:uuid/uuid.dart';
 
 import 'firebase_auth_service.dart';
 
@@ -43,6 +44,17 @@ enum PremiumCompraEvento { pendente, concedida, semDireito, erro, erroValidacao,
 ///    `pendingCompletePurchase` indicar que é necessário — obrigatório
 ///    pelo Play Billing: uma compra não confirmada em até 3 dias é
 ///    automaticamente estornada pelo Google.
+///
+/// MIGRAÇÃO iOS (Fase 5, 2026-09-12): o fluxo acima (`buyNonConsumable`
+/// + `purchaseStream` + validação no backend) já era 100% cross-platform
+/// — só [comprarPremium] precisou de um ramo iOS de verdade (ver
+/// [_kNamespaceAppAccountToken] abaixo). A validação no backend passou a
+/// consultar a App Store Server API da Apple (biblioteca oficial
+/// `@apple/app-store-server-library`) em vez da Play Developer API
+/// quando `platform: 'ios'` — ver `functions/premiumPurchaseService.js`.
+/// **Não testado contra a App Store de verdade** (sem Mac/conta Apple
+/// Developer neste ambiente) — recomendado testar no Sandbox da Apple
+/// antes de liberar para usuários reais.
 class PremiumPurchaseService {
   PremiumPurchaseService._internal();
   static final PremiumPurchaseService _instance = PremiumPurchaseService._internal();
@@ -53,6 +65,20 @@ class PremiumPurchaseService {
   /// este id lá. Mesmo id usado em [PremiumPriceService] (consulta de
   /// preço) e em `functions/premiumPurchaseService.js` (validação).
   static const String idProdutoPremium = 'assinatura_mensal';
+
+  /// Namespace fixo usado para derivar um `appAccountToken` UUID v5
+  /// DETERMINÍSTICO a partir do uid do Firebase (ver [comprarPremium]) —
+  /// StoreKit 2 exige um UUID de verdade nesse campo; passar o uid puro
+  /// (uma string arbitrária) faz a Apple descartá-lo SILENCIOSAMENTE,
+  /// deixando `appAccountToken` nulo do lado do backend (bug real e
+  /// documentado do plugin — ver issues do `flutter/flutter` sobre
+  /// `appAccountToken` retornando null). MESMO valor, hardcoded de forma
+  /// idêntica, em `functions/premiumPurchaseService.js`
+  /// (`NAMESPACE_APP_ACCOUNT_TOKEN`) — NUNCA alterar depois da primeira
+  /// compra real no iOS, ou a checagem antifraude do backend para de
+  /// bater com uids que já compraram.
+  static const String _kNamespaceAppAccountToken =
+      '0ab5674b-b258-4492-9068-4e0fdf0c98ef';
 
   StreamSubscription<List<PurchaseDetails>>? _subscricao;
   bool _iniciado = false;
@@ -141,16 +167,26 @@ class PremiumPurchaseService {
     // ANTI-FRAUDE (ver documentação completa em
     // `functions/premiumPurchaseService.js::validarCompraPremium`):
     // amarra esta compra ao uid do Firebase de quem está comprando AGORA
-    // — sem isso, um único purchaseToken válido poderia, em tese, ser
-    // reenviado por outras contas Firebase para reivindicar o mesmo
-    // Premium de graça. Só disponível via `GooglePlayPurchaseParam`
-    // (Android); em outras plataformas usa o `PurchaseParam` genérico —
-    // hoje irrelevante, já que o app só está publicado no Android (ver
-    // site: "Em breve na App Store"), mas evita quebrar caso o iOS seja
-    // adicionado no futuro sem ninguém lembrar de revisitar este método.
+    // — sem isso, um único purchaseToken/transação válida poderia, em
+    // tese, ser reenviado por outras contas Firebase para reivindicar o
+    // mesmo Premium de graça.
+    //
+    // Android: `GooglePlayPurchaseParam.applicationUserName` aceita
+    // qualquer string — o uid puro é enviado direto como
+    // `obfuscatedAccountId`.
+    //
+    // iOS: StoreKit 2 exige um UUID de verdade no campo equivalente
+    // (`appAccountToken`) — ver [_kNamespaceAppAccountToken]. Derivado de
+    // forma DETERMINÍSTICA a partir do uid (UUID v5, RFC 4122), nunca
+    // um UUID aleatório: assim o backend recalcula o MESMO valor a
+    // partir do uid autenticado da chamada, sem precisar de nenhum
+    // registro/round-trip prévio antes da compra.
     final PurchaseParam purchaseParam = Platform.isAndroid
         ? GooglePlayPurchaseParam(productDetails: produto, applicationUserName: uid)
-        : PurchaseParam(productDetails: produto, applicationUserName: uid);
+        : PurchaseParam(
+            productDetails: produto,
+            applicationUserName: const Uuid().v5(_kNamespaceAppAccountToken, uid),
+          );
 
     try {
       await InAppPurchase.instance.buyNonConsumable(purchaseParam: purchaseParam);
@@ -210,8 +246,13 @@ class PremiumPurchaseService {
       final HttpsCallableResult<dynamic> resultado = await FirebaseFunctions.instance
           .httpsCallable('validarCompraPremium')
           .call(<String, dynamic>{
+        // No iOS (StoreKit 2/`in_app_purchase_storekit`), este campo é a
+        // JWS assinada da transação (`jwsRepresentation`) — o backend
+        // verifica a assinatura direto com a App Store Server API, em
+        // vez de um token opaco como no Android.
         'purchaseToken': compra.verificationData.serverVerificationData,
         'productId': compra.productID,
+        'platform': Platform.isIOS ? 'ios' : 'android',
       });
 
       final Map<dynamic, dynamic>? dados = resultado.data as Map<dynamic, dynamic>?;
