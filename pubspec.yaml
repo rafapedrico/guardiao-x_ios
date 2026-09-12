@@ -78,6 +78,14 @@ dependencies:
   # ao uid via `applicationUserName`/obfuscatedAccountId, ver
   # `lib/services/premium_purchase_service.dart`).
   in_app_purchase_android: ^0.5.2
+  # Migração iOS (Fase 5, 2026-09-12): gera o `appAccountToken` (UUID v5
+  # determinístico a partir do uid do Firebase, ver
+  # `lib/services/premium_purchase_service.dart` e a MESMA derivação em
+  # `functions/premiumPurchaseService.js`) exigido pelo StoreKit 2 para
+  # amarrar a compra ao usuário — o iOS descarta silenciosamente uma
+  # string arbitrária (como o uid puro) nesse campo, precisa ser um UUID
+  # de verdade.
+  uuid: ^4.6.0
 
   # Encryption
   encrypt: ^5.0.3
@@ -101,6 +109,13 @@ dependencies:
   # Alarmes em segundo plano e notificações locais
   android_alarm_manager_plus: ^4.0.3
   flutter_local_notifications: ^19.5.0
+  # Migração iOS (2026-09-12): `zonedSchedule` (lembrete de check-in de
+  # rotina agendado, ver NotificacaoService/RotinaAlarmeService) exige o
+  # banco de fusos horários deste pacote — já era dependência transitiva
+  # do flutter_local_notifications, declarada aqui de forma direta porque
+  # passa a ser importada diretamente também. Não usado no Android (que
+  # continua 100% no android_alarm_manager_plus).
+  timezone: ^0.10.1
 
   # Alerta Sonoro Customizável (Etapa 1 - Expansão Global)
   audioplayers: ^6.1.0

@@ -14,10 +14,13 @@
     "logs": "firebase functions:log"
   },
   "dependencies": {
+    "@apple/app-store-server-library": "^3.1.0",
     "firebase-admin": "^12.3.1",
     "firebase-functions": "^5.0.1",
     "google-auth-library": "^9.15.1",
-    "libphonenumber-js": "^1.13.10"
+    "jsonwebtoken": "^9.0.3",
+    "libphonenumber-js": "^1.13.10",
+    "uuid": "^14.0.2"
   },
   "devDependencies": {
     "eslint": "^8.57.0"
