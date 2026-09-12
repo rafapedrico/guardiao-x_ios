@@ -1,13 +1,15 @@
-// Configuração manual do Firebase (equivalente ao que `flutterfire configure`
-// geraria automaticamente), montada a partir dos dados já presentes em
-// `android/app/google-services.json` (projeto "guardiaox"). Escrito à mão
-// porque o CLI do FlutterFire exige login interativo, indisponível neste
-// ambiente.
+// Configuração do Firebase para o projeto "guardiaox".
 //
-// Cobre APENAS Android, único alvo mobile real do projeto no momento — ver
-// [DefaultFirebaseOptions.currentPlatform]. Caso o app venha a rodar em
-// iOS/Web no futuro, rode `flutterfire configure` de verdade para gerar as
-// credenciais reais dessas plataformas (as daqui não servem para elas).
+// O bloco `android` foi escrito à mão originalmente (ver histórico do
+// repositório Android em `com.rmfglobal.guardiaox`/`alerta_de_seguranca`) e
+// é mantido aqui EXATAMENTE como estava — esta cópia iOS nunca modifica o
+// registro do app Android no Firebase Console, apenas reaproveita os
+// mesmos valores já existentes.
+//
+// O bloco `ios` foi gerado por `flutterfire configure --platforms=ios`
+// (2026-09-12), que registrou um app iOS NOVO e aditivo dentro do MESMO
+// projeto Firebase "guardiaox" (project number 555863351772) — nenhum app
+// Android existente foi alterado ou removido nesse processo.
 library firebase_options;
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
@@ -25,11 +27,13 @@ class DefaultFirebaseOptions {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
+      case TargetPlatform.iOS:
+        return ios;
       default:
         throw UnsupportedError(
-          'DefaultFirebaseOptions só foi configurado para Android neste '
-          'projeto. Rode `flutterfire configure` para adicionar suporte a '
-          '${defaultTargetPlatform.name}.',
+          'DefaultFirebaseOptions só foi configurado para Android e iOS '
+          'neste projeto. Rode `flutterfire configure` para adicionar '
+          'suporte a ${defaultTargetPlatform.name}.',
         );
     }
   }
@@ -52,5 +56,23 @@ class DefaultFirebaseOptions {
     messagingSenderId: '555863351772',
     projectId: 'guardiaox',
     storageBucket: 'guardiaox.firebasestorage.app',
+  );
+
+  /// App iOS registrado em 2026-09-12 via `flutterfire configure
+  /// --platforms=ios`, dentro do mesmo projeto Firebase "guardiaox" —
+  /// aditivo, não substitui nem reconfigura o app Android acima.
+  /// Bundle id `com.rmfglobal.guardiaox` (igual ao `applicationId`
+  /// Android). `iosClientId`/`androidClientId` vêm do mesmo Client OAuth
+  /// já usado pelo `google_sign_in` — necessário para o login social
+  /// Google funcionar também no iOS.
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyByn-vSLAMomrLE2KrOLCLdO5QqyNzZwbg',
+    appId: '1:555863351772:ios:9aa22f628e8209814def19',
+    messagingSenderId: '555863351772',
+    projectId: 'guardiaox',
+    storageBucket: 'guardiaox.firebasestorage.app',
+    androidClientId: '555863351772-0d6vepdg74rm4bqoqt2h30eobnjdcu2n.apps.googleusercontent.com',
+    iosClientId: '555863351772-r65lv7u2r0mq6n9ocedjoesafglrld27.apps.googleusercontent.com',
+    iosBundleId: 'com.rmfglobal.guardiaox',
   );
 }

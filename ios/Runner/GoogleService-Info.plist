@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>555863351772-r65lv7u2r0mq6n9ocedjoesafglrld27.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.555863351772-r65lv7u2r0mq6n9ocedjoesafglrld27</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>555863351772-0d6vepdg74rm4bqoqt2h30eobnjdcu2n.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyByn-vSLAMomrLE2KrOLCLdO5QqyNzZwbg</string>
+	<key>GCM_SENDER_ID</key>
+	<string>555863351772</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.rmfglobal.guardiaox</string>
+	<key>PROJECT_ID</key>
+	<string>guardiaox</string>
+	<key>STORAGE_BUCKET</key>
+	<string>guardiaox.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:555863351772:ios:9aa22f628e8209814def19</string>
+</dict>
+</plist>

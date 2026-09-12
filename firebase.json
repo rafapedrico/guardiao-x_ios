@@ -71,5 +71,17 @@
         "firebase-debug.*.log"
       ]
     }
-  ]
+  ],
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "guardiaox",
+          "configurations": {
+            "ios": "1:555863351772:ios:9aa22f628e8209814def19"
+          }
+        }
+      }
+    }
+  }
 }
