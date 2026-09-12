@@ -23,6 +23,18 @@ import 'package:flutter/services.dart';
 /// esquecer o `parar()` e deixar o Service preso (o teto de segurança de
 /// 60s no lado nativo cobre esse caso mesmo assim, mas não deve ser a
 /// única rede de proteção).
+///
+/// **iOS:** o canal `sos_dispatch` não tem (ainda) nenhum handler nativo
+/// registrado — [_iniciar]/[_parar] lançam `MissingPluginException`, já
+/// capturada e só logada como aviso (ver os try/catch abaixo), então
+/// [executarComServicoAtivo] continua executando [corpo] normalmente,
+/// só SEM a garantia real de "processo não vai ser morto no meio do
+/// envio". O iOS não tem um equivalente exato de Foreground Service
+/// para trabalho arbitrário em segundo plano — o mais próximo seria
+/// `UIApplication.beginBackgroundTask`/`BGTaskScheduler` (janela de
+/// poucos segundos, não uma garantia forte). Não implementado nesta
+/// fase por não ser um equivalente direto/seguro — ver seção 5 de
+/// `docs/migracao-ios-relatorio-2026-09-12.md`.
 class SosDispatchNativeService {
   SosDispatchNativeService._internal();
   static final SosDispatchNativeService _instance = SosDispatchNativeService._internal();

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show File, Platform;
 
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -8,7 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
 
 import '../app_navigator.dart'; // <--- O IMPORT CORRETO AQUI
 import '../firebase_options.dart';
@@ -154,6 +158,7 @@ class NotificacaoService {
           l10n.notifCanalSolicitacaoMonitoramentoDescricao;
       _labelAcaoAceitarMonitoramento = l10n.notifMonitAcaoAceitar;
       _labelAcaoRecusarMonitoramento = l10n.notifMonitAcaoRecusar;
+      _labelAcaoPausarAlarme = l10n.notifPausarAlarmeAcao;
       canalAlertaEnviadoNome = l10n.notifCanalAlertaEnviadoNome;
       canalAlertaEnviadoDescricao = l10n.notifCanalAlertaEnviadoDescricao;
     } catch (e) {
@@ -173,6 +178,23 @@ class NotificacaoService {
   static const String acaoRecusarMonitoramentoId = 'recusar_monitoramento';
   static String _labelAcaoAceitarMonitoramento = 'Aceitar';
   static String _labelAcaoRecusarMonitoramento = 'Recusar';
+
+  /// Label da ação "pausar_alarme" (ver [exibirNotificacaoAlarmeCompleto])
+  /// — no Android é passado direto por [AndroidNotificationAction] a cada
+  /// chamada de `show`; no iOS precisa estar pré-registrado como
+  /// [DarwinNotificationCategory] em [inicializar] (categorias do iOS são
+  /// fixas, definidas uma única vez, ao contrário das ações do Android),
+  /// por isso carregado aqui como campo estático junto com os demais.
+  static String _labelAcaoPausarAlarme = 'Pausar';
+
+  /// Ids das categorias de notificação do iOS ([DarwinNotificationCategory])
+  /// — equivalente ao "canal" do Android só no sentido de agrupar as
+  /// ações disponíveis; sem efeito em som/vibração (isso o iOS resolve só
+  /// pela [DarwinNotificationDetails.interruptionLevel] de cada notificação
+  /// individual, ver cada `exibirNotificacao*` abaixo).
+  static const String _categoriaIosAlarmeCompleto = 'alarme_completo';
+  static const String _categoriaIosSolicitacaoMonitoramento =
+      'solicitacao_monitoramento';
 
   static bool _inicializado = false;
 
@@ -210,8 +232,40 @@ class NotificacaoService {
   /// guardado até um login de verdade acontecer.
   static Map<String, dynamic>? payloadAlertaRecebidoPendente;
 
+  /// Id do alarme de rotina (`idAlarme`, ver [exibirNotificacaoCheckin]/
+  /// [agendarLembretesCheckinRotinaIOS]) cuja notificação de check-in foi
+  /// tocada num COLD START (app 100% fechado) — capturado em
+  /// [inicializar] via `getNotificationAppLaunchDetails()`.
+  ///
+  /// ACHADO NA AUDITORIA PÓS-FASE 4 (2026-09-12): sem isto, o toque a
+  /// frio nessa notificação nunca era tratado — nem no Android nem no
+  /// iOS — porque [_capturarPayloadSolicitacaoPendente] só reconhecia
+  /// payloads JSON (`{...}`), e o payload do check-in é só o
+  /// `idAlarme` cru (ou `alarme_<idAlarme>`, ver [_processarResposta]).
+  /// No Android isso raramente importava (o caminho PRINCIPAL desse
+  /// cold start é a `RotinaCheckinAlarmActivity` NATIVA, aberta
+  /// diretamente pelo `RotinaAlarmWakeService`, sem passar por aqui) —
+  /// mas no iOS, sem Activity nativa nenhuma, o toque nesta notificação
+  /// é o ÚNICO caminho para o cold start, então o gap ficava muito mais
+  /// exposto. Mesma política de [payloadAlertaRecebidoPendente]: pula a
+  /// barreira de login (o PIN de confirmação é 100% local/SQLite, sem
+  /// depender de sessão) — consumido em `main.dart`.
+  static int? idAlarmeCheckinPendente;
+
   static void _capturarPayloadSolicitacaoPendente(String? payload, {String? actionId}) {
-    if (payload == null || !payload.startsWith('{')) return;
+    if (payload == null) return;
+
+    if (!payload.startsWith('{')) {
+      // Payload numérico (check-in) ou 'alarme_<id>' (janela final/alarme
+      // completo) — mesmo parsing já usado por [_processarResposta].
+      final idAlarme = int.tryParse(
+          payload.startsWith('alarme_') ? payload.replaceFirst('alarme_', '') : payload);
+      if (idAlarme != null) {
+        idAlarmeCheckinPendente = idAlarme;
+      }
+      return;
+    }
+
     try {
       final dados = jsonDecode(payload) as Map<String, dynamic>;
       if (dados['tipo'] == 'monitoramento_push' &&
@@ -235,6 +289,15 @@ class NotificacaoService {
       debugPrint(
           '⚠️ [NotificacaoService] Falha ao decodificar payload de lançamento: $e');
     }
+  }
+
+  /// Lê e limpa o [idAlarmeCheckinPendente] — chamado por `main.dart`
+  /// junto com [consumirPayloadAlertaRecebidoPendente]. Devolve `null`
+  /// no fluxo normal (cold start sem essa notificação envolvida).
+  static int? consumirIdAlarmeCheckinPendente() {
+    final id = idAlarmeCheckinPendente;
+    idAlarmeCheckinPendente = null;
+    return id;
   }
 
   /// Lê e limpa o payload pendente — chamado pela `LoginScreen` logo após
@@ -266,6 +329,15 @@ class NotificacaoService {
   /// para resgatar os extras de um COLD START; `'solicitacaoRecebida'` é
   /// invocado NATIVO->DART quando o Intent chega com o engine já rodando
   /// (app em primeiro/segundo plano, via `onNewIntent`).
+  ///
+  /// **iOS:** sem handler nativo registrado — `invokeMapMethod` (chamado
+  /// em [inicializar]) lança, já capturado e só logado como aviso;
+  /// `setMethodCallHandler` (Dart escutando o nativo) simplesmente nunca
+  /// é acionado, também sem risco. Nenhuma perda funcional real: este
+  /// canal é só um ATALHO Android para "acordar a tela mais rápido" — o
+  /// caminho PRINCIPAL e 100% cross-platform (`FirebaseMessaging.onMessage`/
+  /// `onBackgroundMessage` em `FcmService._tratarPushMonitoramento`) já
+  /// entrega a mesma solicitação de monitoramento no iOS normalmente.
   static const MethodChannel _canalSolicitacaoNativa =
       MethodChannel('com.example.security_check_app/solicitacao_monitoramento');
 
@@ -276,12 +348,32 @@ class NotificacaoService {
   /// notificação/toque/arraste). Usado por [exibirNotificacaoAlertaRecebido]
   /// (iniciar) e por `AlertaRecebidoScreen` (parar, ao abrir a tela ou
   /// tocar no link do mapa).
+  ///
+  /// **iOS:** sem handler nativo — [iniciarAlarmeCritico]/
+  /// [pararAlarmeCritico] já capturam a falha e só logam aviso (nunca
+  /// travam `AlertaRecebidoScreen`/a notificação de tela cheia). O único
+  /// efeito real da ausência: o som toca uma única vez (via
+  /// `DarwinNotificationDetails.interruptionLevel`, ver
+  /// [exibirNotificacaoAlertaRecebido]) em vez do loop contínuo em volume
+  /// máximo do Android — depende do entitlement de Critical Alerts
+  /// (pendente, seção 5/6 do relatório de migração) para ter um
+  /// equivalente real, não de reimplementar este canal em Swift.
   static const MethodChannel _canalAlertaRecebidoAlarme =
       MethodChannel('com.example.security_check_app/alerta_recebido_alarme');
 
   /// Canal dedicado a consultas nativas 100% silenciosas sem equivalente
   /// no `flutter_local_notifications`/`permission_handler` — ver
   /// [podeUsarTelaCheia] e `MainActivity.kt`.
+  ///
+  /// **iOS:** sem handler nativo — [podeUsarTelaCheia] já captura a
+  /// falha e retorna `true` por padrão (permissivo), mesmo valor que já
+  /// devolve em qualquer Android < 14. Não faz sentido registrar um
+  /// equivalente Swift: `USE_FULL_SCREEN_INTENT` é um conceito
+  /// exclusivamente Android (ver seção 3 do relatório de migração —
+  /// nenhuma notificação local pode abrir uma tela por cima do bloqueio
+  /// no iOS) — o card correspondente em `OnboardingScreen`/
+  /// `PermissoesStatusScreen` precisa ser revisto na fase de adaptação
+  /// de telas, não aqui.
   static const MethodChannel _canalPermissoesNativas =
       MethodChannel('com.example.security_check_app/permissoes_nativas');
 
@@ -397,7 +489,67 @@ class NotificacaoService {
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+
+    // Carrega os labels localizados ANTES de montar as categorias do iOS
+    // abaixo — diferente do Android (ação anexada a cada `show()`
+    // individual, sempre com o idioma atual), o iOS exige que as
+    // categorias/ações sejam registradas UMA vez aqui, em `initialize()`.
+    await _carregarNomesCanaisLocalizados();
+
+    final darwinSettings = DarwinInitializationSettings(
+      // `false` nos três: a permissão de notificação já é pedida pelo
+      // FcmService (`FirebaseMessaging.instance.requestPermission()`,
+      // MESMA API nativa do iOS por baixo — ver `main.dart`, chamado bem
+      // antes deste `inicializar()`). Pedir de novo aqui não mostraria um
+      // segundo diálogo (o iOS só perguntar uma vez por app), mas manter
+      // um único ponto de responsabilidade evita qualquer corrida de
+      // ordem entre os dois plugins no cold start.
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+      notificationCategories: [
+        DarwinNotificationCategory(
+          _categoriaIosAlarmeCompleto,
+          actions: [
+            // Sem `.foreground` nas opções — equivalente a
+            // `showsUserInterface: false` do Android: a ação roda sem
+            // trazer o app para frente (mesmo padrão do lado Android).
+            DarwinNotificationAction.plain(
+              'pausar_alarme',
+              _labelAcaoPausarAlarme,
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          _categoriaIosSolicitacaoMonitoramento,
+          actions: [
+            // `foreground: true` (via a opção abaixo) — equivalente ao
+            // `showsUserInterface: true` do Android: a barreira de login
+            // (ver política de segurança em `main.dart`) precisa continuar
+            // valendo mesmo decidindo direto pela notificação, então
+            // qualquer uma das duas ações sempre abre o app.
+            DarwinNotificationAction.plain(
+              acaoAceitarMonitoramentoId,
+              _labelAcaoAceitarMonitoramento,
+              options: {DarwinNotificationActionOption.foreground},
+            ),
+            DarwinNotificationAction.plain(
+              acaoRecusarMonitoramentoId,
+              _labelAcaoRecusarMonitoramento,
+              options: {
+                DarwinNotificationActionOption.foreground,
+                DarwinNotificationActionOption.destructive,
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: darwinSettings,
+    );
 
     await _plugin.initialize(
       initSettings,
@@ -610,6 +762,16 @@ class NotificacaoService {
           '⚠️ [NotificacaoService] Falha ao solicitar permissão de full-screen intent: $e');
     }
 
+    // Migração iOS (2026-09-12): banco de fusos horários exigido por
+    // `zonedSchedule` (ver [agendarLembretesCheckinRotinaIOS]) — carregado
+    // aqui, uma única vez, junto com o resto da inicialização. Barato e
+    // seguro chamar mesmo no Android, que nunca usa `zonedSchedule`.
+    try {
+      tzdata.initializeTimeZones();
+    } catch (e) {
+      debugPrint('⚠️ [NotificacaoService] Falha ao inicializar timezone: $e');
+    }
+
     _inicializado = true;
   }
 
@@ -716,7 +878,20 @@ class NotificacaoService {
       playSound: false,
     );
 
-    final details = NotificationDetails(android: androidDetails);
+    // iOS: sem `fullScreenIntent`/`ongoing` (não existem nessa plataforma
+    // — a Apple não permite notificação local abrir uma tela por cima do
+    // bloqueio, ver seção 5 de `docs/migracao-ios-relatorio-2026-09-12.md`).
+    // `.active` é o nível de interrupção "normal" (banner + som padrão,
+    // sem furar o Silencioso) — mesmo padrão sem som customizado do lado
+    // Android (`playSound: false` acima só desliga o som PADRÃO do
+    // sistema; o alarme sonoro do app já é outro player, independente
+    // disto nas duas plataformas).
+    const darwinDetails = DarwinNotificationDetails(
+      presentSound: false,
+      interruptionLevel: InterruptionLevel.active,
+    );
+
+    final details = NotificationDetails(android: androidDetails, iOS: darwinDetails);
     final l10n = await L10nHeadlessService.obter();
 
     await _plugin.show(
@@ -758,7 +933,19 @@ class NotificacaoService {
       ],
     );
 
-    final details = NotificationDetails(android: androidDetails);
+    // iOS: `.timeSensitive` é o nível máximo de interrupção disponível
+    // SEM o entitlement especial de Critical Alerts (que a Apple concede
+    // manualmente mediante justificativa — ver seção 5/6 do relatório de
+    // migração) — furar o modo Silencioso/Foco por completo, como o
+    // Android faz aqui via `AudioAttributesUsage.alarm`, só é possível
+    // com esse entitlement. `categoryIdentifier` liga esta notificação à
+    // categoria com a ação "pausar_alarme" registrada em [inicializar].
+    const darwinDetails = DarwinNotificationDetails(
+      categoryIdentifier: _categoriaIosAlarmeCompleto,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    final details = NotificationDetails(android: androidDetails, iOS: darwinDetails);
 
     await _plugin.show(
       idAlarme + 10000, // ID diferente para não conflitar com a notificação normal
@@ -876,7 +1063,43 @@ class NotificacaoService {
           : null,
     );
 
-    final details = NotificationDetails(android: androidDetails);
+    // iOS — canal PRINCIPAL do fluxo de emergência no iOS (decisão de
+    // produto 2026-09-12: sem SMS, 100% Push com foto e localização em
+    // tempo real, ver nota de migração em `emergency_alert_service.dart`).
+    // `.timeSensitive` é o nível máximo de interrupção sem o entitlement
+    // de Critical Alerts (não solicitado ainda — ver seção 5/6 do
+    // relatório de migração); com ele, bastaria trocar para `.critical`
+    // aqui para furar o Silencioso/Foco como o Android faz via
+    // `audioAttributesUsage: alarm`/`FLAG_INSISTENT` acima — o iOS não
+    // repete o som em loop (`FLAG_INSISTENT` não tem equivalente), toca
+    // uma vez só, então o "Despertador de Emergência" contínuo também
+    // depende dessa mesma decisão de produto pendente.
+    //
+    // A foto (já baixada em [fotoBytes] acima, best-effort) é anexada via
+    // [DarwinNotificationAttachment] — diferente do Android
+    // (`ByteArrayAndroidBitmap` aceita os bytes direto), o iOS exige um
+    // arquivo em disco; escrito no diretório temporário do app, nunca
+    // bloqueia a notificação em caso de falha (mesmo padrão best-effort
+    // do download acima).
+    DarwinNotificationAttachment? anexoFotoIos;
+    if (fotoBytes != null) {
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final arquivoTemp = File(
+            '${tempDir.path}/alerta_recebido_${idEntrega.hashCode.abs()}.jpg');
+        await arquivoTemp.writeAsBytes(fotoBytes, flush: true);
+        anexoFotoIos = DarwinNotificationAttachment(arquivoTemp.path);
+      } catch (e) {
+        debugPrint('⚠️ [NotificacaoService] Falha ao preparar anexo de foto (iOS): $e');
+      }
+    }
+
+    final darwinDetails = DarwinNotificationDetails(
+      interruptionLevel: InterruptionLevel.timeSensitive,
+      attachments: anexoFotoIos != null ? [anexoFotoIos] : null,
+    );
+
+    final details = NotificationDetails(android: androidDetails, iOS: darwinDetails);
 
     final payload = jsonEncode({
       'tipo': 'alerta_recebido',
@@ -930,6 +1153,16 @@ class NotificacaoService {
     // em outros callbacks headless deste app, ver
     // `RotinaAlarmeService`/`RetryUploadService`), então funciona de
     // forma confiável não importa o estado do app.
+    //
+    // iOS: `android_alarm_manager_plus` não tem NENHUMA implementação
+    // nessa plataforma — a chamada abaixo lança (`MissingPluginException`
+    // ou equivalente), já capturada pelo try/catch existente e só
+    // logada como aviso; nunca propaga nem derruba o restante do método.
+    // Sem este teto de segurança no iOS, a notificação permanece até o
+    // usuário interagir com ela manualmente (sem o loop sonoro contínuo
+    // do Android para justificar um timeout automático de qualquer
+    // forma, ver `interruptionLevel`/`DarwinNotificationAttachment`
+    // acima — o iOS toca o som uma única vez).
     try {
       await AndroidAlarmManager.oneShot(
         _tempoMaximoAlarmeRecebido,
@@ -1118,7 +1351,20 @@ class NotificacaoService {
             autoCancel: true,
           );
 
-    final details = NotificationDetails(android: androidDetails);
+    // iOS: só a SOLICITAÇÃO (que exige decisão) ganha `.timeSensitive` +
+    // a categoria com as ações [Aceitar]/[Recusar] registradas em
+    // [inicializar]; as respostas informativas usam `.active` normal,
+    // sem categoria (sem ações, mesmo padrão do canal Android acima).
+    final darwinDetails = ehSolicitacao
+        ? const DarwinNotificationDetails(
+            categoryIdentifier: _categoriaIosSolicitacaoMonitoramento,
+            interruptionLevel: InterruptionLevel.timeSensitive,
+          )
+        : const DarwinNotificationDetails(
+            interruptionLevel: InterruptionLevel.active,
+          );
+
+    final details = NotificationDetails(android: androidDetails, iOS: darwinDetails);
     final payload = jsonEncode({
       'tipo': 'monitoramento_push',
       'subTipo': tipo,
@@ -1166,7 +1412,14 @@ class NotificacaoService {
       playSound: false,
     );
 
-    final details = NotificationDetails(android: androidDetails);
+    // iOS: `.passive` — só aparece na Central de Notificações, sem
+    // banner/som, equivalente à `Importance.low` sem som do Android.
+    const darwinDetails = DarwinNotificationDetails(
+      presentSound: false,
+      interruptionLevel: InterruptionLevel.passive,
+    );
+
+    final details = NotificationDetails(android: androidDetails, iOS: darwinDetails);
 
     await _plugin.show(
       // Id fixo e estável: não há necessidade de múltiplas notificações
@@ -1185,6 +1438,202 @@ class NotificacaoService {
   static Future<void> cancelarNotificacaoCheckin(int idAlarme) async {
     await inicializar();
     await _plugin.cancel(idAlarme);
+    // Migração iOS: limpa também os lembretes agendados via
+    // [agendarLembretesCheckinRotinaIOS] — no-op completo no Android.
+    // Reaproveitando este único método existente, TODO call site já
+    // existente em `RotinaAlarmeService` (cancelarAlarme/pausarAlarme/
+    // pausarAlarmePorHoje/confirmarCheckinRotina, todos já chamam
+    // [cancelarNotificacaoCheckin]) ganha a limpeza no iOS de graça, sem
+    // precisar de nenhuma chamada nova nesses lugares.
+    await cancelarLembretesCheckinRotinaIOS(idAlarme);
+  }
+
+  static int _idCheckinUnicoIOS(int idAlarme) => 300000 + idAlarme;
+  static int _idJanelaFinalUnicoIOS(int idAlarme) => 400000 + idAlarme;
+  static int _idCheckinRecorrenteIOS(int idAlarme, int dia) =>
+      100000 + idAlarme * 10 + dia;
+  static int _idJanelaFinalRecorrenteIOS(int idAlarme, int dia) =>
+      200000 + idAlarme * 10 + dia;
+
+  /// Próxima ocorrência (podendo ser hoje, se o horário ainda não tiver
+  /// passado) do [diaSemana] informado (1=segunda...7=domingo, mesmo
+  /// padrão de `DateTime.weekday`) às [hora]:[minuto] — mesmo algoritmo
+  /// de `RotinaAlarmeService._calcularProximoDisparo`, só que para um
+  /// único dia por vez (aqui cada dia da semana selecionado ganha seu
+  /// próprio lembrete RECORRENTE, ver [agendarLembretesCheckinRotinaIOS]).
+  static DateTime _proximaOcorrenciaSemanalIOS(
+      int diaSemana, int hora, int minuto) {
+    final agora = DateTime.now();
+    for (int offset = 0; offset < 8; offset++) {
+      final candidatoData = agora.add(Duration(days: offset));
+      if (candidatoData.weekday != diaSemana) continue;
+      final candidato = DateTime(
+          candidatoData.year, candidatoData.month, candidatoData.day, hora, minuto);
+      if (candidato.isAfter(agora)) return candidato;
+    }
+    // Defensivo — 8 dias sempre cobre uma semana inteira, nunca deveria
+    // chegar aqui de verdade.
+    return DateTime(agora.year, agora.month, agora.day, hora, minuto)
+        .add(const Duration(days: 7));
+  }
+
+  /// MIGRAÇÃO iOS (decisão de produto, 2026-09-12): substitui, SÓ no iOS,
+  /// o papel do `android_alarm_manager_plus` (sem implementação nessa
+  /// plataforma) para o alarme de rotina — ver
+  /// `RotinaAlarmeService.agendarAlarme`. No Android, é um no-op
+  /// completo (`Platform.isIOS` logo no início) — o fluxo Android
+  /// continua 100% no `android_alarm_manager_plus`, sem nenhuma alteração
+  /// de comportamento.
+  ///
+  /// Agenda dois LEMBRETES locais por dia da semana selecionado
+  /// ([diasSemanaCsv], mesmo formato CSV do SQLite): o check-in no
+  /// horário exato e um aviso de "última chance" ao expirar a
+  /// tolerância. Usa `matchDateTimeComponents: DateTimeComponents.
+  /// dayOfWeekAndTime` — uma notificação RECORRENTE semanal nativa do
+  /// iOS, que nunca precisa de nenhum código Dart rodando em segundo
+  /// plano para se re-agendar (ao contrário do Android, que rechama
+  /// [RotinaAlarmeService.agendarAlarme] a cada disparo do callback
+  /// headless) — o próprio SO repete a notificação todo dia da semana
+  /// escolhido, indefinidamente, até este alarme ser cancelado/editado.
+  ///
+  /// IMPORTANTE — o que este método NÃO faz: não dispara o alerta de
+  /// emergência sozinho se o usuário nunca interagir. Isso é papel
+  /// exclusivo da Cloud Function já implantada
+  /// `functions/scheduledAlarmMonitor.js` (alimentada por
+  /// [BackgroundLocationHeartbeatService], 100% Dart/Firestore, sem
+  /// nenhuma dependência deste método) — a garantia real de entrega no
+  /// iOS vem de lá, nunca de uma notificação local, que o SO pode até
+  /// suprimir/atrasar em cenários extremos (Modo Foco, armazenamento
+  /// cheio, etc.).
+  ///
+  /// Sem dia da semana válido em [diasSemanaCsv] (mesmo fallback de
+  /// `RotinaAlarmeService._calcularProximoDisparo`): agenda um único
+  /// lembrete não-recorrente para hoje, SE [hora]:[minuto] ainda não
+  /// tiver passado — nunca lança exceção, apenas não agenda nada nesse
+  /// caso (mesmo comportamento do Android).
+  static Future<void> agendarLembretesCheckinRotinaIOS({
+    required int idAlarme,
+    required String etiqueta,
+    required int hora,
+    required int minuto,
+    required String diasSemanaCsv,
+    required int minutosTolerancia,
+  }) async {
+    if (!Platform.isIOS) return;
+    await inicializar();
+    await cancelarLembretesCheckinRotinaIOS(idAlarme);
+
+    final l10n = await L10nHeadlessService.obter();
+    final String tituloCheckin = etiqueta.isNotEmpty ? etiqueta : l10n.familiaEtiquetaPadrao;
+    final String corpoCheckin = l10n.notifCheckinCorpo;
+    final String tituloJanelaFinal = l10n.notifAlarmeSegurancaTitulo;
+    final String corpoJanelaFinal = l10n.notifAlarmeSegurancaCorpo;
+
+    const darwinCheckin = DarwinNotificationDetails(
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+    // Sem `categoryIdentifier`/ação "pausar_alarme" aqui de propósito:
+    // esta é uma notificação NOVA, sem contrapartida direta no Android
+    // (lá, a janela final é 100% via a Activity nativa sobre o
+    // lockscreen, nunca uma notificação `flutter_local_notifications`) —
+    // um toque simplesmente abre o app na tela de confirmação, sem a
+    // ambiguidade de "pausar o alarme inteiro" numa notificação que
+    // representa a ÚLTIMA CHANCE.
+    const darwinJanelaFinal = DarwinNotificationDetails(
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    final Set<int> diasSemana = diasSemanaCsv
+        .split(',')
+        .map((s) => int.tryParse(s.trim()))
+        .whereType<int>()
+        .where((d) => d >= 1 && d <= 7)
+        .toSet();
+
+    if (diasSemana.isNotEmpty) {
+      for (final dia in diasSemana) {
+        final proximaOcorrencia = _proximaOcorrenciaSemanalIOS(dia, hora, minuto);
+        final janelaFinalMomento =
+            proximaOcorrencia.add(Duration(minutes: minutosTolerancia));
+        try {
+          await _plugin.zonedSchedule(
+            _idCheckinRecorrenteIOS(idAlarme, dia),
+            tituloCheckin,
+            corpoCheckin,
+            tz.TZDateTime.from(proximaOcorrencia.toUtc(), tz.UTC),
+            const NotificationDetails(iOS: darwinCheckin),
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+            payload: idAlarme.toString(),
+          );
+          await _plugin.zonedSchedule(
+            _idJanelaFinalRecorrenteIOS(idAlarme, dia),
+            tituloJanelaFinal,
+            corpoJanelaFinal,
+            tz.TZDateTime.from(janelaFinalMomento.toUtc(), tz.UTC),
+            const NotificationDetails(iOS: darwinJanelaFinal),
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+            payload: 'alarme_$idAlarme',
+          );
+        } catch (e) {
+          debugPrint('⚠️ [NotificacaoService] Falha ao agendar lembrete iOS '
+              '(dia $dia) do alarme #$idAlarme: $e');
+        }
+      }
+      return;
+    }
+
+    // Fallback sem dia da semana válido — mesmo comportamento do
+    // Android: só agenda se o horário de hoje ainda não tiver passado.
+    final agora = DateTime.now();
+    final candidato = DateTime(agora.year, agora.month, agora.day, hora, minuto);
+    if (candidato.isBefore(agora)) return;
+    final janelaFinalCandidato = candidato.add(Duration(minutes: minutosTolerancia));
+    try {
+      await _plugin.zonedSchedule(
+        _idCheckinUnicoIOS(idAlarme),
+        tituloCheckin,
+        corpoCheckin,
+        tz.TZDateTime.from(candidato.toUtc(), tz.UTC),
+        const NotificationDetails(iOS: darwinCheckin),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: idAlarme.toString(),
+      );
+      await _plugin.zonedSchedule(
+        _idJanelaFinalUnicoIOS(idAlarme),
+        tituloJanelaFinal,
+        corpoJanelaFinal,
+        tz.TZDateTime.from(janelaFinalCandidato.toUtc(), tz.UTC),
+        const NotificationDetails(iOS: darwinJanelaFinal),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: 'alarme_$idAlarme',
+      );
+    } catch (e) {
+      debugPrint('⚠️ [NotificacaoService] Falha ao agendar lembrete único '
+          'iOS do alarme #$idAlarme: $e');
+    }
+  }
+
+  /// Cancela TODOS os ids possíveis (recorrentes de 1-7 + os de
+  /// fallback único) agendados por [agendarLembretesCheckinRotinaIOS]
+  /// para [idAlarme] — sempre seguro/idempotente cancelar um id que
+  /// nunca existiu (no-op), então não precisa saber de antemão qual
+  /// variante (recorrente ou única) foi usada. No-op completo no
+  /// Android.
+  static Future<void> cancelarLembretesCheckinRotinaIOS(int idAlarme) async {
+    if (!Platform.isIOS) return;
+    try {
+      await _plugin.cancel(_idCheckinUnicoIOS(idAlarme));
+      await _plugin.cancel(_idJanelaFinalUnicoIOS(idAlarme));
+      for (int dia = 1; dia <= 7; dia++) {
+        await _plugin.cancel(_idCheckinRecorrenteIOS(idAlarme, dia));
+        await _plugin.cancel(_idJanelaFinalRecorrenteIOS(idAlarme, dia));
+      }
+    } catch (e) {
+      debugPrint('⚠️ [NotificacaoService] Falha ao cancelar lembretes iOS '
+          'do alarme #$idAlarme: $e');
+    }
   }
 
   /// Handler chamado quando o usuário interage com a notificação
@@ -1253,6 +1702,10 @@ class NotificacaoService {
               priority: Priority.low,
               ongoing: false,
               autoCancel: true,
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentSound: false,
+              interruptionLevel: InterruptionLevel.passive,
             ),
           ),
         );

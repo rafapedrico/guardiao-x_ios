@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
@@ -22,6 +24,18 @@ import '../utils/telefone_utils.dart';
 /// em segundo plano) — por isso NÃO depende de nenhum estado de widget
 /// (BuildContext, controllers, etc.), apenas de dados persistidos no
 /// SQLite e do próprio GPS do aparelho.
+///
+/// MIGRAÇÃO iOS (decisão de produto, 2026-09-12): tudo neste arquivo
+/// relacionado a SMS (`SmsManager`, [_canalSms], transliteração GSM-7
+/// etc.) é e continua sendo EXCLUSIVO do Android — a Apple não expõe
+/// nenhuma API pública para enviar SMS programaticamente. No iOS, o
+/// Guardião-X abandona esse canal por completo: o fluxo de emergência é
+/// 100% baseado em Push (FCM App-para-App, com foto e localização em
+/// tempo real — ver [SosDisparoService]/`FirebaseSyncService`). O ponto
+/// único de bifurcação por plataforma é [_enviarSms] — no Android,
+/// nada muda; no iOS, o método retorna sem enviar nada (o canal de Push
+/// já é disparado, de forma independente, pelo chamador). Ver seção 3
+/// de `docs/migracao-ios-relatorio-2026-09-12.md`.
 class EmergencyAlertService {
   EmergencyAlertService._internal();
   static final EmergencyAlertService _instance =
@@ -523,6 +537,35 @@ class EmergencyAlertService {
     List<Map<String, dynamic>> contatosEmergencia,
     String mensagem,
   ) async {
+    // MIGRAÇÃO iOS (decisão de produto, 2026-09-12): ponto ÚNICO de
+    // bifurcação por plataforma deste serviço — nenhuma outra linha
+    // deste arquivo precisa checar `Platform.isIOS`. A Apple não
+    // oferece nenhuma API pública de envio de SMS; no iOS, o fluxo de
+    // emergência passa a ser 100% Push (ver `SosDisparoService`, que já
+    // dispara o canal de nuvem em paralelo a esta chamada,
+    // independentemente do que acontece aqui dentro). Retornar aqui
+    // ANTES até da checagem do ciclo do Plano Free é intencional: como
+    // nada será enviado por este canal no iOS, não há nada a bloquear
+    // nem a logar sobre o ciclo — só o log de diagnóstico abaixo.
+    //
+    // Cenário aceito conscientemente pelo produto: no Android, o SMS
+    // servia como canal de garantia quando não havia sessão do Firebase
+    // Auth (ex: botão físico com o app frio e a tela bloqueada). No
+    // iOS, esse cenário específico já não existe por outro motivo — a
+    // Apple não permite o app abrir por cima da tela de bloqueio nem
+    // escutar o botão de volume em segundo plano (sem equivalente de
+    // VolumeSosService/LockscreenCameraActivity) — então, sem sessão
+    // ativa, nenhum alerta é enviado no iOS por nenhum canal. Nunca
+    // propagar exceção nem alterar o comportamento do Android abaixo.
+    if (Platform.isIOS) {
+      debugPrint('📵 [SMS] Canal de SMS desativado no iOS (decisão de '
+          'produto 2026-09-12) — o alerta segue exclusivamente pelo canal '
+          'de Push, disparado de forma independente pelo chamador '
+          '(SosDisparoService/FirebaseSyncService). Mensagem que seria '
+          'enviada por SMS no Android: $mensagem');
+      return;
+    }
+
     // TRAVA DO CICLO DO PLANO FREE (ver PlanoCicloService): ponto ÚNICO
     // de bloqueio do canal SMS — TODOS os fluxos de emergência deste
     // serviço (SOS físico/manual, tentativa de desarme incorreta, alerta
@@ -679,6 +722,11 @@ class EmergencyAlertService {
   /// lockscreen, ver política "Opção A" de `FirebaseAuthService`). Este
   /// método NUNCA é chamado diretamente por `main.dart`/
   /// `seguranca_tab.dart`, só por [SosDisparoService].
+  ///
+  /// **iOS:** todo este método continua rodando normalmente (localização,
+  /// histórico local, alerta fire-and-forget ao backend FastAPI) — só o
+  /// envio do SMS em si, no final ([_enviarSms]), é ignorado. Ver a nota
+  /// de migração no topo do arquivo.
   ///
   /// IMPORTANTE: a checagem/incremento do limite mensal de alertas do
   /// Plano Gratuito é feita UMA ÚNICA VEZ pelo chamador

@@ -23,6 +23,15 @@ import 'login_screen.dart';
 /// do usuário (com fluxo de PIN para desarmar); esta é somente
 /// informativa, mostrando quem disparou o alerta e a foto/localização
 /// recebida.
+///
+/// **Migração iOS (2026-09-12):** auditada e SEM nenhuma alteração
+/// necessária — todos os plugins usados aqui (`gal`, `share_plus`,
+/// `url_launcher`) já são cross-platform, e as duas únicas chamadas a
+/// canais nativos Android-only ([NotificacaoService.pararAlarmeCritico]/
+/// [NotificacaoService.cancelarNotificacaoAlertaRecebido]) já eram
+/// protegidas por try/catch antes desta migração — no iOS, elas só
+/// logam um aviso e seguem normalmente, nunca travam o fechamento da
+/// tela nem o cancelamento da notificação.
 class AlertaRecebidoScreen extends StatefulWidget {
   const AlertaRecebidoScreen({
     super.key,

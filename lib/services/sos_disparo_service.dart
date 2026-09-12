@@ -48,6 +48,30 @@ import 'sos_dispatch_native_service.dart';
 ///       para cima — implementados em `CameraCapturaScreen`, fora deste
 ///       serviço (são puramente locais, sem dependência de rede/nuvem).
 ///
+/// **MIGRAÇÃO iOS (decisão de produto, 2026-09-12):** a descrição acima
+/// (SMS + Push em paralelo) continua valendo INTEGRALMENTE para o
+/// Android. No iOS, o canal 1 (SMS) NUNCA dispara — a Apple não
+/// oferece nenhuma API pública de envio de SMS — e essa remoção é
+/// tratada num ponto único, dentro de
+/// [EmergencyAlertService._enviarSms] (ver a nota de migração no topo
+/// daquele arquivo), então nenhuma chamada deste serviço a
+/// [EmergencyAlertService] precisou mudar de assinatura. Na prática,
+/// no iOS:
+///   - P1: só o canal 2 (Push, via [_dispararLocalizacaoViaNuvem])
+///     realmente envia algo. Sem sessão do Firebase Auth ativa, P1 não
+///     envia NADA no iOS — aceito conscientemente pelo produto, já que
+///     o cenário "botão físico com o app frio/tela bloqueada" que
+///     justificava o SMS como canal de garantia no Android também não
+///     existe no iOS por outro motivo: a Apple não permite escutar o
+///     botão de volume em segundo plano nem abrir o app por cima da
+///     tela de bloqueio (sem equivalente de
+///     `VolumeSosService`/`LockscreenCameraActivity`).
+///   - P2: idem — só o canal 2 (Push com o link real da foto) envia
+///     algo; o fallback [_dispararFotoViaSmsFallback] (chamado só
+///     quando NÃO há sessão) também não envia nada no iOS.
+/// Nenhuma lógica de deduplicação/Foreground Service abaixo precisou
+/// mudar — ambas continuam idênticas nas duas plataformas.
+///
 /// DEDUPLICAÇÃO ENTRE OS DOIS ENGINES NATIVOS DO BOTÃO FÍSICO: um único
 /// aperto físico de Volume+ pode disparar SIMULTANEAMENTE dois
 /// `FlutterEngine`/`main()` diferentes no lado nativo Android (ver
