@@ -85,6 +85,13 @@ class _ConfiguracoesTabState extends State<ConfiguracoesTab> with WidgetsBinding
   // Global): número do som selecionado (1-10) e duração do toque em
   // segundos, carregados/persistidos via [AlarmeSonoroService].
   int _somSelecionado = AlarmeSonoroService.somPadrao;
+  // TODO(duração-do-alerta-sonoro): carregado/persistido (ver
+  // [_selecionarDuracaoSom] e o load em torno da linha 290), mas ainda
+  // sem controle de UI (Slider/Stepper) que o exponha ao usuário — só a
+  // seleção do SOM (_somSelecionado) chegou a ser conectada. Suprimido
+  // aqui de propósito (não é lixo, é feature em andamento) em vez de
+  // apagar o campo ou inventar uma UI sem contexto de design.
+  // ignore: unused_field
   int _duracaoSomSegundos = AlarmeSonoroService.duracaoPadraoSegundos;
   bool _carregandoAlarmeSonoro = true;
   int? _somTestandoAgora;
@@ -311,6 +318,9 @@ Future<void> _selecionarSom(int? numero) async {
   }
  
 
+  // TODO(duração-do-alerta-sonoro): pronto pra usar assim que houver um
+  // controle de UI que o chame (ver nota em _duracaoSomSegundos acima).
+  // ignore: unused_element
   Future<void> _selecionarDuracaoSom(int segundos) async {
     setState(() => _duracaoSomSegundos = segundos);
     await _alarmeSonoroService.salvarDuracaoSegundos(segundos);

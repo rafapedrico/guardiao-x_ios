@@ -45,14 +45,17 @@ jobs:
       - name: Install Dart/Flutter dependencies
         run: flutter pub get
 
-      # --no-fatal-warnings: o repo hoje tem alguns warnings pré-existentes
-      # de código morto (métodos/campos não usados) que não são erros de
-      # verdade e não travam a compilação — decisão deliberada (2026-09-13)
-      # para não bloquear o CI por lint debt que precisa de triagem manual
-      # (pode ser feature incompleta, não necessariamente lixo). Ajustar
-      # para --fatal-warnings depois de limpar esse débito.
+      # Warnings voltaram a ser fatais (2026-09-13): os 4 que motivaram o
+      # --no-fatal-warnings foram triados e resolvidos — 1 era código
+      # morto de verdade (removido, com prova em `git log -S`), 1 era um
+      # bug real de trava de clique duplo (corrigido) e 2 são uma feature
+      # incompleta (duração do alerta sonoro), suprimidos com
+      # `// ignore:` pontual e comentário explicando o motivo, em vez de
+      # apagar ou inventar UI. --no-fatal-infos continua: o repo tem um
+      # backlog grande de `deprecated_member_use` (withOpacity etc.) que é
+      # uma limpeza maior e separada, não bloqueante.
       - name: Static analysis (flutter analyze)
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: flutter analyze --no-fatal-infos
 
       - name: Run tests (flutter test)
         run: flutter test

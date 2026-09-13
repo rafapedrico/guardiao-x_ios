@@ -354,6 +354,13 @@ Future<void> _pausarAlarmePorHoje(AlarmeRotina alarme) async {
   }
 Future<void> _despausarAlarmeManual(AlarmeRotina alarme) async {
     if (alarme.id == null) return;
+    // Trava contra clique duplo/concorrência (campo já existia, mas nunca
+    // era lido/escrito — a função fazia update no SQLite, reagendava o
+    // alarme nativo, inseria histórico e sincronizava com o backend sem
+    // nenhuma proteção contra duas chamadas concorrentes, ex: usuário
+    // batendo duas vezes rápido no switch ou no "toque para reativar").
+    if (_processandoDespausa) return;
+    _processandoDespausa = true;
 
     // 1. Atualização visual instantânea no mesmo frame (sem delay)
     if (mounted) {
@@ -366,52 +373,56 @@ Future<void> _despausarAlarmeManual(AlarmeRotina alarme) async {
       });
     }
 
-    // 2. Atualiza o banco SQLite zerando a pausa e ativando o alarme
-    final dbInstancia = await _db.database;
-    await dbInstancia.update(
-      'alarmes_rotina',
-      {
-        'alarme_pausado': '0',
-        'ativo': 1,
-      },
-      where: 'id = ?',
-      whereArgs: [alarme.id],
-    );
-
-    // 3. Reagenda apenas o alarme nativo no Android (sem re-disparar o ciclo de alteração do banco)
-    final alarmeReativado = alarme.copyWith(pausado: false, ativo: true);
-    await RotinaAlarmeService.agendarAlarme(alarmeReativado.toMap());
-    // Ver [AlarmeAgendadoCloudService.sinalizarNovoCiclo] — mesmo motivo
-    // do toggle em [_alternarAtivo].
-    AlarmeAgendadoCloudService().sinalizarNovoCiclo(alarme.id!.toString());
-
-    // 4. Registra no histórico
-    if (mounted) {
-      final l10n = AppLocalizations.of(context)!;
-      final etiquetaEvento = alarme.etiquetaExibida(l10n);
-      await _db.inserirEventoHistorico(
-        titulo: l10n.historicoAlarmeReativadoTitulo,
-        descricao: l10n.historicoAlarmeReativadoDescricao(etiquetaEvento, alarme.horarioFormatado),
-        categoria: 'familia',
+    try {
+      // 2. Atualiza o banco SQLite zerando a pausa e ativando o alarme
+      final dbInstancia = await _db.database;
+      await dbInstancia.update(
+        'alarmes_rotina',
+        {
+          'alarme_pausado': '0',
+          'ativo': 1,
+        },
+        where: 'id = ?',
+        whereArgs: [alarme.id],
       );
-    }
 
-    // 5. Sincroniza em segundo plano
-    _sincronizarRotinaComBackend(alarmeReativado);
+      // 3. Reagenda apenas o alarme nativo no Android (sem re-disparar o ciclo de alteração do banco)
+      final alarmeReativado = alarme.copyWith(pausado: false, ativo: true);
+      await RotinaAlarmeService.agendarAlarme(alarmeReativado.toMap());
+      // Ver [AlarmeAgendadoCloudService.sinalizarNovoCiclo] — mesmo motivo
+      // do toggle em [_alternarAtivo].
+      AlarmeAgendadoCloudService().sinalizarNovoCiclo(alarme.id!.toString());
 
-    if (mounted) {
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.familiaReativadoComSucesso(
-              alarme.etiquetaExibida(l10n),
-              alarme.horarioFormatado,
+      // 4. Registra no histórico
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        final etiquetaEvento = alarme.etiquetaExibida(l10n);
+        await _db.inserirEventoHistorico(
+          titulo: l10n.historicoAlarmeReativadoTitulo,
+          descricao: l10n.historicoAlarmeReativadoDescricao(etiquetaEvento, alarme.horarioFormatado),
+          categoria: 'familia',
+        );
+      }
+
+      // 5. Sincroniza em segundo plano
+      _sincronizarRotinaComBackend(alarmeReativado);
+
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.familiaReativadoComSucesso(
+                alarme.etiquetaExibida(l10n),
+                alarme.horarioFormatado,
+              ),
             ),
+            duration: const Duration(seconds: 2),
           ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+        );
+      }
+    } finally {
+      _processandoDespausa = false;
     }
   }
 

@@ -909,27 +909,6 @@ class _SecurityCheckAppState extends State<SecurityCheckApp> {
     });
   }
 
-  Future<void> _cancelarAlarmeGlobal() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('stop_current_alarm', true);
-      await prefs.remove('alarme_disparando_no_momento');
-      _alarmeAtivoNotifier.value = false;
-
-      final alarmes = await DatabaseHelper().listarAlarmes();
-      if (alarmes.isNotEmpty) {
-        final idAlarme = alarmes.first['id'] as int?;
-        if (idAlarme != null) {
-          await RotinaAlarmeService.pausarAlarme(idAlarme);
-          debugPrint(
-              '⏹️ [GlobalButton] Alarme #$idAlarme silenciado com sucesso.');
-        }
-      }
-    } catch (e) {
-      debugPrint('⚠️ Erro ao cancelar alarme pelo botão global: $e');
-    }
-  }
-
   @override
   void dispose() {
     _alarmeAtivoNotifier.dispose();
