@@ -1,0 +1,60 @@
+name: iOS Build Validation
+
+# Este projeto Flutter vive na RAIZ do repositório (pubspec.yaml e ios/ estão
+# em ".", não em uma subpasta "dev/guardião-x_ios" dentro do próprio repo —
+# esse caminho é onde o repo mora na máquina local). Por isso os passos abaixo
+# não usam `working-directory`: o checkout já entrega o projeto no lugar certo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Analyze & Build iOS (no codesign)
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.9'
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Install Dart/Flutter dependencies
+        run: flutter pub get
+
+      - name: Static analysis (flutter analyze)
+        run: flutter analyze --no-fatal-infos
+
+      # Não há um ios/Podfile versionado neste repositório (ele não está no
+      # .gitignore, simplesmente ainda não foi gerado/commitado). O comando
+      # `flutter build ios` cria o Podfile a partir do template e roda o
+      # `pod install` internamente antes de compilar — por isso não há um
+      # passo separado de "pod install" aqui, ele rodaria antes do Podfile
+      # existir e falharia.
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Build iOS (release, no codesign)
+        run: flutter build ios --release --no-codesign
