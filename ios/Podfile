@@ -4,9 +4,16 @@
 # sem ele, o CocoaPods calcula o alvo do agregado "Pods" pelo MÍNIMO
 # declarado entre todas as dependências — e pods transitivos do Firebase
 # (ex: BoringSSL-GRPC, nanopb, gRPC-Core) ainda declaram iOS 9.0/10.0 como
-# mínimo em seus próprios podspecs. Combinado com toolchains recentes do
-# Xcode, isso quebra a compilação de arquivos assembly desses pods com
-# "unsupported option '-G' for target 'arm64-apple-iosX.0'".
+# mínimo em seus próprios podspecs.
+#
+# NOTA: isso sozinho NÃO resolve o "unsupported option '-G' for target
+# 'arm64-apple-iosX.0'" (confirmado no CI: o erro persistiu idêntico,
+# só trocando 10.0 por 15.0 no nome do target) — "-G" é uma flag GCC
+# obsoleta (small-data section, de toolchains embarcados antigos) que
+# algum pod transitivo injeta direto em OTHER_CFLAGS/afins, independente
+# do deployment target. A remoção real dessa flag está no post_install
+# abaixo. Mesmo assim vale manter a versão alta aqui: evita outros
+# avisos/erros de compatibilidade com o SDK atual do Firebase.
 platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
@@ -44,17 +51,42 @@ target 'Runner' do
   end
 end
 
+# Remove qualquer ocorrência da flag "-G" (e variantes coladas tipo "-G0",
+# "-G8") de uma configuração de build de flags de compilador/linker. Aceita
+# tanto Array (formato mais comum no Xcodeproj gerado pelo CocoaPods)
+# quanto String (alguns podspecs escrevem um valor único), para não deixar
+# passar nenhuma das duas representações.
+def remover_flag_g_obsoleta(valor)
+  return valor if valor.nil?
+
+  if valor.is_a?(Array)
+    valor.reject { |flag| flag =~ /\A-G\d*\z/ }
+  else
+    valor.to_s.split(/\s+/).reject { |flag| flag =~ /\A-G\d*\z/ }.join(' ')
+  end
+end
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
 
-    # Força o deployment target de TODOS os pods (inclusive dependências
-    # transitivas que o flutter_additional_ios_build_settings acima não
-    # sobe, por declararem a própria versão mínima abaixo de 13.0 — ver
-    # comentário no topo do arquivo). É o que efetivamente resolve o erro
-    # "-G ... arm64-apple-iosX.0" no CI.
     target.build_configurations.each do |config|
+      # Força o deployment target de TODOS os pods (inclusive
+      # dependências transitivas que o flutter_additional_ios_build_settings
+      # acima não sobe, por declararem a própria versão mínima abaixo de
+      # 13.0 — ver comentário no topo do arquivo).
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+
+      # Causa raiz real do "unsupported option '-G' for target
+      # 'arm64-apple-iosX.0'": algum pod transitivo do Firebase/gRPC
+      # (ex: abseil, BoringSSL-GRPC) ainda injeta a flag GCC obsoleta
+      # "-G" (small-data section, de toolchains embarcados antigos) em
+      # OTHER_CFLAGS/OTHER_CPLUSPLUSFLAGS/OTHER_LDFLAGS — o clang do
+      # Xcode moderno rejeita, não importa o deployment target.
+      ['OTHER_CFLAGS', 'OTHER_CPLUSPLUSFLAGS', 'OTHER_LDFLAGS'].each do |flag_key|
+        proximo_valor = remover_flag_g_obsoleta(config.build_settings[flag_key])
+        config.build_settings[flag_key] = proximo_valor unless proximo_valor.nil?
+      end
     end
   end
 end
