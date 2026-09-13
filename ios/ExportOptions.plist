@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Distribuição Ad Hoc: gera um .ipa instalável direto nos
+	     dispositivos cadastrados no profile "GuardiaoX_AdHoc_CI" (ver
+	     ios-release.yml e o guia de assinatura), sem passar pela App
+	     Store/TestFlight. Trocar para "app-store" quando migrarmos para
+	     distribuição via TestFlight. -->
+	<key>method</key>
+	<string>ad-hoc</string>
+
+	<!-- signingStyle manual + o mapeamento explícito abaixo: o Team ID
+	     não precisa aparecer aqui — o Xcode resolve pelo profile em si
+	     (instalado no runner pelo workflow a partir do secret
+	     IOS_PROVISION_PROFILE_BASE64). Nem bundle id nem nome de profile
+	     são informação sensível. -->
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.rmfglobal.guardiaox</key>
+		<string>GuardiaoX_AdHoc_CI</string>
+	</dict>
+
+	<key>compileBitcode</key>
+	<false/>
+	<key>stripSwiftSymbols</key>
+	<true/>
+</dict>
+</plist>

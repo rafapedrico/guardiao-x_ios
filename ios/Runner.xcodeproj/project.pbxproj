@@ -584,6 +584,19 @@
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
+				// Assinatura manual pro build de release/.ipa (pipeline
+				// ios-release.yml, disparado por tag). DEVELOPMENT_TEAM lê da
+				// variável de ambiente APPLE_TEAM_ID (setada no workflow a
+				// partir do secret do GitHub) — de propósito, pra não cravar o
+				// Team ID no código-fonte. PROVISIONING_PROFILE_SPECIFIER
+				// precisa bater com o NOME do profile Ad Hoc criado no portal
+				// da Apple (ver instruções — nomeado "GuardiaoX_AdHoc_CI"; se
+				// usar outro nome, ajuste aqui também). Debug/Profile
+				// continuam Automatic — só afeta o build de Release.
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				PROVISIONING_PROFILE_SPECIFIER = GuardiaoX_AdHoc_CI;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

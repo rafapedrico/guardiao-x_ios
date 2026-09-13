@@ -1,0 +1,125 @@
+name: iOS Signed Release (.ipa)
+
+# Gera um .ipa assinado (distribuição Ad Hoc) e disparado automaticamente
+# ao dar push numa tag de versão (ex: v1.0.1). Separado do
+# ios-build.yml (que roda em todo push/PR e valida analyze/test/build
+# sem assinatura) de propósito — este aqui produz um artefato real de
+# distribuição e depende de secrets/certificados, então só deve rodar em
+# releases intencionais via tag, nunca em todo commit.
+#
+# PRÉ-REQUISITOS (ver guia de assinatura):
+#   1. Apple Distribution Certificate + Provisioning Profile Ad Hoc
+#      nomeado exatamente "GuardiaoX_AdHoc_CI" (bate com
+#      PROVISIONING_PROFILE_SPECIFIER no project.pbxproj e com
+#      ios/ExportOptions.plist).
+#   2. App ID com.rmfglobal.guardiaox com Push Notifications e Sign in
+#      with Apple habilitados no portal.
+#   3. Secrets no repositório (Settings > Secrets and variables >
+#      Actions): IOS_DIST_CERT_P12_BASE64, IOS_DIST_CERT_PASSWORD,
+#      IOS_PROVISION_PROFILE_BASE64, KEYCHAIN_PASSWORD, APPLE_TEAM_ID.
+#
+# Como disparar: git tag v1.0.1 && git push origin v1.0.1
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ios-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Build & sign .ipa (Ad Hoc)
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.9'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dart/Flutter dependencies
+        run: flutter pub get
+
+      # Mesmas checagens do ios-build.yml, repetidas aqui de propósito:
+      # uma tag pode ser criada a partir de qualquer branch/commit, não
+      # necessariamente um que já passou pelo CI principal — não queremos
+      # gerar (e gastar tempo assinando) um .ipa de código quebrado.
+      - name: Static analysis (flutter analyze)
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests (flutter test)
+        run: flutter test
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Versão derivada da tag: $VERSION"
+
+      # Decodifica o certificado (.p12) e o provisioning profile dos
+      # secrets, cria um keychain temporário isolado só para este job
+      # (destruído junto com o runner ao final), importa o certificado
+      # nele, e instala o profile onde o Xcode espera encontrá-lo.
+      - name: Install Apple certificate and provisioning profile
+        env:
+          IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          CERT_PATH="$RUNNER_TEMP/dist_cert.p12"
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+
+          echo -n "$IOS_DIST_CERT_P12_BASE64" | base64 --decode -o "$CERT_PATH"
+          echo -n "$IOS_PROVISION_PROFILE_BASE64" | base64 --decode -o "$PROFILE_PATH"
+
+          # Keychain temporário e isolado (não mexe no keychain padrão do
+          # runner) — evita colisão de senha/estado entre execuções.
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import "$CERT_PATH" -P "$IOS_DIST_CERT_PASSWORD" -A \
+            -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+
+          # Torna o keychain visível pro xcodebuild (soma à lista de
+          # busca em vez de substituir) e libera o uso da chave privada
+          # sem prompt interativo (impossível em CI headless).
+          security list-keychain -d user -s "$KEYCHAIN_PATH" \
+            $(security list-keychains -d user | sed 's/"//g')
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          mkdir -p ~/Library/MobileDevice/"Provisioning Profiles"
+          cp "$PROFILE_PATH" \
+            ~/Library/MobileDevice/"Provisioning Profiles/GuardiaoX_AdHoc_CI.mobileprovision"
+
+      - name: Build signed .ipa
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          flutter build ipa --release \
+            --build-name="${{ steps.version.outputs.version }}" \
+            --build-number="${{ github.run_number }}" \
+            --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardiao-x-${{ steps.version.outputs.version }}
+          path: build/ios/ipa/*.ipa
+          retention-days: 30

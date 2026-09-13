@@ -8,5 +8,18 @@
 	     Xcode trocar automaticamente ao usar um perfil de distribuição). -->
 	<key>aps-environment</key>
 	<string>development</string>
+
+	<!-- Faltava: o app usa sign_in_with_apple (pubspec.yaml) mas essa
+	     capability nunca foi declarada aqui. Não dava problema nos builds
+	     sem assinatura (flag no_codesign do flutter build) porque
+	     entitlements não são checados sem assinatura real — mas num .ipa
+	     assinado de verdade isso quebraria o Sign in with Apple em
+	     runtime. Adicionado em 2026-09-13 ao preparar o pipeline de
+	     assinatura/release. Precisa também estar habilitado como
+	     capability no App ID no portal da Apple Developer. -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>
