@@ -7,13 +7,19 @@
 # mínimo em seus próprios podspecs.
 #
 # NOTA: isso sozinho NÃO resolve o "unsupported option '-G' for target
-# 'arm64-apple-iosX.0'" (confirmado no CI: o erro persistiu idêntico,
-# só trocando 10.0 por 15.0 no nome do target) — "-G" é uma flag GCC
-# obsoleta (small-data section, de toolchains embarcados antigos) que
-# algum pod transitivo injeta direto em OTHER_CFLAGS/afins, independente
-# do deployment target. A remoção real dessa flag está no post_install
-# abaixo. Mesmo assim vale manter a versão alta aqui: evita outros
-# avisos/erros de compatibilidade com o SDK atual do Firebase.
+# 'arm64-apple-iosX.0'" (confirmado no CI: o erro persistiu idêntico, só
+# trocando 10.0 por 15.0 no nome do target). Causa raiz REAL, confirmada
+# lendo o log bruto do xcodebuild (2026-09-13, ver job de diagnóstico no
+# workflow): bug no podspec do pod BoringSSL-GRPC — ele quis setar a
+# build setting `GCC_WARN_INHIBIT_ALL_WARNINGS = YES`, mas colou ela
+# dentro de OTHER_CFLAGS como se fosse uma flag de linha de comando, com
+# um "-" na frente ("-GCC_WARN_INHIBIT_ALL_WARNINGS"). O clang reconhece
+# o prefixo "-G" (do antigo "-G<num>" de toolchains embarcados) e rejeita
+# o resto do token — por isso o erro mostra só "-G", nunca o nome
+# completo. A remoção real está no post_install abaixo (ver
+# remover_flag_g_obsoleta). Mesmo assim vale manter a versão alta aqui:
+# evita outros avisos/erros de compatibilidade com o SDK atual do
+# Firebase.
 platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
@@ -51,18 +57,29 @@ target 'Runner' do
   end
 end
 
-# Remove qualquer ocorrência da flag "-G" (e variantes coladas tipo "-G0",
-# "-G8") de uma configuração de build de flags de compilador/linker. Aceita
-# tanto Array (formato mais comum no Xcodeproj gerado pelo CocoaPods)
-# quanto String (alguns podspecs escrevem um valor único), para não deixar
-# passar nenhuma das duas representações.
+# Remove qualquer flag de compilador que comece com "-G" (formato "-G",
+# "-G0"/"-G8", ou colada com o nome de uma build setting, ex:
+# "-GCC_WARN_INHIBIT_ALL_WARNINGS"). Essa última é a causa raiz REAL e
+# confirmada (log bruto do xcodebuild, 2026-09-13) do "unsupported option
+# '-G' for target 'arm64-apple-iosX.0'": o podspec do pod BoringSSL-GRPC
+# (dependência do gRPC/Firestore/Functions) tem um bug — quis setar a
+# build setting `GCC_WARN_INHIBIT_ALL_WARNINGS = YES`, mas colou ela como
+# se fosse uma flag de linha de comando dentro de OTHER_CFLAGS, com um "-"
+# na frente. O clang reconhece o prefixo "-G" (do antigo "-G<num>" de
+# toolchains embarcados) e rejeita o resto do token — por isso o erro
+# mostra só "-G", nunca o nome completo. A primeira tentativa de filtro
+# aqui (regex \A-G\d*\z, só "-G" ou "-G" + dígitos) não pegava esse caso
+# por ser letras/underscore, não dígitos — daí o erro persistir idêntico
+# depois do primeiro fix. Aceita tanto Array (formato mais comum no
+# Xcodeproj gerado pelo CocoaPods) quanto String (alguns podspecs
+# escrevem um valor único).
 def remover_flag_g_obsoleta(valor)
   return valor if valor.nil?
 
   if valor.is_a?(Array)
-    valor.reject { |flag| flag =~ /\A-G\d*\z/ }
+    valor.reject { |flag| flag =~ /\A-G\w*\z/ }
   else
-    valor.to_s.split(/\s+/).reject { |flag| flag =~ /\A-G\d*\z/ }.join(' ')
+    valor.to_s.split(/\s+/).reject { |flag| flag =~ /\A-G\w*\z/ }.join(' ')
   end
 end
 
@@ -77,25 +94,22 @@ post_install do |installer|
       # 13.0 — ver comentário no topo do arquivo).
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
 
-      # Causa raiz real do "unsupported option '-G' for target
-      # 'arm64-apple-iosX.0'": algum pod transitivo do Firebase/gRPC
-      # (ex: abseil, BoringSSL-GRPC) ainda injeta a flag GCC obsoleta
-      # "-G" (small-data section, de toolchains embarcados antigos) em
-      # OTHER_CFLAGS/OTHER_CPLUSPLUSFLAGS/OTHER_LDFLAGS — o clang do
-      # Xcode moderno rejeita, não importa o deployment target.
+      # Causa raiz real e confirmada do "unsupported option '-G' for
+      # target 'arm64-apple-iosX.0'": bug no podspec do BoringSSL-GRPC,
+      # que injeta "-GCC_WARN_INHIBIT_ALL_WARNINGS" em OTHER_CFLAGS (ver
+      # comentário completo no topo do arquivo e em
+      # remover_flag_g_obsoleta).
       ['OTHER_CFLAGS', 'OTHER_CPLUSPLUSFLAGS', 'OTHER_LDFLAGS'].each do |flag_key|
         proximo_valor = remover_flag_g_obsoleta(config.build_settings[flag_key])
         config.build_settings[flag_key] = proximo_valor unless proximo_valor.nil?
       end
     end
 
-    # A primeira tentativa (só OTHER_CFLAGS/afins no nível do target) não
-    # bastou — o erro persistiu idêntico. Motivo: alguns podspecs aplicam
-    # "-G" como flag DE ARQUIVO individual (COMPILER_FLAGS por
-    # PBXBuildFile, via `compiler_flags`/`source_files` no .podspec), que
-    # é uma configuração separada de OTHER_CFLAGS do target e não é
-    # tocada pelo loop acima. Varre TODAS as build phases de TODO pod
-    # (compile sources, headers, etc.) e limpa a flag em cada arquivo.
+    # Camada extra de segurança (não é a causa confirmada, mas é grátis e
+    # cobre o caso — não confirmado neste projeto — de algum pod aplicar
+    # "-G..." como flag DE ARQUIVO individual, via COMPILER_FLAGS em
+    # PBXBuildFile, que é uma configuração separada de OTHER_CFLAGS do
+    # target e não seria tocada pelo loop acima).
     target.build_phases.each do |phase|
       next unless phase.respond_to?(:files)
 
