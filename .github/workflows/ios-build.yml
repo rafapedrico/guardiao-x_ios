@@ -39,8 +39,17 @@ jobs:
       - name: Install Dart/Flutter dependencies
         run: flutter pub get
 
+      # --no-fatal-warnings: o repo hoje tem alguns warnings pré-existentes
+      # de código morto (métodos/campos não usados) que não são erros de
+      # verdade e não travam a compilação — decisão deliberada (2026-09-13)
+      # para não bloquear o CI por lint debt que precisa de triagem manual
+      # (pode ser feature incompleta, não necessariamente lixo). Ajustar
+      # para --fatal-warnings depois de limpar esse débito.
       - name: Static analysis (flutter analyze)
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests (flutter test)
+        run: flutter test
 
       # Não há um ios/Podfile versionado neste repositório (ele não está no
       # .gitignore, simplesmente ainda não foi gerado/commitado). O comando

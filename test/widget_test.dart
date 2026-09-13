@@ -5,25 +5,47 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:security_check_app/main.dart';
 
 void main() {
-  testWidgets('App inicializa e exibe a tela de Segurança', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(SecurityCheckApp(futuroFirebaseEAuth: Future<void>.value()));
-    await tester.pumpAndSettle();
+  setUp(() {
+    // _SplashGate lê o índice da próxima frase de marca via
+    // SharedPreferences (ver lib/main.dart) — sem isso o plugin lançaria
+    // MissingPluginException no ambiente de teste.
+    SharedPreferences.setMockInitialValues({});
+  });
 
-    // Verifica que a aba inicial (Segurança) foi carregada corretamente,
-    // exibindo o título no AppBar.
-    expect(find.text('Segurança'), findsWidgets);
+  testWidgets('App inicializa sem lançar exceções (cold start normal)',
+      (WidgetTester tester) async {
+    // Desde a refatoração de cold start (commit 5e2933e), o app nunca
+    // pula direto para o dashboard "Segurança": a rota inicial normal é
+    // sempre a splash cinematográfica (_SplashGate), que faz crossfade
+    // para a LoginScreen sozinha, sem esperar o Firebase. Chegar até o
+    // dashboard exigiria login real (Firebase Auth mockado), fora do
+    // escopo deste smoke test.
+    await tester.pumpWidget(const SecurityCheckApp());
+    await tester.pump();
 
-    // Verifica que a barra de navegação inferior está presente com as 3
-    // abas principais do aplicativo.
-    expect(find.byIcon(Icons.shield), findsWidgets);
-    expect(find.byIcon(Icons.people), findsOneWidget);
-    expect(find.byIcon(Icons.history), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // _SecurityCheckAppState.initState() agenda, sem possibilidade de
+    // cancelamento externo, um Future.delayed(3s) que dispara um
+    // Timer.periodic(1s) (monitor de alarme em disco — ver
+    // lib/main.dart). O binding de teste falha o teste se restar
+    // QUALQUER Timer pendente quando o corpo do teste termina, mesmo
+    // que ainda não esteja "devido" — então precisamos avançar o
+    // relógio (virtual, via pump com duração) além dos dois disparos
+    // E então desmontar a árvore, para que o próprio Timer.periodic se
+    // cancele sozinho (ele só se cancela quando `!mounted`, checado no
+    // callback seguinte) antes do teste encerrar.
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(tester.takeException(), isNull);
   });
 }
