@@ -88,5 +88,23 @@ post_install do |installer|
         config.build_settings[flag_key] = proximo_valor unless proximo_valor.nil?
       end
     end
+
+    # A primeira tentativa (só OTHER_CFLAGS/afins no nível do target) não
+    # bastou — o erro persistiu idêntico. Motivo: alguns podspecs aplicam
+    # "-G" como flag DE ARQUIVO individual (COMPILER_FLAGS por
+    # PBXBuildFile, via `compiler_flags`/`source_files` no .podspec), que
+    # é uma configuração separada de OTHER_CFLAGS do target e não é
+    # tocada pelo loop acima. Varre TODAS as build phases de TODO pod
+    # (compile sources, headers, etc.) e limpa a flag em cada arquivo.
+    target.build_phases.each do |phase|
+      next unless phase.respond_to?(:files)
+
+      phase.files.each do |file|
+        next unless file.settings && file.settings['COMPILER_FLAGS']
+
+        file.settings['COMPILER_FLAGS'] =
+          remover_flag_g_obsoleta(file.settings['COMPILER_FLAGS'])
+      end
+    end
   end
 end

@@ -51,12 +51,9 @@ jobs:
       - name: Run tests (flutter test)
         run: flutter test
 
-      # Não há um ios/Podfile versionado neste repositório (ele não está no
-      # .gitignore, simplesmente ainda não foi gerado/commitado). O comando
-      # `flutter build ios` cria o Podfile a partir do template e roda o
-      # `pod install` internamente antes de compilar — por isso não há um
-      # passo separado de "pod install" aqui, ele rodaria antes do Podfile
-      # existir e falharia.
+      # ios/Podfile já é versionado (desde o fix de deployment target/flag
+      # -G). `flutter build ios` roda o `pod install` internamente antes de
+      # compilar — por isso não há um passo separado de "pod install" aqui.
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
@@ -67,3 +64,42 @@ jobs:
 
       - name: Build iOS (release, no codesign)
         run: flutter build ios --release --no-codesign
+
+      # DIAGNÓSTICO (só roda se o passo acima falhar): `flutter build ios`
+      # mostra só um resumo curado do erro (extraído de um .xcresult
+      # temporário que o próprio Flutter apaga depois) — não dá pra ver de
+      # qual pod/arquivo uma flag de compilador problemática (ex: o "-G"
+      # que já bateu aqui 3x seguidas) realmente veio. Este passo refaz a
+      # build chamando o xcodebuild DIRETO (mesmo workspace/scheme que o
+      # Flutter usa, Pods já instalados pelo passo anterior), capturando o
+      # log bruto e imprimindo o trecho ao redor de qualquer "-G" — a linha
+      # de "CompileC" que aparece um pouco acima revela o pod/arquivo exato.
+      - name: Diagnóstico — log bruto do xcodebuild (só em falha)
+        if: failure()
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -arch arm64 \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee "$RUNNER_TEMP/xcodebuild_raw.log" || true
+
+          echo "::group::Trecho ao redor de qualquer '-G' encontrado no log bruto"
+          grep -n -B 20 -A 5 -- '-G' "$RUNNER_TEMP/xcodebuild_raw.log" \
+            || echo "Nenhuma ocorrência literal de '-G' no log bruto (pode ter sido corrigida, ou o erro real é outro — ver artifact completo)."
+          echo "::endgroup::"
+
+      - name: Diagnóstico — upload do log bruto completo (só em falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-raw-log
+          path: ${{ runner.temp }}/xcodebuild_raw.log
+          retention-days: 7
+          if-no-files-found: ignore
