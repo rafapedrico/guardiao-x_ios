@@ -1,0 +1,60 @@
+# Versão mínima de deployment do app — mantida em sincronia com
+# IPHONEOS_DEPLOYMENT_TARGET no Runner.xcodeproj/project.pbxproj (3
+# ocorrências, nível de projeto). Não deixe este valor descoberto/comentado:
+# sem ele, o CocoaPods calcula o alvo do agregado "Pods" pelo MÍNIMO
+# declarado entre todas as dependências — e pods transitivos do Firebase
+# (ex: BoringSSL-GRPC, nanopb, gRPC-Core) ainda declaram iOS 9.0/10.0 como
+# mínimo em seus próprios podspecs. Combinado com toolchains recentes do
+# Xcode, isso quebra a compilação de arquivos assembly desses pods com
+# "unsupported option '-G' for target 'arm64-apple-iosX.0'".
+platform :ios, '15.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+
+    # Força o deployment target de TODOS os pods (inclusive dependências
+    # transitivas que o flutter_additional_ios_build_settings acima não
+    # sobe, por declararem a própria versão mínima abaixo de 13.0 — ver
+    # comentário no topo do arquivo). É o que efetivamente resolve o erro
+    # "-G ... arm64-apple-iosX.0" no CI.
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
+  end
+end
