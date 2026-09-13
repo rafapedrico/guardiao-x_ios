@@ -83,6 +83,24 @@ def remover_flag_g_obsoleta(valor)
   end
 end
 
+# Depois de resolver o "-G" (BoringSSL-GRPC), o build passou a falhar em
+# gRPC-Core (também dependência do Firebase — Firestore/Functions/Auth)
+# com um erro de PARSING de verdade, não de build setting:
+#
+#   gRPC-Core/src/core/lib/promise/detail/basic_seq.h:103:38: error: a
+#   template argument list is expected after a name prefixed by the
+#   template keyword [-Wmissing-template-arg-list-after-template-kw]
+#       Traits::template CallSeqFactory(f_, *cur_, std::move(arg)));
+#
+# É um padrão de código antigo (o `template` como desambiguador antes de
+# um nome que o Clang atual já resolve sem ambiguidade) que o Clang deste
+# Xcode trata como ERRO por padrão, mesmo sem -Werror — sintático, zero
+# impacto de comportamento em runtime. O nome entre colchetes é o grupo
+# de diagnóstico Clang; "-Wno-error=<grupo>" rebaixa de erro pra warning
+# mesmo quando já é erro por padrão (não precisa ter sido promovido via
+# -Werror). Confirmado lendo o log bruto do xcodebuild (2026-09-13).
+FLAG_SUPRESSAO_TEMPLATE_KW = '-Wno-error=missing-template-arg-list-after-template-kw'
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
@@ -102,6 +120,32 @@ post_install do |installer|
       ['OTHER_CFLAGS', 'OTHER_CPLUSPLUSFLAGS', 'OTHER_LDFLAGS'].each do |flag_key|
         proximo_valor = remover_flag_g_obsoleta(config.build_settings[flag_key])
         config.build_settings[flag_key] = proximo_valor unless proximo_valor.nil?
+      end
+
+      # Adiciona em OTHER_CFLAGS (não OTHER_CPLUSPLUSFLAGS): quando
+      # OTHER_CPLUSPLUSFLAGS não está setado explicitamente num pod (é o
+      # caso do gRPC-Core), o Xcode usa OTHER_CFLAGS como valor padrão
+      # pra compilar C++ também — setar OTHER_CPLUSPLUSFLAGS na mão
+      # quebraria essa herança implícita pra qualquer pod que não a
+      # defina. Só tocamos OTHER_CPLUSPLUSFLAGS também quando ela já
+      # estiver explicitamente definida em algum pod, pra não deixar
+      # esse caso sem o fix.
+      valor_cflags = config.build_settings['OTHER_CFLAGS']
+      config.build_settings['OTHER_CFLAGS'] =
+        if valor_cflags.is_a?(Array)
+          (valor_cflags + [FLAG_SUPRESSAO_TEMPLATE_KW]).uniq
+        else
+          [valor_cflags, FLAG_SUPRESSAO_TEMPLATE_KW].compact.join(' ')
+        end
+
+      valor_cpp = config.build_settings['OTHER_CPLUSPLUSFLAGS']
+      unless valor_cpp.nil?
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] =
+          if valor_cpp.is_a?(Array)
+            (valor_cpp + [FLAG_SUPRESSAO_TEMPLATE_KW]).uniq
+          else
+            [valor_cpp, FLAG_SUPRESSAO_TEMPLATE_KW].compact.join(' ')
+          end
       end
     end
 
