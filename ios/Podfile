@@ -122,9 +122,23 @@ post_install do |installer|
       # o build setting OFICIAL da Apple pra essa válvula de escape
       # exata (não é gambiarra tipo os -Wno-error= acima) — é o fix
       # padrão usado amplamente em projetos Flutter+Firebase com
-      # use_frameworks!. Confirmado lendo o log bruto do xcodebuild
-      # (2026-09-13).
+      # use_frameworks!.
       config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+
+      # A linha acima sozinha NÃO bastou (confirmado no CI, log bruto:
+      # erro idêntico persistiu). Causa: o log mostra o erro acontecendo
+      # dentro de um passo "PrecompileModule .../firebase_messaging-*.scan
+      # / While building module 'firebase_messaging'" — isso é o recurso
+      # "Explicit Modules" do Clang/Xcode moderno, que pré-compila o
+      # module map do framework num passo SEPARADO, antes de compilar
+      # qualquer arquivo do pod. Esse caminho de build tem um
+      # comportamento conhecido de ignorar
+      # CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES (que só
+      # funciona no build "clássico"/implícito). Desligando Explicit
+      # Modules aqui volta pro caminho clássico, onde a linha acima
+      # funciona de verdade. Confirmado lendo o log bruto do xcodebuild
+      # (2026-09-13).
+      config.build_settings['CLANG_ENABLE_EXPLICIT_MODULES'] = 'NO'
 
       # Causa raiz real e confirmada do "unsupported option '-G' for
       # target 'arm64-apple-iosX.0'": bug no podspec do BoringSSL-GRPC,
