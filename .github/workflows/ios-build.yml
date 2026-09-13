@@ -20,7 +20,13 @@ jobs:
   build:
     name: Analyze & Build iOS (no codesign)
     runs-on: macos-latest
-    timeout-minutes: 30
+    # 30min estourava: a build principal (Pods dependendo de Firebase) já
+    # leva ~15-20min sozinha, e o passo de diagnóstico (só roda em falha)
+    # refaz a build inteira do zero via xcodebuild direto — juntos passam
+    # de 30min facilmente à medida que os fixes desbloqueiam mais
+    # compilação a cada rodada (2026-09-13, run 34768128514 cancelada no
+    # limite, no meio do diagnóstico, sem gerar log útil).
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
