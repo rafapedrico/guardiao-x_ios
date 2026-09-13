@@ -112,6 +112,20 @@ post_install do |installer|
       # 13.0 — ver comentário no topo do arquivo).
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
 
+      # Terceiro erro da mesma sessão de debug (depois do -G e do
+      # parsing do gRPC-Core): com use_frameworks!, plugins Flutter do
+      # Firebase (firebase_messaging, firebase_storage, ...) importam o
+      # header guarda-chuva não-modular "Firebase.h" de dentro de um
+      # módulo de framework — Xcode trata isso como ERRO por padrão
+      # (-Werror=non-modular-include-in-framework-module, já vem nas
+      # flags comuns de todo pod, não fomos nós que promovemos). Este é
+      # o build setting OFICIAL da Apple pra essa válvula de escape
+      # exata (não é gambiarra tipo os -Wno-error= acima) — é o fix
+      # padrão usado amplamente em projetos Flutter+Firebase com
+      # use_frameworks!. Confirmado lendo o log bruto do xcodebuild
+      # (2026-09-13).
+      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+
       # Causa raiz real e confirmada do "unsupported option '-G' for
       # target 'arm64-apple-iosX.0'": bug no podspec do BoringSSL-GRPC,
       # que injeta "-GCC_WARN_INHIBIT_ALL_WARNINGS" em OTHER_CFLAGS (ver
