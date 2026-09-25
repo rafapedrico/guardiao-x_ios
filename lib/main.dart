@@ -35,6 +35,7 @@ import 'services/premium_purchase_service.dart';
 import 'services/relatorio_falha_entrega_service.dart';
 import 'services/retry_upload_service.dart';
 import 'services/rotina_alarme_service.dart';
+import 'services/sos_deep_link_service.dart';
 import 'services/sos_disparo_service.dart';
 import 'services/volume_sos_service.dart';
 import 'services/wallpaper_service.dart';
@@ -84,6 +85,31 @@ const String _rotaInicialCronometroAlarme = '/cronometro_alarme_confirmacao';
 /// vez por sessão do engine, mesmo que HomeScreen seja desmontada/
 /// remontada (troca de aba, deep-link, etc.).
 bool _servicosPosLoginJaIniciados = false;
+
+/// Guarda contra o `logout()` da Opção A (ver [_iniciarFirebaseEAuth])
+/// ocorrer NO MEIO de um disparo de SOS iniciado pelo Widget de Home
+/// Screen do iOS ([SosDeepLinkService]/[_verificarDeepLinkSosNoColdStartEDisparar]).
+///
+/// POR QUE ISTO EXISTE: diferente dos outros 3 cold starts de emergência
+/// (SOS físico, Rotina, Cronômetro), que detectam a rota especial de
+/// forma 100% SÍNCRONA via `defaultRouteName` (native Intent extras, só
+/// Android) ANTES do runApp(), um URL Scheme custom no iOS só pode ser
+/// lido de forma ASSÍNCRONA (chamada de MethodChannel, ver
+/// [SosDeepLinkService.linkInicial]) — não há nenhum sinal síncrono
+/// equivalente disponível antes do primeiro frame. Isso significa que,
+/// no cold start via Widget, o app SEMPRE nasce pelo caminho NORMAL
+/// (`_SplashGate`), e só decide preservar a sessão (`preservarSessaoExistente:
+/// true`) depois, quando o link assíncrono resolver — normalmente poucos
+/// milissegundos depois do runApp(), bem antes dos ~3.2s da animação de
+/// splash. Sem este guard, um dispositivo lento (ou um usuário que
+/// demora para tirar a foto do P2, que é sempre manual) correria o risco
+/// real de a splash completar sua animação e disparar seu PRÓPRIO
+/// `_iniciarFirebaseEAuth(preservarSessaoExistente: false)` (ver
+/// [_SplashGateState._aguardarProntidao]) NO MEIO do envio do SOS via
+/// widget, derrubando a sessão que o canal de Push (único canal real de
+/// P1/P2 no iOS, ver [SosDisparoService]) depende. Este guard elimina a
+/// corrida por completo, independente de qualquer timing.
+bool _sosViaWidgetEmAndamento = false;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -176,6 +202,33 @@ void main() {
   // toque nesta notificação, ANTES de qualquer LoginScreen chegar a
   // aparecer. Fire-and-forget — ver [_inicializarNotificacoesEAbrirAlertaPendente].
   unawaited(_inicializarNotificacoesEAbrirAlertaPendente());
+
+  // SUBSTITUTO iOS DO GATILHO FÍSICO DE SOS (Volume+ em segundo plano,
+  // sem equivalente possível na Apple — ver
+  // docs/migracao-ios-relatorio-2026-09-12.md, seção 5, item 4): o
+  // Widget de Home Screen (`ios/SOSWidget/`) abre o app via
+  // `guardiaox://sos`. Checado o quanto antes (mesma tier dos dois
+  // `unawaited` acima, ANTES até do runApp() abaixo) para resolver o
+  // mais cedo possível — ver [_sosViaWidgetEmAndamento] para a corrida
+  // que isso ainda assim exige contra a splash do cold start normal.
+  // Fire-and-forget: nunca atrasa o primeiro frame.
+  unawaited(_verificarDeepLinkSosNoColdStartEDisparar());
+
+  // Cobre o SEGUNDO cenário do mesmo Widget: app já rodando
+  // (foreground/background, processo vivo) quando o toque acontece —
+  // [SosDeepLinkService.aoReceberLink] nunca repete o link do cold start
+  // acima (garantia do próprio `app_links`). Assinatura única, válida a
+  // vida inteira do processo, DELIBERADAMENTE fora de
+  // [iniciarServicosPosLoginOuDashboard] — o SOS deve funcionar mesmo
+  // antes de qualquer login, mesmo espírito do botão físico no Android.
+  SosDeepLinkService().aoReceberLink.listen((uri) {
+    if (SosDeepLinkService().ehLinkDeSos(uri)) {
+      debugPrint('🆘 [main] SOS via Widget (iOS) — app já em execução.');
+      _dispararFluxoCompletoDeSos(origem: 'sos_widget_ios');
+    }
+  }, onError: (e) {
+    debugPrint('⚠️ [main] Erro no stream de deep link do Widget de SOS: $e');
+  });
 
   // Dispara (chama, SEM `await`) a inicialização de Firebase+Auth — isso
   // já executa o corpo síncrono da função até o primeiro `await`
@@ -400,6 +453,52 @@ Future<void> _inicializarNotificacoesEAbrirAlertaPendente() async {
   }
 }
 
+/// Resolve o link (se houver) que causou ESTE cold start e, sendo o
+/// gatilho de SOS do Widget de Home Screen do iOS
+/// (`guardiaox://sos`, ver [SosDeepLinkService]), dispara a MESMA
+/// sequência unificada do SOS físico ([_dispararSequenciaUnificadaDeSos])
+/// — Firebase+Auth com sessão preservada, câmera aberta em seguida.
+///
+/// DIFERENÇA DELIBERADA em relação ao cold start do SOS físico
+/// (`coldStartViaSosFisico`, no corpo de [main]): aquele é detectado de
+/// forma 100% SÍNCRONA (`defaultRouteName`, mecanismo Android-only) e por
+/// isso já nasce direto em [_TelaPretaAguardandoSos] (zero flash de UI).
+/// Este, por depender de uma leitura ASSÍNCRONA (`app_links`, único
+/// mecanismo disponível para um URL Scheme custom no iOS), sempre nasce
+/// pelo caminho normal (`_SplashGate`) e só troca de rota (via
+/// `appNavigatorKey`, empurrando por cima) quando o link resolver —
+/// tipicamente poucos milissegundos depois, mas tecnicamente permite um
+/// flash breve da splash/LoginScreen antes da câmera aparecer. Aceito
+/// conscientemente: não há nenhum sinal síncrono equivalente possível no
+/// iOS para um URL Scheme custom (ver documentação completa em
+/// [_sosViaWidgetEmAndamento]).
+Future<void> _verificarDeepLinkSosNoColdStartEDisparar() async {
+  final Uri? link = await SosDeepLinkService().linkInicial();
+  if (link == null || !SosDeepLinkService().ehLinkDeSos(link)) return;
+
+  debugPrint('🆘 [main] Cold start via Widget de SOS (iOS): $link');
+  _sosViaWidgetEmAndamento = true;
+
+  // Mesma política de sessão dos outros 3 cold starts de emergência (ver
+  // [_iniciarFirebaseEAuth]) — preserva a sessão existente para que o
+  // canal de Push (único canal real de P1/P2 no iOS, ver
+  // [SosDisparoService]) tenha uma chance real de disparar.
+  await _iniciarFirebaseEAuth(preservarSessaoExistente: true);
+
+  // Aguarda o primeiro frame antes de navegar — mesmo cuidado do bloco
+  // `coldStartViaSosFisico` em [main] (o `appNavigatorKey.currentState`
+  // só existe depois que o runApp() síncrono já rodou, o que já deve ter
+  // acontecido a esta altura dado o `await` acima).
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _dispararSequenciaUnificadaDeSos(origem: 'sos_widget_ios').then((abriuCamera) {
+      if (!abriuCamera) {
+        debugPrint(
+            '🚨 [main] SOS via Widget (iOS): câmera não abriu (P1 já disparado em paralelo) — nada mais a fazer aqui.');
+      }
+    });
+  });
+}
+
 /// ETAPA 2: o MÍNIMO de Firebase necessário para os botões de login
 /// funcionarem — só `Firebase.initializeApp()` + a política de sessão
 /// (Opção A). Nada de FCM/heartbeat aqui (ver ETAPA 3,
@@ -589,7 +688,13 @@ Future<void> _iniciarFirebaseEAuth({required bool preservarSessaoExistente}) asy
   // alerta dispare em todos os canais (SMS + Push/Firestore), mesmo
   // 100% a frio.
   try {
-    if (!preservarSessaoExistente) {
+    // `!_sosViaWidgetEmAndamento` — ver documentação completa na
+    // declaração da flag: cobre a corrida entre esta chamada (disparada
+    // pela splash do cold start NORMAL, alguns segundos depois) e um
+    // disparo de SOS via Widget de Home Screen (iOS) que já esteja em
+    // andamento, cuja detecção é assíncrona e não tem como "vencer" essa
+    // corrida por timing sozinha.
+    if (!preservarSessaoExistente && !_sosViaWidgetEmAndamento) {
       await FirebaseAuthService().logout();
     }
   } catch (e) {

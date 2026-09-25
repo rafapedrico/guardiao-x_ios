@@ -132,6 +132,14 @@ dependencies:
   share_plus: ^10.0.0
   path_provider: ^2.1.5
 
+  # Substituto de produto, no iOS, do gatilho físico de Volume+ em segundo
+  # plano (VolumeSosService, sem equivalente possível na Apple — ver
+  # docs/migracao-ios-relatorio-2026-09-12.md, seção 5, item 4): um Widget
+  # 1x1 na tela de início (WidgetKit nativo, ver ios/SOSWidget/) abre o
+  # app via o URL Scheme guardiaox://sos. Usado só para resolver esse link
+  # (cold start e app já aberto) — ver lib/services/sos_deep_link_service.dart.
+  app_links: ^7.2.1
+
 
 
 dev_dependencies:

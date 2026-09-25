@@ -67,6 +67,26 @@
 		<string>audio</string>
 	</array>
 
+	<!-- URL Scheme próprio do app — gatilho do "Botão de Pânico Virtual"
+	     (Widget de Home Screen, ver ios/SOSWidget/): substituto de
+	     produto do gatilho físico de Volume+ em segundo plano, sem
+	     equivalente possível no iOS (ver
+	     docs/migracao-ios-relatorio-2026-09-12.md, seção 5, item 4). O
+	     widget abre o app via `guardiaox://sos` (`.widgetURL(...)` no
+	     SwiftUI); o lado Dart resolve esse link via `app_links` — ver
+	     lib/services/sos_deep_link_service.dart. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.rmfglobal.guardiaox.sos</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>guardiaox</string>
+			</array>
+		</dict>
+	</array>
+
 	<!-- Evita a pergunta de compliance de exportação em todo upload ao
 	     App Store Connect/TestFlight. O app usa `encrypt`/`crypto` só para
 	     criptografia padrão (não é o núcleo do produto) — mesma exceção
