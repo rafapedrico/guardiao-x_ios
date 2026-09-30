@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
 	<!-- Necessário para o firebase_messaging (Push FCM App-para-App / alerta
-	     híbrido) funcionar no iOS. "development" aqui; ao gerar o build de
+	     híbrido) funcionar no iOS. Na exportação app-store-connect
+	     (ios-testflight.yml) o Xcode troca sozinho para "production" ao
+	     re-assinar com o profile de distribuição. "development" aqui; ao gerar o build de
 	     produção/App Store no Xcode, troque para "production" (ou deixe o
 	     Xcode trocar automaticamente ao usar um perfil de distribuição). -->
 	<key>aps-environment</key>

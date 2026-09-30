@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Security Check App</string>
+	<string>Guardião-X</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -49,6 +49,13 @@
 
 	<!-- Contatos — aba Família (contatos de emergência).
 	     Equivalente a READ_CONTACTS/WRITE_CONTACTS. -->
+	<!-- Fotos (somente adição) — o pacote `gal` salva a foto de
+	     dissuasão na galeria do aparelho (AlertaRecebidoScreen). Só grava;
+	     não lê a galeria, por isso NÃO é preciso NSPhotoLibraryUsageDescription.
+	     Sem esta chave o iOS encerra o app na hora de salvar. -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O Guardião-X salva na sua galeria a foto de dissuasão recebida em um alerta de emergência, para que você a guarde como registro.</string>
+
 	<key>NSContactsUsageDescription</key>
 	<string>O Guardião-X acessa seus contatos para que você escolha quem deve receber os alertas de emergência como contato de confiança.</string>
 
@@ -85,7 +92,23 @@
 				<string>guardiaox</string>
 			</array>
 		</dict>
+		<!-- google_sign_in: o SDK do Google devolve o login para o app por
+		     este scheme. Valor = REVERSED_CLIENT_ID do
+		     GoogleService-Info.plist (se o plist for regenerado no
+		     Firebase, atualize aqui e em GIDClientID abaixo). -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.555863351772-r65lv7u2r0mq6n9ocedjoesafglrld27</string>
+			</array>
+		</dict>
 	</array>
+
+	<!-- google_sign_in: Client ID iOS (= CLIENT_ID do GoogleService-Info.plist). -->
+	<key>GIDClientID</key>
+	<string>555863351772-r65lv7u2r0mq6n9ocedjoesafglrld27.apps.googleusercontent.com</string>
 
 	<!-- Evita a pergunta de compliance de exportação em todo upload ao
 	     App Store Connect/TestFlight. O app usa `encrypt`/`crypto` só para

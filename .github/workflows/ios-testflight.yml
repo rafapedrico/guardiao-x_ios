@@ -1,0 +1,232 @@
+name: iOS TestFlight
+
+# Compila o .ipa de distribuição (App Store Connect) e envia ao TestFlight.
+# Separado do ios-build.yml (validação sem assinatura em todo push/PR):
+# este só roda sob demanda (Actions > iOS TestFlight > Run workflow) ou ao
+# dar push numa tag de versão (git tag v1.0.1 && git push origin v1.0.1).
+#
+# Assinatura 100% na nuvem: CODE_SIGN_STYLE = Automatic no Runner e o
+# xcodebuild usa a App Store Connect API Key com -allowProvisioningUpdates
+# para criar/baixar certificado e provisioning profile sozinho. Não há
+# .p12, keychain nem profile manual. Substitui o antigo ios-release.yml
+# (Ad Hoc com profile "GuardiaoX_AdHoc_CI"), removido em 2026-09-30.
+#
+# Secrets necessários (Settings > Secrets and variables > Actions):
+#   APP_STORE_CONNECT_KEY_ID     Key ID da chave de API
+#   APP_STORE_CONNECT_ISSUER_ID  Issuer ID (UUID) do time
+#   APP_STORE_CONNECT_API_KEY    conteúdo do AuthKey_XXXX.p8 (texto puro,
+#                                com as linhas BEGIN/END, ou em base64)
+# A chave precisa do papel "Admin" no App Store Connect: é o que permite
+# ao xcodebuild criar certificados gerenciados na nuvem.
+#
+# PENDÊNCIA: o SOSWidget (ios/SOSWidget/, Widget de Home Screen) ainda
+# NÃO é um target do Runner.xcodeproj, então não entra neste build. Para
+# incluí-lo: criar o target Widget Extension (bundle
+# com.rmfglobal.guardiaox.SOSWidget), registrar esse App ID no portal e
+# embutir a extensão no Runner.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ios-testflight-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TEAM_ID: SW48YVGJZ7
+  # permission_handler via Swift Package Manager: o Package.swift do
+  # plugin ignora as macros do Podfile e resolve cada permissão por
+  # variável de ambiente (prioridade máxima) ou pelas chaves do
+  # Info.plist. Forçamos aqui o mesmo conjunto do Podfile para os dois
+  # caminhos (CocoaPods/SPM) gerarem o mesmo binário.
+  PERMISSION_CAMERA: '1'
+  PERMISSION_LOCATION: '1'
+  PERMISSION_NOTIFICATIONS: '1'
+  PERMISSION_PHOTOS_ADD_ONLY: '1'
+  PERMISSION_CRITICAL_ALERTS: '0'
+
+jobs:
+  testflight:
+    name: Build, sign & upload to TestFlight
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check secrets
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          missing=0
+          for name in KEY_ID ISSUER_ID API_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret ausente: APP_STORE_CONNECT_${name}"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.9'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dart/Flutter dependencies
+        run: flutter pub get
+
+      # Uma tag pode apontar para qualquer commit, não necessariamente um
+      # que passou pelo ios-build.yml — não vale gastar 20min assinando e
+      # enviando código quebrado ao TestFlight.
+      - name: Static analysis (flutter analyze)
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests (flutter test)
+        run: flutter test
+
+      # Build number único e crescente: run_number + 100 (o pubspec já
+      # chegou em +23; o TestFlight rejeita build number repetido para a
+      # mesma versão). Versão: tag sem o "v" ou, em disparo manual, a do
+      # pubspec.yaml.
+      - name: Compute version and build number
+        id: version
+        run: |
+          BUILD_NUMBER=$(( ${{ github.run_number }} + 100 ))
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            BUILD_NAME="${GITHUB_REF_NAME#v}"
+          else
+            BUILD_NAME=$(grep -E '^version:' pubspec.yaml | sed -E 's/version:[[:space:]]*([^+]+).*/\1/')
+          fi
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "build_name=$BUILD_NAME" >> "$GITHUB_OUTPUT"
+          echo "Versão $BUILD_NAME ($BUILD_NUMBER)"
+
+      # Gera ios/Flutter/Generated.xcconfig com versão/build number e o
+      # pacote SPM efêmero dos plugins, sem compilar nada ainda — o
+      # archive abaixo (xcodebuild) é quem compila e assina.
+      - name: Generate Xcode config (flutter build ios --config-only)
+        run: |
+          flutter build ios --release --config-only --no-codesign \
+            --build-name="${{ steps.version.outputs.build_name }}" \
+            --build-number="${{ steps.version.outputs.build_number }}"
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile', 'pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: pod install
+        working-directory: ios
+        run: pod install --repo-update
+
+      # Grava a chave .p8 onde o altool procura (~/private_keys/AuthKey_<ID>.p8);
+      # o xcodebuild recebe o mesmo caminho via -authenticationKeyPath.
+      # Apagada no último passo (if: always()).
+      - name: Install App Store Connect API key
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/private_keys
+          KEY_PATH=~/private_keys/AuthKey_${KEY_ID}.p8
+          if printf '%s' "$API_KEY" | grep -q 'BEGIN PRIVATE KEY'; then
+            printf '%s\n' "$API_KEY" > "$KEY_PATH"
+          else
+            printf '%s' "$API_KEY" | base64 --decode > "$KEY_PATH"
+          fi
+          chmod 600 "$KEY_PATH"
+          echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Archive (xcodebuild, assinatura automática)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild-archive.log"
+
+      - name: Export .ipa (app-store-connect)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild-export.log"
+          IPA=$(ls "$RUNNER_TEMP"/export/*.ipa | head -n 1)
+          echo "IPA_PATH=$IPA" >> "$GITHUB_ENV"
+          echo "IPA gerado: $IPA"
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardiao-x-${{ steps.version.outputs.build_name }}-${{ steps.version.outputs.build_number }}
+          path: ${{ env.IPA_PATH }}
+          retention-days: 30
+
+      # altool continua no Xcode atual para upload (só a notarização saiu
+      # dele). Se um dia sumir do runner, cai para o fastlane pilot com a
+      # mesma chave.
+      - name: Upload to TestFlight
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          if xcrun --find altool >/dev/null 2>&1; then
+            xcrun altool --upload-app \
+              --type ios \
+              --file "$IPA_PATH" \
+              --apiKey "$KEY_ID" \
+              --apiIssuer "$ISSUER_ID"
+          else
+            echo "altool indisponível neste Xcode — usando fastlane pilot."
+            JSON="$RUNNER_TEMP/asc_api_key.json"
+            ruby -rjson -e 'puts({key_id: ENV["KEY_ID"], issuer_id: ENV["ISSUER_ID"], key: File.read(ENV["KEY_PATH"]), in_house: false}.to_json)' > "$JSON"
+            fastlane pilot upload \
+              --ipa "$IPA_PATH" \
+              --api_key_path "$JSON" \
+              --skip_waiting_for_build_processing true
+          fi
+
+      - name: Upload xcodebuild logs (só em falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-logs
+          path: ${{ runner.temp }}/xcodebuild-*.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Remove API key from disk
+        if: always()
+        run: rm -rf ~/private_keys "$RUNNER_TEMP/asc_api_key.json"

@@ -2,29 +2,28 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Distribuição Ad Hoc: gera um .ipa instalável direto nos
-	     dispositivos cadastrados no profile "GuardiaoX_AdHoc_CI" (ver
-	     ios-release.yml e o guia de assinatura), sem passar pela App
-	     Store/TestFlight. Trocar para "app-store" quando migrarmos para
-	     distribuição via TestFlight. -->
+	<!-- Distribuição App Store Connect/TestFlight (ios-testflight.yml).
+	     Substitui o antigo perfil Ad Hoc "GuardiaoX_AdHoc_CI": a assinatura
+	     agora é automática, com certificado/profile gerenciados na nuvem
+	     via App Store Connect API Key (-allowProvisioningUpdates). -->
 	<key>method</key>
-	<string>ad-hoc</string>
-
-	<!-- signingStyle manual + o mapeamento explícito abaixo: o Team ID
-	     não precisa aparecer aqui — o Xcode resolve pelo profile em si
-	     (instalado no runner pelo workflow a partir do secret
-	     IOS_PROVISION_PROFILE_BASE64). Nem bundle id nem nome de profile
-	     são informação sensível. -->
+	<string>app-store-connect</string>
 	<key>signingStyle</key>
-	<string>manual</string>
-	<key>provisioningProfiles</key>
-	<dict>
-		<key>com.rmfglobal.guardiaox</key>
-		<string>GuardiaoX_AdHoc_CI</string>
-	</dict>
+	<string>automatic</string>
+	<key>teamID</key>
+	<string>SW48YVGJZ7</string>
 
-	<key>compileBitcode</key>
+	<!-- Só exporta o .ipa; o upload é feito num passo separado (altool),
+	     para o .ipa também ficar salvo como artifact do workflow. -->
+	<key>destination</key>
+	<string>export</string>
+
+	<!-- O número de build vem do workflow (run_number + 100); não deixar
+	     o Xcode reescrever. -->
+	<key>manageAppVersionAndBuildNumber</key>
 	<false/>
+	<key>uploadSymbols</key>
+	<true/>
 	<key>stripSwiftSymbols</key>
 	<true/>
 </dict>

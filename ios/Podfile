@@ -140,6 +140,31 @@ post_install do |installer|
       # (2026-09-13).
       config.build_settings['CLANG_ENABLE_EXPLICIT_MODULES'] = 'NO'
 
+      # permission_handler (via CocoaPods): toda permissão vem DESLIGADA
+      # por padrão no código nativo (PermissionHandlerEnums.h) — sem estas
+      # macros, Permission.camera/location/notification/photosAddOnly
+      # retornam "permanentlyDenied" no iOS sem nem mostrar o diálogo.
+      # PERMISSION_PHOTOS_ADD_ONLY existe na versão usada
+      # (permission_handler_apple 9.6.1, conferido no header).
+      # Critical Alerts continua 0: exige entitlement especial da Apple
+      # (decisão de produto pendente).
+      # OBS: se o plugin for resolvido via Swift Package Manager (o
+      # project.pbxproj já referencia FlutterGeneratedPluginSwiftPackage),
+      # estas macros NÃO se aplicam — o Package.swift do plugin deduz as
+      # macros das chaves do Info.plist, e o ios-testflight.yml ainda as
+      # força por variáveis de ambiente. Mantidas aqui para o caminho
+      # CocoaPods continuar correto.
+      # Aceita String ou Array (mesmo motivo de remover_flag_g_obsoleta).
+      defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+      defs = defs.split(/\s+/) unless defs.is_a?(Array)
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs + [
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_LOCATION=1',
+        'PERMISSION_NOTIFICATIONS=1',
+        'PERMISSION_PHOTOS_ADD_ONLY=1',
+        'PERMISSION_CRITICAL_ALERTS=0',
+      ]
+
       # Causa raiz real e confirmada do "unsupported option '-G' for
       # target 'arm64-apple-iosX.0'": bug no podspec do BoringSSL-GRPC,
       # que injeta "-GCC_WARN_INHIBIT_ALL_WARNINGS" em OTHER_CFLAGS (ver
