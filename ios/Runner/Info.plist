@@ -56,6 +56,16 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>O Guardião-X salva na sua galeria a foto de dissuasão recebida em um alerta de emergência, para que você a guarde como registro.</string>
 
+	<!-- Fotos (leitura) — exigida pela Apple mesmo o app só GRAVANDO na
+	     galeria: o build 101 foi recusado no TestFlight com ITMS-90683
+	     (Missing purpose string) porque uma dependência referencia APIs de
+	     leitura da galeria no binário — provavelmente o pacote `gal` (e/ou
+	     o PhotoPermissionStrategy do permission_handler, que o
+	     Package.swift dele liga quando há chave de fotos no Info.plist).
+	     A checagem da Apple é estática: basta a API estar linkada. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Guardião-X acessa sua galeria apenas para salvar a foto de dissuasão recebida em um alerta de emergência. O app não lê nem envia suas fotos.</string>
+
 	<key>NSContactsUsageDescription</key>
 	<string>O Guardião-X acessa seus contatos para que você escolha quem deve receber os alertas de emergência como contato de confiança.</string>
 
