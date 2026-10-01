@@ -51,8 +51,7 @@
 	     Equivalente a READ_CONTACTS/WRITE_CONTACTS. -->
 	<!-- Fotos (somente adição) — o pacote `gal` salva a foto de
 	     dissuasão na galeria do aparelho (AlertaRecebidoScreen). Só grava;
-	     não lê a galeria, por isso NÃO é preciso NSPhotoLibraryUsageDescription.
-	     Sem esta chave o iOS encerra o app na hora de salvar. -->
+	     não lê a galeria. Sem esta chave o iOS encerra o app na hora de salvar. -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>O Guardião-X salva na sua galeria a foto de dissuasão recebida em um alerta de emergência, para que você a guarde como registro.</string>
 
