@@ -461,7 +461,8 @@ Future<void> _selecionarSom(int? numero) async {
     }
 
     // 1) Solicita permissão explicitamente ANTES de abrir a agenda.
-    final bool permitido = await FlutterContacts.requestPermission(readonly: true);
+    final status = await FlutterContacts.permissions.request(PermissionType.read);
+    final bool permitido = status == PermissionStatus.granted || status == PermissionStatus.limited;
     if (!permitido) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -478,15 +479,19 @@ Future<void> _selecionarSom(int? numero) async {
     // 2) Abre o seletor nativo de contatos do aparelho.
     Contact? contatoSelecionado;
     try {
-      contatoSelecionado = await FlutterContacts.openExternalPick();
+      contatoSelecionado = await FlutterContacts.native.showPicker();
     } catch (_) {
       contatoSelecionado = null;
     }
 
-    if (contatoSelecionado == null) return; // Usuário cancelou a seleção.
+    final contatoId = contatoSelecionado?.id;
+    if (contatoId == null) return; // Usuário cancelou a seleção.
 
     // 3) Recupera os dados completos do contato (incluindo telefones).
-    final contatoCompleto = await FlutterContacts.getContact(contatoSelecionado.id);
+    final contatoCompleto = await FlutterContacts.get(
+      contatoId,
+      properties: {ContactProperty.phone},
+    );
     if (contatoCompleto == null || contatoCompleto.phones.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -499,8 +504,8 @@ Future<void> _selecionarSom(int? numero) async {
       return;
     }
 
-    final nome = contatoCompleto.displayName.trim().isNotEmpty
-        ? contatoCompleto.displayName.trim()
+    final nome = (contatoCompleto.displayName ?? '').trim().isNotEmpty
+        ? (contatoCompleto.displayName ?? '').trim()
         : semNomeFallback;
     // Normaliza para E.164 internacional (ver TelefoneUtils) — CORREÇÃO
     // DE BUG REAL: números importados da agenda costumam já vir com o

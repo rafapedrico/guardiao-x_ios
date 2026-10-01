@@ -326,7 +326,8 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
   }) async {
     final l10n = AppLocalizations.of(context)!;
 
-    final bool permitido = await FlutterContacts.requestPermission(readonly: true);
+    final status = await FlutterContacts.permissions.request(PermissionType.read);
+    final bool permitido = status == PermissionStatus.granted || status == PermissionStatus.limited;
     if (!permitido) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -342,13 +343,17 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
 
     Contact? contatoSelecionado;
     try {
-      contatoSelecionado = await FlutterContacts.openExternalPick();
+      contatoSelecionado = await FlutterContacts.native.showPicker();
     } catch (_) {
       contatoSelecionado = null;
     }
-    if (contatoSelecionado == null) return;
+    final contatoId = contatoSelecionado?.id;
+    if (contatoId == null) return;
 
-    final contatoCompleto = await FlutterContacts.getContact(contatoSelecionado.id);
+    final contatoCompleto = await FlutterContacts.get(
+      contatoId,
+      properties: {ContactProperty.phone},
+    );
     if (contatoCompleto == null || contatoCompleto.phones.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -361,7 +366,7 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
       return;
     }
 
-    final nome = contatoCompleto.displayName.trim();
+    final nome = (contatoCompleto.displayName ?? '').trim();
     if (nome.isNotEmpty) nomeController.text = nome;
     telefoneController.text = contatoCompleto.phones.first.number;
   }
