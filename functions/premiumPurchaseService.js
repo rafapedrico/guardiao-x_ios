@@ -58,11 +58,10 @@
  * 3. Cadastrar o produto de assinatura `assinatura_mensal` (MESMO id do
  *    Android) em App Store Connect > Monetização > Assinaturas, dentro
  *    de um Grupo de Assinaturas — preço, período de teste etc.
- * 4. Opcional, mas recomendado assim que o app existir no App Store
- *    Connect: preencher `APPLE_APP_APPLE_ID` (o Apple ID numérico do
- *    app, visível em App Store Connect > App Information) — hoje fica
- *    `undefined` em [_obterClienteEVerifierApple] porque o app ainda não
- *    foi criado lá.
+ * 4. `APPLE_APP_APPLE_ID` (o Apple ID numérico do app, visível em App
+ *    Store Connect > App Information) — preenchido com 6817916652. O
+ *    `SignedDataVerifier` EXIGE esse valor no ambiente PRODUCTION (no
+ *    SANDBOX ele é ignorado).
  * Sem os 3 segredos configurados, toda chamada iOS de
  * [validarCompraPremium] falha com "unavailable" (erro de credencial ao
  * montar o `AppStoreServerAPIClient`).
@@ -111,6 +110,8 @@ const ANDROID_PACKAGE_NAME = "com.rmfglobal.guardiaox";
 // migração) — igual ao pacote Android de propósito (ver
 // `lib/firebase_options.dart`).
 const APPLE_BUNDLE_ID = "com.rmfglobal.guardiaox";
+// Apple ID numérico do app em App Store Connect (App Information).
+const APPLE_APP_APPLE_ID = 6817916652;
 
 // Id do produto de assinatura mensal — precisa ser EXATAMENTE este id
 // tanto no Play Console (Monetise > Products > Subscriptions) quanto em
@@ -273,10 +274,9 @@ function _obterClienteEVerifierApple(environment) {
       true, // enableOnlineChecks
       environment,
       APPLE_BUNDLE_ID,
-      // appAppleId (Apple ID numérico do app) — undefined até o app
-      // existir de verdade em App Store Connect (ver instruções de
-      // infraestrutura no topo do arquivo, item 4).
-      undefined,
+      // appAppleId (Apple ID numérico do app) — ver instruções de
+      // infraestrutura no topo do arquivo, item 4.
+      APPLE_APP_APPLE_ID,
   );
 
   _clientesAppleCache[environment] = {client, verifier};

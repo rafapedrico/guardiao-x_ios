@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 
 import '../services/plano_ciclo_service.dart';
-import '../services/premium_purchase_service.dart';
+import 'premium_compra_aviso.dart';
 
 const Color _corDestaquePremium = Color(0xFF9C6BFF);
 
@@ -85,8 +85,9 @@ Future<void> _exibirModalPlanoBloqueado(BuildContext context) async {
             // PremiumPurchaseService) — não mais um deep-link pra página
             // da loja. O resultado chega de forma assíncrona pelo
             // purchaseStream global (ver o SnackBar em
-            // main.dart::_SecurityCheckAppState).
-            PremiumPurchaseService().comprarPremium();
+            // main.dart::_SecurityCheckAppState). Se a tela de pagamento
+            // não abrir (loja/produto indisponível), mostra um aviso.
+            iniciarCompraPremiumComAviso(context);
           },
           child: Text(l10n.planoBloqueadoModalBotaoAssinar),
         ),

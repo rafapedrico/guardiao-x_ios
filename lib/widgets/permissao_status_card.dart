@@ -25,6 +25,11 @@ class PermissaoStatusCard extends StatelessWidget {
     required this.aoConceder,
     this.aoAbrirConfiguracoes,
     this.textoStatusParcial,
+    this.textoStatusConcedida,
+    this.textoStatusPendente,
+    this.corStatusPendente,
+    this.textoBotaoConceder,
+    this.aoTocarCard,
   });
 
   final IconData icone;
@@ -44,6 +49,17 @@ class PermissaoStatusCard extends StatelessWidget {
   /// não a permissão básica. `null` usa o texto genérico.
   final String? textoStatusParcial;
 
+  /// Substituem os textos/cor genéricos de status e o rótulo do botão —
+  /// usados por itens que não são uma permissão do sistema (ex: o Widget
+  /// SOS do iOS: "Ativo"/"Não adicionado", botão "Como adicionar").
+  final String? textoStatusConcedida;
+  final String? textoStatusPendente;
+  final Color? corStatusPendente;
+  final String? textoBotaoConceder;
+
+  /// Toque em qualquer parte do card (além do botão).
+  final VoidCallback? aoTocarCard;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -53,7 +69,7 @@ class PermissaoStatusCard extends StatelessWidget {
     switch (status) {
       case StatusPermissaoOnboarding.concedida:
         corStatus = Colors.green.shade600;
-        textoStatus = l10n.onboardingStatusConcedida;
+        textoStatus = textoStatusConcedida ?? l10n.onboardingStatusConcedida;
         break;
       case StatusPermissaoOnboarding.parcial:
         // CORREÇÃO DE BUG REAL (2026-09-05, pedido explícito do usuário —
@@ -67,13 +83,13 @@ class PermissaoStatusCard extends StatelessWidget {
         textoStatus = textoStatusParcial ?? l10n.onboardingStatusParcial;
         break;
       case StatusPermissaoOnboarding.pendente:
-        corStatus = Colors.grey.shade600;
-        textoStatus = l10n.onboardingStatusPendente;
+        corStatus = corStatusPendente ?? Colors.grey.shade600;
+        textoStatus = textoStatusPendente ?? l10n.onboardingStatusPendente;
         break;
     }
     final corDestaque = essencial ? Colors.red.shade400 : Colors.blue.shade400;
 
-    return Container(
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -138,7 +154,7 @@ class PermissaoStatusCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                     textStyle: const TextStyle(fontSize: 13),
                   ),
-                  child: Text(l10n.permissaoSmsPermitir),
+                  child: Text(textoBotaoConceder ?? l10n.permissaoSmsPermitir),
                 ),
             ],
           ),
@@ -162,6 +178,13 @@ class PermissaoStatusCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+
+    if (aoTocarCard == null) return card;
+    return GestureDetector(
+      onTap: aoTocarCard,
+      behavior: HitTestBehavior.opaque,
+      child: card,
     );
   }
 

@@ -1130,5 +1130,60 @@
   "suporteChatAguardandoHumano": "Aguardando atendimento humano...",
   "suporteChatEmAtendimentoHumano": "Você está sendo atendido por um atendente humano.",
   "suporteChatResolvido": "Este atendimento foi encerrado.",
-  "suporteChatErroEnviar": "Não foi possível enviar sua mensagem. Tente novamente."
+  "suporteChatErroEnviar": "Não foi possível enviar sua mensagem. Tente novamente.",
+  "beneficioBotaoFisicoIos": "Botão SOS de pânico na tela principal do iOS para o envio de localização e foto para o banco de dados do Guardião-X e celulares cadastrados.",
+  "faqResposta9Ios": "Todas as mensagens de alerta de segurança são enviadas por notificação push, de aplicativo para aplicativo, para os contatos cadastrados na página de \"Configurações\" que têm o Guardião-X instalado.",
+  "faqResposta12Ios": "Sim. No iPhone, os alertas de emergência são enviados por notificação push, de aplicativo para aplicativo — por isso o celular de destino precisa ter o Guardião-X instalado, com a conta ativa, para receber o alerta.",
+  "segurancaConfirmarSosConteudoIos": "Isso enviará imediatamente um alerta de emergência para os seus contatos cadastrados, por notificação push do aplicativo, com sua localização atual. Deseja continuar?",
+  "familiaDicaContextoHelperIos": "Usada na mensagem de alerta caso o check-in não seja confirmado a tempo.",
+  "historicoAlertaEmergenciaDescricaoIos": "Alerta de emergência enviado por notificação push para os contatos cadastrados. Localização: {localizacao}",
+  "@historicoAlertaEmergenciaDescricaoIos": {
+    "placeholders": {
+      "localizacao": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoSosCacheDescricaoIos": "Alerta de SOS imediato enviado por notificação push com a última localização conhecida em cache. Localização: {localizacao}",
+  "@historicoSosCacheDescricaoIos": {
+    "placeholders": {
+      "localizacao": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoEvidenciaFotograficaDescricaoIos": "Fotos e localização registradas na nuvem do Guardião-X.",
+  "historicoFotoSosSmsTituloIos": "Foto do SOS enviada",
+  "historicoFotoSosSmsDescricaoIos": "Link da foto e localização enviados aos contatos de emergência por notificação push do aplicativo. Foto: {fotoUrl}",
+  "@historicoFotoSosSmsDescricaoIos": {
+    "placeholders": {
+      "fotoUrl": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumCompraIndisponivelTitulo": "Assinatura indisponível no momento",
+  "premiumCompraLojaIndisponivel": "Não foi possível conectar à loja de aplicativos neste aparelho. Verifique sua conexão e se você está conectado à sua conta da loja, e tente novamente.",
+  "premiumCompraProdutoIndisponivel": "O Plano Premium ainda não está disponível para assinatura na loja de aplicativos. Tente novamente mais tarde.",
+  "premiumCompraSemSessao": "Entre na sua conta do Guardião-X para assinar o Plano Premium.",
+  "premiumCompraFalhaIniciar": "Não foi possível abrir a tela de pagamento da loja. Tente novamente em alguns instantes.",
+  "premiumCompraAvisoOk": "Entendi",
+  "sosWidgetStatusTitulo": "Botão SOS na tela de início",
+  "sosWidgetStatusDescricao": "Widget \"Botão de Pânico\" do Guardião-X: um toque na tela de início ou na tela bloqueada envia sua localização e abre a câmera.",
+  "sosWidgetStatusAtivo": "Ativo",
+  "sosWidgetStatusNaoAdicionado": "Não adicionado",
+  "sosWidgetBotaoComoAdicionar": "Como adicionar",
+  "sosWidgetTutorialTitulo": "Adicione o Botão SOS",
+  "sosWidgetTutorialIntro": "O iPhone não permite que um app adicione widgets sozinho. Siga os passos abaixo para deixar o Botão de Pânico do Guardião-X a um toque de distância.",
+  "sosWidgetTutorialTelaInicioTitulo": "Na tela de início",
+  "sosWidgetTutorialTelaInicioPasso1": "Volte à tela de início e segure um espaço vazio até os ícones tremerem.",
+  "sosWidgetTutorialTelaInicioPasso2": "Toque em \"Editar\" → \"Adicionar Widget\" (ou no \"+\").",
+  "sosWidgetTutorialTelaInicioPasso3": "Procure \"Guardião-X\" e adicione o \"Botão de Pânico\".",
+  "sosWidgetTutorialTelaBloqueioTitulo": "Na tela bloqueada",
+  "sosWidgetTutorialTelaBloqueioPasso1": "Segure a tela bloqueada e toque em \"Personalizar\".",
+  "sosWidgetTutorialTelaBloqueioPasso2": "Escolha \"Tela Bloqueada\" e toque na área de widgets.",
+  "sosWidgetTutorialTelaBloqueioPasso3": "Toque em \"Guardião-X\" e adicione o Botão de Pânico.",
+  "sosWidgetTutorialEntendi": "Entendi",
+  "faqPerguntaWidgetSos": "Como adiciono o Botão SOS na tela de início do iPhone?",
+  "faqRespostaWidgetSos": "Na tela de início: volte à tela de início e segure um espaço vazio até os ícones tremerem, toque em \"Editar\" → \"Adicionar Widget\" (ou no \"+\"), procure \"Guardião-X\" e adicione o \"Botão de Pânico\". Na tela bloqueada: segure a tela bloqueada → \"Personalizar\" → \"Tela Bloqueada\" → toque na área de widgets → \"Guardião-X\". Um toque no botão envia sua localização e abre a câmera. Você confere se ele está ativo em Configurações → Status de Permissões."
 }

@@ -1,11 +1,13 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../app_navigator.dart';
 import '../firebase_options.dart';
+import '../screens/alerta_recebido_screen.dart';
 import '../widgets/monitoramento_decisao_dialog.dart';
 import 'alertas_recebidos_service.dart';
 import 'firebase_auth_service.dart';
@@ -67,11 +69,23 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage mensagem) async {
     // (diferente de plugins locais customizados deste app, ver
     // `SmsSender.kt`) é registrado automaticamente em QUALQUER engine
     // Flutter, inclusive este headless.
-    await FcmService()._tratarDadosDoAlerta(mensagem.data);
+    // iOS: com o bloco `apns` (ver `functions/apnsPayload.js`) quem
+    // EXIBE o banner é o próprio sistema — aqui só falta o ACK/registro
+    // local; exibir também a notificação local duplicaria o aviso.
+    await FcmService()._tratarDadosDoAlerta(
+      mensagem.data,
+      exibirNotificacaoLocal: !_sistemaJaExibiu(mensagem),
+    );
   } catch (e) {
     debugPrint('⚠️ [FcmService] Falha ao processar mensagem em segundo plano: $e');
   }
 }
+
+/// `true` quando o próprio iOS já exibiu este Push como banner (mensagem
+/// com bloco `apns.payload.aps.alert`, ver `functions/apnsPayload.js`).
+/// No Android as mensagens continuam data-only, então é sempre `false`.
+bool _sistemaJaExibiu(RemoteMessage mensagem) =>
+    Platform.isIOS && mensagem.notification != null;
 
 /// Serviço central do lado "guardião" da arquitetura híbrida de alertas:
 /// mantém o `fcmToken` do aparelho sincronizado com
@@ -148,6 +162,15 @@ class FcmService {
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       await FirebaseMessaging.instance.requestPermission();
       FirebaseMessaging.onMessage.listen(_processarMensagem);
+      if (Platform.isIOS) {
+        // iOS: o banner do Push é exibido pelo SISTEMA (bloco `apns`), então
+        // o toque nele chega por aqui — não pelo
+        // `flutter_local_notifications` (que só trata as notificações
+        // locais que ele mesmo criou). No Android o toque continua indo
+        // pela notificação local montada pelo app.
+        FirebaseMessaging.onMessageOpenedApp.listen(_aoTocarPushIos);
+        unawaited(_tratarPushQueAbriuOAppIos());
+      }
       _infraestruturaRegistrada = true;
     } catch (e) {
       debugPrint('⚠️ [FcmService] Falha ao registrar infraestrutura de FCM: $e');
@@ -166,6 +189,38 @@ class FcmService {
 
     try {
       final messaging = FirebaseMessaging.instance;
+
+      // Registrado ANTES da espera pelo APNs abaixo: se o token APNs
+      // chegar só mais tarde, o token FCM gerado nesse momento chega por
+      // aqui e ainda é gravado no Firestore.
+      if (!_listenerDeRenovacaoRegistrado) {
+        messaging.onTokenRefresh.listen((novoToken) {
+          debugPrint('📲 [FcmService] Token FCM renovado pelo SO (...${novoToken.substring(novoToken.length - 12)}) — sincronizando.');
+          FirebaseSyncService().atualizarFcmToken(novoToken);
+        });
+        _listenerDeRenovacaoRegistrado = true;
+      }
+
+      // iOS: o token FCM só existe depois que o APNs entrega o token do
+      // aparelho — chamar `getToken()` antes disso lança
+      // `apns-token-not-set` e NENHUM token é gravado no Firestore (achado
+      // no 1º teste no iPhone: `fcmTokenAtualizadoEm` da conta parado na
+      // data do último login pelo Android). Espera até ~15s pelo APNs.
+      if (Platform.isIOS) {
+        String? apnsToken;
+        for (var i = 0; i < 30 && apnsToken == null; i++) {
+          try {
+            apnsToken = await messaging.getAPNSToken();
+          } catch (_) {}
+          if (apnsToken == null) {
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+        }
+        if (apnsToken == null) {
+          debugPrint('⚠️ [FcmService] Token APNs indisponível após aguardar — token FCM não sincronizado nesta sessão.');
+          return;
+        }
+      }
 
       // CORREÇÃO (bug real confirmado em teste físico, 2026-08-14 — Razr
       // com `fcmToken` gravado no Firestore, mas TODO envio a ele falhava
@@ -197,14 +252,6 @@ class FcmService {
         // disponível/atualizado) ficava indistinguível de "tudo certo".
         debugPrint('⚠️ [FcmService] getToken() devolveu null — nenhum token para sincronizar com o Firestore.');
       }
-
-      if (!_listenerDeRenovacaoRegistrado) {
-        messaging.onTokenRefresh.listen((novoToken) {
-          debugPrint('📲 [FcmService] Token FCM renovado pelo SO (...${novoToken.substring(novoToken.length - 12)}) — sincronizando.');
-          FirebaseSyncService().atualizarFcmToken(novoToken);
-        });
-        _listenerDeRenovacaoRegistrado = true;
-      }
     } catch (e) {
       debugPrint('⚠️ [FcmService] Falha ao sincronizar token FCM: $e');
     }
@@ -233,6 +280,138 @@ class FcmService {
     final bool realmenteVisivel =
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     await _tratarDadosDoAlerta(mensagem.data, emPrimeiroPlano: realmenteVisivel);
+
+    // iOS com o app aberto: além da notificação local, abre direto a tela
+    // do alerta recebido (no Android a notificação de tela cheia já cumpre
+    // esse papel).
+    if (Platform.isIOS &&
+        realmenteVisivel &&
+        mensagem.data['tipo'] == _tipoAlertaEmergencia) {
+      _abrirTelaAlertaRecebido(mensagem.data);
+    }
+  }
+
+  /// iOS, cold start: o app estava FECHADO e foi aberto pelo toque no
+  /// banner do Push. Nesse caso o handler de background pode nem ter
+  /// rodado (o iOS não acorda um app encerrado pelo usuário para
+  /// `content-available`), então o ACK/registro local é feito aqui.
+  Future<void> _tratarPushQueAbriuOAppIos() async {
+    try {
+      final mensagem = await FirebaseMessaging.instance.getInitialMessage();
+      if (mensagem == null) return;
+      await _tratarToqueIos(mensagem, appEstavaFechado: true);
+    } catch (e) {
+      debugPrint('⚠️ [FcmService] Falha ao tratar Push que abriu o app (iOS): $e');
+    }
+  }
+
+  /// iOS, app em segundo plano: toque no banner do Push.
+  Future<void> _aoTocarPushIos(RemoteMessage mensagem) async {
+    try {
+      await _tratarToqueIos(mensagem, appEstavaFechado: false);
+    } catch (e) {
+      debugPrint('⚠️ [FcmService] Falha ao tratar toque no Push (iOS): $e');
+    }
+  }
+
+  Future<void> _tratarToqueIos(
+    RemoteMessage mensagem, {
+    required bool appEstavaFechado,
+  }) async {
+    final data = mensagem.data;
+    final tipo = data['tipo'] as String?;
+    debugPrint('👆 [FcmService] Toque no Push (iOS, tipo=$tipo, app fechado=$appEstavaFechado)');
+
+    if (tipo == _tipoAlertaEmergencia) {
+      // Idempotente: ACK e registro local ignoram repetição (ver
+      // `inserirAlertaTerceiroRecebido`, `ConflictAlgorithm.ignore`).
+      await _tratarAlertaEmergencia(data, exibirNotificacaoLocal: false);
+      _abrirTelaAlertaRecebido(data, substituirPilha: appEstavaFechado);
+      return;
+    }
+
+    if (tipo == 'solicitacao_monitoramento') {
+      final idPermissao = data['idPermissao'] as String?;
+      final uidSolicitante = data['uidSolicitante'] as String?;
+      if (idPermissao == null || uidSolicitante == null) return;
+      final nome = (data['nomeSolicitante'] as String?) ?? '';
+      final telefone = (data['telefoneSolicitante'] as String?) ?? '';
+      final abriu = !appEstavaFechado &&
+          await _tentarAbrirDecisaoDireto(
+            idPermissao: idPermissao,
+            uidSolicitante: uidSolicitante,
+            nomeSolicitante: nome,
+            telefoneSolicitante: telefone,
+          );
+      if (!abriu) {
+        // Sem sessão/contexto agora (cold start na barreira de login):
+        // mesma mecânica do toque na notificação local — a LoginScreen
+        // consome depois do login.
+        NotificacaoService.payloadSolicitacaoPendente = {
+          'tipo': 'monitoramento_push',
+          'subTipo': 'solicitacao_monitoramento',
+          'idPermissao': idPermissao,
+          'uidSolicitante': uidSolicitante,
+          'nomeSolicitante': nome,
+          'telefoneSolicitante': telefone,
+        };
+      }
+    }
+  }
+
+  /// Ids de alerta cuja [AlertaRecebidoScreen] já foi aberta por este
+  /// serviço nesta execução — evita empilhar a mesma tela duas vezes
+  /// (ex: Push em primeiro plano seguido do toque no banner).
+  static final Set<String> _idsAlertaJaAbertos = {};
+
+  /// Abre [AlertaRecebidoScreen] a partir do `data` do Push (mesmos campos
+  /// do payload da notificação local, ver
+  /// `NotificacaoService.exibirNotificacaoAlertaRecebido`). Com
+  /// [substituirPilha] (cold start), troca a pilha inteira — mesmo padrão
+  /// de `_inicializarNotificacoesEAbrirAlertaPendente` em `main.dart`: o
+  /// alerta recebido nunca exige login.
+  void _abrirTelaAlertaRecebido(
+    Map<String, dynamic> data, {
+    bool substituirPilha = false,
+  }) {
+    final idEntrega = data['idEntrega'] as String?;
+    if (idEntrega != null && !_idsAlertaJaAbertos.add(idEntrega)) return;
+
+    final rota = MaterialPageRoute(
+      builder: (_) => AlertaRecebidoScreen(
+        mensagem: (data['mensagem'] as String?) ?? '',
+        nomeRemetente: data['nomeRemetente'] as String?,
+        latitude: double.tryParse((data['latitude'] as String?) ?? ''),
+        longitude: double.tryParse((data['longitude'] as String?) ?? ''),
+        fotoUrl: data['fotoUrl'] as String?,
+        idEntrega: idEntrega,
+        recebidoEm: DateTime.now().toIso8601String(),
+      ),
+    );
+
+    // O Navigator pode ainda não existir num cold start — tenta de novo
+    // por alguns instantes antes de desistir (o alerta já ficou
+    // registrado no Histórico de qualquer forma).
+    var tentativas = 0;
+    void tentar() {
+      final navegador = appNavigatorKey.currentState;
+      if (navegador == null) {
+        if (++tentativas > 20) return;
+        Future.delayed(const Duration(milliseconds: 250), tentar);
+        return;
+      }
+      try {
+        if (substituirPilha) {
+          navegador.pushAndRemoveUntil(rota, (route) => false);
+        } else {
+          navegador.push(rota);
+        }
+      } catch (e) {
+        debugPrint('⚠️ [FcmService] Falha ao abrir AlertaRecebidoScreen: $e');
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => tentar());
   }
 
   /// Lógica compartilhada entre primeiro e segundo plano: despacha o
@@ -245,14 +424,18 @@ class FcmService {
   /// (app aberto e em uso, ver `FirebaseMessaging.onMessage`) — usado por
   /// [_tratarPushMonitoramento] para decidir entre abrir o modal de decisão
   /// direto ou apenas exibir a notificação normal.
+  ///
+  /// [exibirNotificacaoLocal] é `false` só no iOS em segundo plano, quando o
+  /// próprio sistema já exibiu o banner do Push (ver [_sistemaJaExibiu]).
   Future<void> _tratarDadosDoAlerta(
     Map<String, dynamic> data, {
     bool emPrimeiroPlano = false,
+    bool exibirNotificacaoLocal = true,
   }) async {
     final tipo = data['tipo'] as String?;
 
     if (tipo == _tipoAlertaEmergencia) {
-      await _tratarAlertaEmergencia(data);
+      await _tratarAlertaEmergencia(data, exibirNotificacaoLocal: exibirNotificacaoLocal);
       return;
     }
 
@@ -268,6 +451,7 @@ class FcmService {
     }
 
     if (tipo != null && _tiposPushMonitoramento.contains(tipo)) {
+      if (!exibirNotificacaoLocal) return; // iOS: banner já exibido pelo sistema.
       await _tratarPushMonitoramento(data, tipo, emPrimeiroPlano: emPrimeiroPlano);
       return;
     }
@@ -287,7 +471,10 @@ class FcmService {
   /// a notificação de tela cheia (ex: canal ainda não criado, permissão
   /// negada) NUNCA deve impedir o registro da entrega já confirmada pelo
   /// FCM.
-  Future<void> _tratarAlertaEmergencia(Map<String, dynamic> data) async {
+  Future<void> _tratarAlertaEmergencia(
+    Map<String, dynamic> data, {
+    bool exibirNotificacaoLocal = true,
+  }) async {
     final idEntrega = data['idEntrega'] as String?;
     final mensagem = (data['mensagem'] as String?) ?? '';
     final nomeRemetente = data['nomeRemetente'] as String?;
@@ -327,6 +514,8 @@ class FcmService {
       longitude: longitude,
       fotoUrl: fotoUrl,
     ));
+
+    if (!exibirNotificacaoLocal) return;
 
     try {
       await NotificacaoService.exibirNotificacaoAlertaRecebido(

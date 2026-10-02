@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
@@ -627,7 +629,9 @@ Future<void> _despausarAlarmeManual(AlarmeRotina alarme) async {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           prefixIcon: const Icon(Icons.edit_note),
-                          helperText: AppLocalizations.of(ctx)!.familiaDicaContextoHelper,
+                          helperText: Platform.isIOS
+                              ? AppLocalizations.of(ctx)!.familiaDicaContextoHelperIos
+                              : AppLocalizations.of(ctx)!.familiaDicaContextoHelper,
                           helperMaxLines: 2,
                         ),
                       ),

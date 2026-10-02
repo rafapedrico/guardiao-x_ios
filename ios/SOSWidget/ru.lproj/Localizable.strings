@@ -1,0 +1,3 @@
+/* Nome e descrição do widget na galeria de widgets (SOSWidget.swift). */
+"widget.nome" = "Тревожная кнопка — Страж-X";
+"widget.descricao" = "Нажмите в случае опасности: отправляет ваше местоположение и открывает камеру";

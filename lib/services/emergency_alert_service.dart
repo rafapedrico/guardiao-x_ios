@@ -371,7 +371,9 @@ class EmergencyAlertService {
     try {
       await _db.inserirEventoHistorico(
         titulo: l10n.historicoAlertaEmergenciaTitulo,
-        descricao: l10n.historicoAlertaEmergenciaDescricao(localizacaoFormatada),
+        descricao: Platform.isIOS
+            ? l10n.historicoAlertaEmergenciaDescricaoIos(localizacaoFormatada)
+            : l10n.historicoAlertaEmergenciaDescricao(localizacaoFormatada),
         categoria: 'critico',
       );
     } catch (e) {
@@ -538,8 +540,8 @@ class EmergencyAlertService {
     String mensagem,
   ) async {
     // MIGRAÇÃO iOS (decisão de produto, 2026-09-12): ponto ÚNICO de
-    // bifurcação por plataforma deste serviço — nenhuma outra linha
-    // deste arquivo precisa checar `Platform.isIOS`. A Apple não
+    // bifurcação por plataforma do ENVIO neste serviço (as demais checagens
+    // de `Platform.isIOS` só escolhem o texto do Histórico, sem SMS). A Apple não
     // oferece nenhuma API pública de envio de SMS; no iOS, o fluxo de
     // emergência passa a ser 100% Push (ver `SosDisparoService`, que já
     // dispara o canal de nuvem em paralelo a esta chamada,
@@ -806,7 +808,9 @@ class EmergencyAlertService {
     try {
       await _db.inserirEventoHistorico(
         titulo: l10n.historicoSosCacheTitulo,
-        descricao: l10n.historicoSosCacheDescricao(localizacaoFormatada),
+        descricao: Platform.isIOS
+            ? l10n.historicoSosCacheDescricaoIos(localizacaoFormatada)
+            : l10n.historicoSosCacheDescricao(localizacaoFormatada),
         categoria: 'critico',
       );
     } catch (e) {
@@ -858,7 +862,9 @@ class EmergencyAlertService {
     try {
       await _db.inserirEventoHistorico(
         titulo: l10n.historicoEvidenciaFotograficaTitulo,
-        descricao: l10n.historicoEvidenciaFotograficaDescricao,
+        descricao: Platform.isIOS
+            ? l10n.historicoEvidenciaFotograficaDescricaoIos
+            : l10n.historicoEvidenciaFotograficaDescricao,
         categoria: 'critico',
       );
     } catch (_) {}
@@ -908,8 +914,10 @@ class EmergencyAlertService {
 
     try {
       await _db.inserirEventoHistorico(
-        titulo: l10n.historicoFotoSosSmsTitulo,
-        descricao: l10n.historicoFotoSosSmsDescricao(fotoUrl),
+        titulo: Platform.isIOS ? l10n.historicoFotoSosSmsTituloIos : l10n.historicoFotoSosSmsTitulo,
+        descricao: Platform.isIOS
+            ? l10n.historicoFotoSosSmsDescricaoIos(fotoUrl)
+            : l10n.historicoFotoSosSmsDescricao(fotoUrl),
         categoria: 'critico',
       );
     } catch (_) {}

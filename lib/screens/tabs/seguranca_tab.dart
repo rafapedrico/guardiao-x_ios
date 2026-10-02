@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
@@ -817,7 +819,9 @@ class _SegurancaTabState extends State<SegurancaTab> {
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(AppLocalizations.of(context)!.segurancaConfirmarSosTitulo),
-          content: Text(AppLocalizations.of(context)!.segurancaConfirmarSosConteudo),
+          content: Text(Platform.isIOS
+              ? AppLocalizations.of(context)!.segurancaConfirmarSosConteudoIos
+              : AppLocalizations.of(context)!.segurancaConfirmarSosConteudo),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),

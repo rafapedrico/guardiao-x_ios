@@ -6,6 +6,7 @@ import '../main.dart' show iniciarServicosPosLoginOuDashboard;
 import '../services/alertas_recebidos_service.dart';
 import '../services/battery_optimization_service.dart';
 import '../services/sms_permission_service.dart';
+import '../services/sos_widget_status_service.dart';
 import 'tabs/seguranca_tab.dart';
 import 'tabs/familia_tab.dart';
 import 'tabs/monitoramento_tab.dart';
@@ -80,6 +81,10 @@ class _HomeScreenState extends State<HomeScreen> {
       await SmsPermissionService().verificarNoOnboarding(context);
       if (!mounted) return;
       await BatteryOptimizationService().verificarNoOnboarding(context);
+      if (!mounted) return;
+      // Só iOS: passo a passo do Widget SOS, uma única vez, se ainda não
+      // estiver instalado.
+      await SosWidgetStatusService.exibirTutorialNoPrimeiroLoginSeNecessario(context);
     });
   }
 
@@ -187,37 +192,21 @@ class _HomeScreenState extends State<HomeScreen> {
               index: _indiceAbaAtual,
               children: _telas,
             ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _indiceAbaAtual,
-        onTap: _aoSelecionarAba,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF12131C),
-        elevation: 0,
-        selectedFontSize: 15,
-        unselectedFontSize: 13,
+      bottomNavigationBar: _BarraAbas(
+        indiceAtual: _indiceAbaAtual,
         // Estado neutro do Dashboard: nenhuma aba deve parecer "ativa"
-        // enquanto _mostrandoInicio for true — em vez de usar um
-        // currentIndex fora do range (não suportado pelo widget e causa
-        // assert), equalizamos a cor de selecionado com a de não
-        // selecionado, fazendo os 4 itens parecerem visualmente iguais.
-        selectedItemColor:
-            _mostrandoInicio ? const Color(0xFF8E8E93) : Colors.white,
-        unselectedItemColor: const Color(0xFF8E8E93),
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.shield),
-            label: l10n.tabSeguranca,
+        // enquanto _mostrandoInicio for true.
+        nenhumaSelecionada: _mostrandoInicio,
+        onTap: _aoSelecionarAba,
+        itens: [
+          _ItemAba(icone: const Icon(Icons.shield), rotulo: l10n.tabSeguranca),
+          _ItemAba(icone: const Icon(Icons.people), rotulo: l10n.tabFamilia),
+          _ItemAba(
+            icone: const Icon(Icons.location_on_outlined),
+            rotulo: l10n.tabMonitoramento,
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.people),
-            label: l10n.tabFamilia,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.location_on_outlined),
-            label: l10n.tabMonitoramento,
-          ),
-          BottomNavigationBarItem(
-            icon: ValueListenableBuilder<int>(
+          _ItemAba(
+            icone: ValueListenableBuilder<int>(
               valueListenable: AlertasRecebidosService.naoVisualizados,
               builder: (context, contagem, _) {
                 return Badge(
@@ -227,9 +216,103 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            label: l10n.tabHistorico,
+            rotulo: l10n.tabHistorico,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ItemAba {
+  const _ItemAba({required this.icone, required this.rotulo});
+
+  final Widget icone;
+  final String rotulo;
+}
+
+/// Barra de abas inferior. Substitui a `BottomNavigationBar` padrão, que
+/// só aceita o rótulo como String: com o tamanho de letra "Padrão"/"Grande"
+/// (ver [FontScaleService]) e idiomas de palavras longas, "Segurança",
+/// "Despertador", "Monitoramento" e "Histórico" não cabiam na largura de
+/// um iPhone. Aqui o rótulo tem fonte fixa (a escala de fonte do app não
+/// se aplica à barra), uma linha só e `FittedBox(scaleDown)` — encolhe
+/// só o que não couber, em qualquer tamanho de fonte ou idioma.
+class _BarraAbas extends StatelessWidget {
+  const _BarraAbas({
+    required this.indiceAtual,
+    required this.nenhumaSelecionada,
+    required this.onTap,
+    required this.itens,
+  });
+
+  final int indiceAtual;
+  final bool nenhumaSelecionada;
+  final ValueChanged<int> onTap;
+  final List<_ItemAba> itens;
+
+  static const Color _corFundo = Color(0xFF12131C);
+  static const Color _corInativa = Color(0xFF8E8E93);
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaQuery.withNoTextScaling(
+      child: Material(
+        color: _corFundo,
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 58,
+            child: Row(
+              children: [
+                for (var i = 0; i < itens.length; i++)
+                  Expanded(child: _buildItem(i)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItem(int indice) {
+    final item = itens[indice];
+    final bool selecionado = !nenhumaSelecionada && indice == indiceAtual;
+    final Color cor = selecionado ? Colors.white : _corInativa;
+    return Semantics(
+      selected: selecionado,
+      button: true,
+      label: item.rotulo,
+      excludeSemantics: true,
+      child: InkResponse(
+        onTap: () => onTap(indice),
+        highlightShape: BoxShape.rectangle,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconTheme(
+                data: IconThemeData(color: cor, size: 24),
+                child: item.icone,
+              ),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  item.rotulo,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: cor,
+                    fontSize: 12,
+                    fontWeight: selecionado ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

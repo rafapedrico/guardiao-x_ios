@@ -1,8 +1,11 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart' show openAppSettings;
 import 'package:security_check_app/l10n/app_localizations.dart';
 
 import '../services/onboarding_service.dart';
+import '../services/sos_widget_status_service.dart';
 import '../widgets/permissao_status_card.dart';
 
 /// Tela "Status de Permissões", acessível a qualquer momento em
@@ -37,6 +40,10 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
 
   StatusPermissaoOnboarding _telaCheia = StatusPermissaoOnboarding.pendente;
 
+  /// Só iOS: Widget SOS instalado na tela de início/bloqueada (status real,
+  /// do WidgetCenter — ver [SosWidgetStatusService]). `null` = desconhecido.
+  bool? _widgetSos;
+
   bool _carregando = true;
 
   @override
@@ -67,6 +74,10 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
       _service.statusCamera(),
       _service.statusTelaCheia(),
     ]);
+    // Reverificado também a cada volta ao primeiro plano (ver
+    // didChangeAppLifecycleState): fica verde sozinho depois que o
+    // usuário adiciona o widget e volta ao app.
+    final widgetSos = await SosWidgetStatusService.widgetInstalado();
     if (!mounted) return;
     setState(() {
       _bateria = resultados[0];
@@ -74,6 +85,7 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
       _localizacao = resultados[2];
       _camera = resultados[3];
       _telaCheia = resultados[4];
+      _widgetSos = widgetSos;
       _carregando = false;
     });
   }
@@ -191,6 +203,22 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
                             ? openAppSettings
                             : null,
                   ),
+                  if (Platform.isIOS)
+                    PermissaoStatusCard(
+                      icone: Icons.sos_rounded,
+                      titulo: l10n.sosWidgetStatusTitulo,
+                      descricao: l10n.sosWidgetStatusDescricao,
+                      essencial: false,
+                      status: _widgetSos == true
+                          ? StatusPermissaoOnboarding.concedida
+                          : StatusPermissaoOnboarding.pendente,
+                      textoStatusConcedida: l10n.sosWidgetStatusAtivo,
+                      textoStatusPendente: l10n.sosWidgetStatusNaoAdicionado,
+                      corStatusPendente: Colors.red.shade600,
+                      textoBotaoConceder: l10n.sosWidgetBotaoComoAdicionar,
+                      aoConceder: () => SosWidgetStatusService.abrirTutorial(context),
+                      aoTocarCard: () => SosWidgetStatusService.abrirTutorial(context),
+                    ),
                 ],
               ),
             ),

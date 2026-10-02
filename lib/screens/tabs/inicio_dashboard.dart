@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
@@ -6,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/locale_service.dart';
 import '../../services/plano_ciclo_service.dart';
 import '../../services/premium_price_service.dart';
-import '../../services/premium_purchase_service.dart';
+import '../../widgets/premium_compra_aviso.dart';
 import '../faq_screen.dart';
 import '../suporte_chat_screen.dart';
 import '../termos_privacidade_screen.dart';
@@ -271,10 +273,13 @@ class InicioDashboard extends StatelessWidget {
         destaque: l10n.premiumModalDestaque,
         beneficios: [
           l10n.beneficioLocalizacaoTempoReal,
-          l10n.beneficioBotaoFisico,
+          // iOS: sem botão físico (substituído pelo SOS da tela principal)
+          // e sem SMS — por isso a versão própria e sem o item das duas
+          // camadas (App + SMS).
+          Platform.isIOS ? l10n.beneficioBotaoFisicoIos : l10n.beneficioBotaoFisico,
           l10n.beneficioModoSeguranca,
           l10n.beneficioModoFamilia,
-          l10n.beneficioTresCamadas,
+          if (!Platform.isIOS) l10n.beneficioTresCamadas,
           l10n.beneficioTempoEspera,
         ],
         botaoPrincipalTexto: precoLoja != null
@@ -286,8 +291,9 @@ class InicioDashboard extends StatelessWidget {
           // — não mais um deep-link pra página da loja. O resultado chega
           // de forma assíncrona pelo purchaseStream global (ver o
           // SnackBar em main.dart::_SecurityCheckAppState), então este
-          // método não precisa ser aguardado aqui.
-          PremiumPurchaseService().comprarPremium();
+          // método não precisa ser aguardado aqui. Se a tela de pagamento
+          // não abrir (loja/produto indisponível), mostra um aviso.
+          iniciarCompraPremiumComAviso(context);
         },
         botaoSecundarioTexto: l10n.agoraNao,
         // O botão "Cancelar Plano Premium" só é exibido quando o plano

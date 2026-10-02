@@ -29,6 +29,7 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentUpdated} = require("firebase-functions/v2/firestore");
 const {getFirestore, Timestamp} = require("firebase-admin/firestore");
 const {getMessaging} = require("firebase-admin/messaging");
+const {montarApnsAlerta} = require("./apnsPayload");
 const logger = require("firebase-functions/logger");
 const {normalizarTelefoneE164} = require("./telefoneUtils");
 const {JANELA_EXPIRACAO_MONITORAMENTO_MS} = require("./constantes");
@@ -59,6 +60,52 @@ function montarIdPermissao(uidAlvo, uidSolicitante) {
 }
 
 /**
+ * Título/corpo do banner do iOS para os pushes da aba Monitoramento — no
+ * Android o app monta esse texto localmente (ver
+ * `NotificacaoService.exibirNotificacaoMonitoramento`, chaves
+ * `notifMonit*`), mas no iOS quem exibe é o sistema, direto do payload.
+ * O servidor não conhece o idioma do destinatário, então usa o português
+ * (mesmo critério de `TITULO_PUSH` em `alertaHibridoService.js`).
+ *
+ * @param {string} tipo
+ * @param {Object<string, string>} dados
+ * @return {{titulo: string, corpo: string}}
+ */
+function textoPushMonitoramentoIos(tipo, dados) {
+  const nomeSolicitante = (dados && dados.nomeSolicitante) || "Um contato";
+  const nomeAlvo = (dados && dados.nomeAlvo) || "Um contato";
+  switch (tipo) {
+    case "solicitacao_monitoramento":
+      return {
+        titulo: "📍 Solicitação de localização",
+        corpo: `${nomeSolicitante} está solicitando a sua localização.`,
+      };
+    case "monitoramento_aprovado":
+      return {
+        titulo: "📍 Localização liberada",
+        corpo: `${nomeAlvo} permitiu que você veja a localização dele(a).`,
+      };
+    case "monitoramento_negado":
+      return {
+        titulo: "📍 Solicitação recusada",
+        corpo: `${nomeAlvo} recusou a sua solicitação de localização.`,
+      };
+    case "monitoramento_bloqueado":
+      return {
+        titulo: "📍 Compartilhamento bloqueado",
+        corpo: `${nomeAlvo} bloqueou o compartilhamento da localização com você.`,
+      };
+    case "monitoramento_expirado":
+      return {
+        titulo: "📍 Solicitação expirada",
+        corpo: `Sua solicitação de localização para ${nomeAlvo} expirou sem resposta.`,
+      };
+    default:
+      return {titulo: "📍 Guardião-X", corpo: ""};
+  }
+}
+
+/**
  * Envia um Push data-only (mesmo padrão de `enviarFcmParaContatos` em
  * `alertaHibridoService.js`) para um único usuário, buscando seu
  * `fcmToken` em `usuarios/{uidDestino}`. Best-effort: nunca lança
@@ -81,10 +128,20 @@ async function enviarFcmMonitoramento(uidDestino, tipo, dadosExtras) {
       return;
     }
 
+    const textoIos = textoPushMonitoramentoIos(tipo, dadosExtras);
     await getMessaging().send({
       token: fcmToken,
       data: {tipo, ...dadosExtras},
       android: {priority: "high"},
+      // iOS: sem este bloco o push data-only não aparece com o app
+      // fechado/em segundo plano (ver `apnsPayload.js`). Notificação
+      // normal (sem time-sensitive) — não é alerta de emergência.
+      apns: montarApnsAlerta({
+        titulo: textoIos.titulo,
+        corpo: textoIos.corpo,
+        collapseId: dadosExtras && dadosExtras.idPermissao,
+        timeSensitive: false,
+      }),
     });
     logger.info(`[enviarFcmMonitoramento] Push "${tipo}" enviado para ${uidDestino}.`);
   } catch (e) {

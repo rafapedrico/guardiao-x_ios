@@ -43,7 +43,8 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {getFirestore, Timestamp, FieldValue} = require("firebase-admin/firestore");
 const {getMessaging} = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
-const {resolverContasPorTelefone, TITULO_PUSH} = require("./alertaHibridoService");
+const {resolverContasPorTelefone, TITULO_PUSH, tituloPushIos} = require("./alertaHibridoService");
+const {montarApnsAlerta} = require("./apnsPayload");
 const {dispararRelatorioFalhaEntrega} = require("./relatorioFalhaService");
 
 const db = getFirestore();
@@ -85,6 +86,16 @@ async function enviarPushIndividual(token, corpo, dados) {
       token,
       data: {...dados, titulo: TITULO_PUSH, corpo},
       android: {priority: "high"},
+      // Mesmo bloco iOS do disparo imediato (`enviarFcmParaContatos`) —
+      // mesmo collapse-id (idEntrega), então cada reenvio SUBSTITUI o
+      // banner anterior em vez de empilhar um novo por minuto. O token
+      // vem de `resolverContasPorTelefone`, que já aplica a TRAVA DE
+      // RECEBIMENTO do Plano Free.
+      apns: montarApnsAlerta({
+        titulo: tituloPushIos(dados.nomeRemetente),
+        corpo,
+        collapseId: dados.idEntrega,
+      }),
     });
     return true;
   } catch (e) {

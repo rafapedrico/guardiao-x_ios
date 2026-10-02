@@ -19,11 +19,11 @@ name: iOS TestFlight
 # A chave precisa do papel "Admin" no App Store Connect: é o que permite
 # ao xcodebuild criar certificados gerenciados na nuvem.
 #
-# PENDÊNCIA: o SOSWidget (ios/SOSWidget/, Widget de Home Screen) ainda
-# NÃO é um target do Runner.xcodeproj, então não entra neste build. Para
-# incluí-lo: criar o target Widget Extension (bundle
-# com.rmfglobal.guardiaox.SOSWidget), registrar esse App ID no portal e
-# embutir a extensão no Runner.
+# Widget SOS (ios/SOSWidget/): target Widget Extension "SOSWidget"
+# (bundle com.rmfglobal.guardiaox.SOSWidget), criado pela gem xcodeproj
+# via ios/scripts/adicionar_target_sos_widget.rb e embutido no Runner. O
+# -allowProvisioningUpdates com a API Key registra o App ID do widget e
+# cria o profile dele automaticamente, como faz com o do app.
 
 on:
   workflow_dispatch:

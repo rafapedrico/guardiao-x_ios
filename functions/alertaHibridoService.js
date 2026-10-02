@@ -50,6 +50,7 @@ const {getMessaging} = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 const {normalizarTelefoneE164} = require("./telefoneUtils");
 const {calcularDiaAtual, DURACAO_ATIVO_DIAS} = require("./planoCicloService");
+const {montarApnsAlerta} = require("./apnsPayload");
 
 const db = getFirestore();
 
@@ -58,6 +59,20 @@ const SUBCOLECAO_DESTINATARIOS = "destinatarios";
 const TITULO_PUSH = "🚨 Alerta de segurança";
 const STATUS_DESTINATARIO_PENDENTE = "PENDENTE";
 const PRIMEIRO_INTERVALO_RETENTATIVA_MS = 60 * 1000; // 1 min (0–20 min decorridos)
+
+/**
+ * Título do banner do iOS (bloco `apns`): o Android monta o próprio
+ * título no app a partir de `nomeRemetente` (ver
+ * `NotificacaoService.exibirNotificacaoAlertaRecebido`), mas no iOS quem
+ * exibe é o sistema, direto do payload — então o servidor já manda o
+ * título final.
+ *
+ * @param {string} nomeRemetente
+ * @return {string}
+ */
+function tituloPushIos(nomeRemetente) {
+  return nomeRemetente ? `🚨 Alerta de ${nomeRemetente}` : TITULO_PUSH;
+}
 
 /**
  * Para cada contato `{nome, telefone}`, normaliza o telefone e busca em
@@ -163,7 +178,8 @@ async function resolverContasPorTelefone(contatos) {
 
 /**
  * Envia o Push App-para-App só para quem tem `fcmToken` resolvido, como
- * mensagem DATA-ONLY (sem o campo `notification`) — de propósito: com
+ * mensagem DATA-ONLY no Android (sem o campo `notification`; o bloco
+ * `apns` só vale para o iOS, ver `apnsPayload.js`) — de propósito: com
  * `notification` presente, o Android exibiria automaticamente uma
  * notificação padrão do sistema em segundo plano/terminado, duplicando a
  * notificação de tela cheia customizada que o próprio app monta (ver
@@ -204,6 +220,16 @@ async function enviarFcmParaContatos(contatosResolvidos, titulo, corpo, dadosExt
       token: c.fcmToken,
       data: {...dadosExtras, titulo, corpo, contatoId: c.contatoId},
       android: {priority: "high"},
+      // iOS: sem este bloco o push data-only não aparece com o app
+      // fechado/em segundo plano (ver `apnsPayload.js`). Ignorado no
+      // Android. O collapse-id por alerta+contato faz as retentativas
+      // (`entregaRetryEngine.js`) substituírem este banner em vez de
+      // empilhar um novo por minuto.
+      apns: montarApnsAlerta({
+        titulo: tituloPushIos(dadosExtras && dadosExtras.nomeRemetente),
+        corpo,
+        collapseId: dadosExtras && dadosExtras.idEntrega,
+      }),
     })));
     logger.info(
         `[FCM Enviado] ${resposta.successCount} enviado(s), ` +
@@ -384,4 +410,5 @@ module.exports = {
   COLECAO_ENTREGAS,
   SUBCOLECAO_DESTINATARIOS,
   TITULO_PUSH,
+  tituloPushIos,
 };

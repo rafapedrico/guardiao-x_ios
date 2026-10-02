@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 
@@ -149,7 +151,7 @@ class _FaqScreenState extends State<FaqScreen> {
         _FaqItem(pergunta: l10n.faqPergunta5, resposta: l10n.faqResposta5),
         _FaqItem(pergunta: l10n.faqPergunta6, resposta: l10n.faqResposta6),
         _FaqItem(pergunta: l10n.faqPergunta7, resposta: l10n.faqResposta7),
-        _FaqItem(pergunta: l10n.faqPergunta9, resposta: l10n.faqResposta9),
+        _FaqItem(pergunta: l10n.faqPergunta9, resposta: Platform.isIOS ? l10n.faqResposta9Ios : l10n.faqResposta9),
         // Item 7 do pedido original (2026-08-XX): resposta sobre o
         // atendimento ao consumidor — atualizada em 2026-08-11 (remoção
         // do WhatsApp) para não mais descrever um chat automático; agora
@@ -157,8 +159,12 @@ class _FaqScreenState extends State<FaqScreen> {
         // humano) + atendente físico conforme a política da RMF Global,
         // com exclusividade de até 48h para o Plano Premium.
         _FaqItem(pergunta: l10n.faqPergunta11, resposta: l10n.faqResposta11),
-        _FaqItem(pergunta: l10n.faqPergunta12, resposta: l10n.faqResposta12),
+        _FaqItem(pergunta: l10n.faqPergunta12, resposta: Platform.isIOS ? l10n.faqResposta12Ios : l10n.faqResposta12),
         _FaqItem(pergunta: l10n.faqPergunta13, resposta: l10n.faqResposta13),
+        // Só iOS: Widget SOS ("Botão de Pânico") — mesmo passo a passo da
+        // SosWidgetTutorialScreen.
+        if (Platform.isIOS)
+          _FaqItem(pergunta: l10n.faqPerguntaWidgetSos, resposta: l10n.faqRespostaWidgetSos),
       ];
 }
 

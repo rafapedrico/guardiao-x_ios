@@ -55,6 +55,17 @@ enum PremiumCompraEvento { pendente, concedida, semDireito, erro, erroValidacao,
 /// **Não testado contra a App Store de verdade** (sem Mac/conta Apple
 /// Developer neste ambiente) — recomendado testar no Sandbox da Apple
 /// antes de liberar para usuários reais.
+/// Desfecho de [PremiumPurchaseService.comprarPremium] — só diz se a tela
+/// de pagamento da loja chegou a ABRIR; o resultado da compra em si chega
+/// depois, pelo `purchaseStream`.
+enum PremiumCompraInicio {
+  iniciada,
+  semSessao,
+  lojaIndisponivel,
+  produtoNaoEncontrado,
+  falhaAoIniciar,
+}
+
 class PremiumPurchaseService {
   PremiumPurchaseService._internal();
   static final PremiumPurchaseService _instance = PremiumPurchaseService._internal();
@@ -131,35 +142,38 @@ class PremiumPurchaseService {
     _iniciado = false;
   }
 
-  /// Dispara a compra da assinatura mensal do Plano Premium. Retorna
-  /// `false` sem abrir nada se não houver sessão, a loja estiver
-  /// indisponível ou o produto não for encontrado (mesmo tratamento
-  /// permissivo/silencioso de [PremiumPriceService]) — o CHAMADOR decide
-  /// se quer mostrar algum feedback nesses casos (ex: manter o texto
-  /// genérico já exibido).
+  /// Dispara a compra da assinatura mensal do Plano Premium. Quando a
+  /// tela de pagamento NÃO pode ser aberta (sem sessão, loja indisponível,
+  /// produto não encontrado), devolve o motivo em vez de falhar em
+  /// silêncio — os botões "Assinar" mostram um aviso a partir dele (ver
+  /// `iniciarCompraPremiumComAviso`, em `widgets/premium_compra_aviso.dart`).
   ///
   /// O resultado da compra em si NÃO vem do retorno deste método — ver
   /// documentação da classe.
-  Future<bool> comprarPremium() async {
+  Future<PremiumCompraInicio> comprarPremium() async {
     final String? uid = FirebaseAuthService().uidAtual;
     if (uid == null) {
       debugPrint('⚠️ [PremiumPurchaseService] Sem sessão autenticada — compra cancelada.');
-      return false;
+      return PremiumCompraInicio.semSessao;
     }
 
-    final bool disponivel = await InAppPurchase.instance.isAvailable();
-    if (!disponivel) {
-      debugPrint('⚠️ [PremiumPurchaseService] Loja indisponível neste aparelho/conta.');
-      return false;
+    final ProductDetailsResponse resposta;
+    try {
+      final bool disponivel = await InAppPurchase.instance.isAvailable();
+      if (!disponivel) {
+        debugPrint('⚠️ [PremiumPurchaseService] Loja indisponível neste aparelho/conta.');
+        return PremiumCompraInicio.lojaIndisponivel;
+      }
+      resposta = await InAppPurchase.instance.queryProductDetails({idProdutoPremium});
+    } catch (e) {
+      debugPrint('⚠️ [PremiumPurchaseService] Falha ao consultar a loja: $e');
+      return PremiumCompraInicio.lojaIndisponivel;
     }
-
-    final ProductDetailsResponse resposta =
-        await InAppPurchase.instance.queryProductDetails({idProdutoPremium});
     if (resposta.error != null || resposta.productDetails.isEmpty) {
       debugPrint(
           '⚠️ [PremiumPurchaseService] Produto "$idProdutoPremium" indisponível na loja '
           '(erro: ${resposta.error}, notFoundIDs: ${resposta.notFoundIDs}).');
-      return false;
+      return PremiumCompraInicio.produtoNaoEncontrado;
     }
 
     final ProductDetails produto = resposta.productDetails.first;
@@ -189,11 +203,12 @@ class PremiumPurchaseService {
           );
 
     try {
-      await InAppPurchase.instance.buyNonConsumable(purchaseParam: purchaseParam);
-      return true;
+      final bool abriu =
+          await InAppPurchase.instance.buyNonConsumable(purchaseParam: purchaseParam);
+      return abriu ? PremiumCompraInicio.iniciada : PremiumCompraInicio.falhaAoIniciar;
     } catch (e) {
       debugPrint('⚠️ [PremiumPurchaseService] Falha ao iniciar a compra: $e');
-      return false;
+      return PremiumCompraInicio.falhaAoIniciar;
     }
   }
 

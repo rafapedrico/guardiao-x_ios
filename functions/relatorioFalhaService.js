@@ -21,6 +21,7 @@
 
 const {getFirestore, Timestamp} = require("firebase-admin/firestore");
 const {getMessaging} = require("firebase-admin/messaging");
+const {montarApnsSilencioso} = require("./apnsPayload");
 const logger = require("firebase-functions/logger");
 
 const db = getFirestore();
@@ -110,6 +111,9 @@ async function dispararRelatorioFalhaEntrega(entregaRef) {
           idEntrega: entregaRef.id,
         },
         android: {priority: "high"},
+        // iOS: push de BACKGROUND (silencioso também lá — mesmo papel do
+        // data-only no Android), ver `apnsPayload.js`.
+        apns: montarApnsSilencioso(),
       });
     }
   } catch (e) {

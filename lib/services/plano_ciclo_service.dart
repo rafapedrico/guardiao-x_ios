@@ -53,16 +53,26 @@ class PlanoCicloStatus {
   /// ou se for Premium — Premium não tem contagem, é sempre ilimitado).
   int get diasRestantesAtivos {
     if (isPremium || !ativo) return 0;
+    // Ciclo vencido (dia > 30) ainda não renovado pelo servidor: na
+    // próxima sincronização ele reinicia HOJE (dia 1, ver
+    // `sincronizarCicloDoUsuario`), então o card mostra os 10 dias do
+    // ciclo novo — antes mostrava "restam 0 dias" com o plano ativo.
+    if (diaAtualCiclo > _duracaoCicloDias) return _duracaoAtivoDias;
     final restantes = _duracaoAtivoDias - diaAtualCiclo + 1;
     return restantes.clamp(0, _duracaoAtivoDias);
   }
 
   /// Dias até a próxima renovação automática (liberação dos próximos 10
   /// dias) — usado no texto do modal de bloqueio e no indicador da tela
-  /// inicial.
+  /// inicial. Conta dias de CALENDÁRIO até a data exibida ao lado
+  /// ([dataRenovacao]) — antes arredondava horas para cima, e o texto
+  /// dizia "faltam 10 dias, em 11/10" num dia 02/10 (9 dias de calendário).
   int get diasParaRenovacao {
-    final diff = dataRenovacao.difference(DateTime.now()).inHours / 24;
-    return diff.ceil().clamp(0, _duracaoCicloDias);
+    final agora = DateTime.now();
+    final hoje = DateTime.utc(agora.year, agora.month, agora.day);
+    final renovacao = dataRenovacao.toLocal();
+    final diaRenovacao = DateTime.utc(renovacao.year, renovacao.month, renovacao.day);
+    return diaRenovacao.difference(hoje).inDays.clamp(0, _duracaoCicloDias);
   }
 
   /// 🧪 BANDEIRA DE TESTE TEMPORÁRIA (2026-09-04, pedido explícito do

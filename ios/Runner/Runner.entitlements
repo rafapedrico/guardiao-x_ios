@@ -23,5 +23,12 @@
 	<array>
 		<string>Default</string>
 	</array>
+
+	<!-- Alertas de emergência recebidos via Push (bloco apns com
+	     "interruption-level": "time-sensitive", ver functions/apnsPayload.js)
+	     e notificações locais InterruptionLevel.timeSensitive: sem este
+	     entitlement o iOS rebaixa para "active" e o aviso não fura o Foco. -->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
 </dict>
 </plist>
