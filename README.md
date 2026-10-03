@@ -1,6 +1,13 @@
-# security_check_app
+# Guardião-X — app iOS
 
-A new Flutter project.
+Este repositório é EXCLUSIVO do app iOS. O app Android e o site ficam em
+`guardiao-x`.
+
+**Servidor (Cloud Functions, regras do Firestore/Storage, índices e painel
+admin) NÃO fica aqui:** é o repositório `guardiao-x_servidor`, de onde sai
+todo deploy de servidor (backend único dos dois apps, projeto Firebase
+`guardiaox`). O `firebase.json` daqui só tem a configuração do FlutterFire —
+um `firebase deploy` a partir desta pasta não publica nada no servidor.
 
 ## Getting Started
 
