@@ -155,7 +155,10 @@ jobs:
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           set -o pipefail
-          mkdir -p "$RUNNER_TEMP/linkmaps"
+          # LinkMap só do target Runner (LD_MAP_FILE_PATH no Release do
+          # project.pbxproj). Pela linha de comando valeria para todos os
+          # pods e colidia ("Multiple commands produce ...-LinkMap.txt").
+          mkdir -p ios/build/linkmap
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -166,14 +169,11 @@ jobs:
             -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
-            DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
-            LD_GENERATE_MAP_FILE=YES \
-            "LD_MAP_FILE_PATH=$RUNNER_TEMP/linkmaps/\$(TARGET_NAME)-LinkMap.txt" \
             2>&1 | tee "$RUNNER_TEMP/xcodebuild-archive.log"
 
       # Símbolos para ler crashes do TestFlight (.ips): os dSYMs do archive
       # (Runner, Widget, frameworks dos pods e o Flutter.framework) e o
-      # LinkMap de cada target — com o LinkMap do Runner, um offset como
+      # LinkMap do Runner — com ele, um offset como
       # "Runner + 0x13B488" vira o nome da função/plugin (via SPM os
       # plugins são linkados DENTRO do binário Runner). Guardados por 90
       # dias, um artifact por build number.
@@ -184,7 +184,7 @@ jobs:
           name: simbolos-${{ steps.version.outputs.build_name }}-${{ steps.version.outputs.build_number }}
           path: |
             ${{ runner.temp }}/Runner.xcarchive/dSYMs
-            ${{ runner.temp }}/linkmaps
+            ios/build/linkmap
           retention-days: 90
           if-no-files-found: warn
 

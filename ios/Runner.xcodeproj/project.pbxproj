@@ -851,6 +851,8 @@
 				DEVELOPMENT_TEAM = SW48YVGJZ7;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
+				LD_GENERATE_MAP_FILE = YES;
+				LD_MAP_FILE_PATH = "$(PROJECT_DIR)/build/linkmap/$(TARGET_NAME)-LinkMap.txt";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
