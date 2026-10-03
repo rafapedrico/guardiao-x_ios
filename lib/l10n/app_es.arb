@@ -144,9 +144,6 @@
   "historicoCronometroPinIncorretoMotivo": "el PIN se ingresó incorrectamente 3 veces seguidas al intentar desarmar el cronómetro de seguridad.",
   "historicoCronometroFechamentoForcadoMotivo": "la aplicación se cerró a la fuerza mientras el cronómetro de seguridad seguía sonando, sin confirmación del desarme.",
   "segurancaTituloSecaoTempo": "Cuánto tiempo falta para que llegue",
-  "segurancaServidorVerificando": "Verificando servidor...",
-  "segurancaServidorOnline": "Servidor En línea",
-  "segurancaServidorOffline": "Servidor Sin conexión",
   "segurancaDicaContextoLabel": "Pista de Contexto",
   "segurancaDicaContextoHint": "Ej: Placa del auto / Autobús / Ubicación",
   "horasLabel": "Horas",
@@ -895,5 +892,16 @@
   "sosWidgetTutorialTelaBloqueioPasso3": "Toca \"Guardián-X\" y añade el Botón de Pánico.",
   "sosWidgetTutorialEntendi": "Entendido",
   "faqPerguntaWidgetSos": "¿Cómo añado el Botón SOS a la pantalla de inicio del iPhone?",
-  "faqRespostaWidgetSos": "En la pantalla de inicio: vuelve a la pantalla de inicio y mantén pulsado un espacio vacío hasta que los iconos se muevan, toca \"Editar\" → \"Añadir widget\" (o el \"+\"), busca \"Guardián-X\" y añade el \"Botón de Pánico\". En la pantalla bloqueada: mantén pulsada la pantalla bloqueada → \"Personalizar\" → \"Pantalla bloqueada\" → toca el área de widgets → \"Guardián-X\". Un toque en el botón envía tu ubicación y abre la cámara. Puedes comprobar que está activo en Configuración → Estado de los Permisos."
+  "faqRespostaWidgetSos": "En la pantalla de inicio: vuelve a la pantalla de inicio y mantén pulsado un espacio vacío hasta que los iconos se muevan, toca \"Editar\" → \"Añadir widget\" (o el \"+\"), busca \"Guardián-X\" y añade el \"Botón de Pánico\". En la pantalla bloqueada: mantén pulsada la pantalla bloqueada → \"Personalizar\" → \"Pantalla bloqueada\" → toca el área de widgets → \"Guardián-X\". Un toque en el botón envía tu ubicación y abre la cámara. Puedes comprobar que está activo en Configuración → Estado de los Permisos.",
+  "bloqueioTitulo": "Guardián-X bloqueado",
+  "bloqueioSubtitulo": "Confirma que eres tú para continuar.",
+  "bloqueioMotivoBiometria": "Desbloquea Guardián-X",
+  "bloqueioFalha": "No se pudo confirmar. Inténtalo de nuevo o usa el PIN.",
+  "bloqueioBotaoDesbloquear": "Desbloquear",
+  "bloqueioBotaoUsarPin": "Usar PIN de Guardián-X",
+  "bloqueioBotaoSair": "Cerrar sesión",
+  "bloqueioDesbloqueado": "App desbloqueada",
+  "sosSemLoginTitulo": "Activa el Botón SOS",
+  "sosSemLoginTexto": "Para que el Botón SOS funcione, inicia sesión en tu cuenta de Guardián-X una vez en este dispositivo. Después, un toque en el botón envía tu ubicación y abre la cámara, sin pedir contraseña.",
+  "sosSemLoginBotaoEntrar": "Iniciar sesión ahora"
 }

@@ -4,7 +4,7 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
@@ -22,7 +22,9 @@ private const val CANAL_SOLICITACAO_MONITORAMENTO =
 private const val CANAL_PERMISSOES_NATIVAS =
     "com.example.security_check_app/permissoes_nativas"
 
-open class MainActivity: FlutterActivity() {
+// FlutterFragmentActivity (não FlutterActivity): exigido pelo local_auth
+// (bloqueio local do app com biometria, ver BloqueioAppService no Dart).
+open class MainActivity: FlutterFragmentActivity() {
 
     private var canalSolicitacaoMonitoramento: MethodChannel? = null
 

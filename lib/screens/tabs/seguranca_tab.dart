@@ -12,7 +12,6 @@ import '../../services/location_service.dart';
 import '../../services/emergency_alert_service.dart';
 import '../../services/firebase_sync_service.dart';
 import '../../services/alarme_service.dart';
-import '../../services/api_service.dart';
 import '../../services/background_location_heartbeat_service.dart';
 import '../../services/captura_dissuasao_service.dart';
 import '../../services/sos_disparo_service.dart';
@@ -80,24 +79,6 @@ class _SegurancaTabState extends State<SegurancaTab> {
   // atualização a cada 2 minutos enquanto o check-in estiver ativo.
   final LocationService _locationService = LocationService();
 
-  // ==========================================================
-  // STATUS DE CONECTIVIDADE COM O BACKEND (API)
-  // ==========================================================
-  // Indicador visual de conectividade com o servidor FastAPI
-  // (security_backend), verificado periodicamente via
-  // ApiService.enviarStatus(). null = ainda verificando (primeira
-  // checagem em andamento), true = Online, false = Offline.
-  bool? _apiOnline;
-  Timer? _timerStatusApi;
-  static const Duration _intervaloChecagemApi = Duration(seconds: 15);
-
-  // Guarda simples para evitar que múltiplas chamadas de
-  // _verificarStatusApi() rodem sobrepostas caso uma chamada anterior
-  // ainda esteja pendente (ex: rede lenta/instável) quando o próximo
-  // tick do Timer.periodic disparar — previne o acúmulo de Futures
-  // concorrentes que poderiam retornar fora de ordem e "piscar" o
-  // indicador de status de forma inconsistente.
-  bool _verificacaoStatusEmAndamento = false;
 
   @override
   void initState() {
@@ -125,14 +106,6 @@ class _SegurancaTabState extends State<SegurancaTab> {
     // localização do Android, garantindo que o GPS esteja liberado antes
     // mesmo de o usuário ativar o cronômetro de check-in.
     _locationService.garantirPermissaoDeLocalizacao();
-
-    // Dispara a primeira checagem de conectividade imediatamente e
-    // agenda checagens periódicas enquanto a tela estiver aberta,
-    // mantendo o indicador visual (Online/Offline) sempre atualizado.
-    _verificarStatusApi();
-    _timerStatusApi = Timer.periodic(_intervaloChecagemApi, (_) {
-      _verificarStatusApi();
-    });
   }
 
   @override
@@ -149,7 +122,7 @@ class _SegurancaTabState extends State<SegurancaTab> {
   // GERENCIADOR CENTRALIZADO DO CICLO DE VIDA DOS TIMERS
   // ==========================================================
   // Ponto ÚNICO de cancelamento de TODOS os Timers desta tela (cronômetro
-  // principal e status da API). Chamado sistematicamente ANTES de
+  // principal). Chamado sistematicamente ANTES de
   // qualquer novo Timer ser criado (iniciar cronômetro, dispose), e
   // também diretamente pelo dispose(). Isso elimina de raiz qualquer
   // possibilidade de dois Timers do mesmo tipo coexistirem
@@ -157,8 +130,6 @@ class _SegurancaTabState extends State<SegurancaTab> {
   void _cancelarTodosOsTimers() {
     _timer?.cancel();
     _timer = null;
-    _timerStatusApi?.cancel();
-    _timerStatusApi = null;
   }
 
   /// Cancela exclusivamente o cronômetro principal de check-in,
@@ -167,50 +138,6 @@ class _SegurancaTabState extends State<SegurancaTab> {
   void _cancelarTimerPrincipal() {
     _timer?.cancel();
     _timer = null;
-  }
-
-  /// Chama ApiService.enviarStatus (heartbeat para /api/status) e
-  /// atualiza o indicador visual de conectividade (Online/Offline).
-  ///
-  /// Protegido em múltiplas camadas para NUNCA travar a UI ou o app,
-  /// mesmo diante de instabilidade de rede:
-  /// - [_verificacaoStatusEmAndamento] evita chamadas sobrepostas caso
-  ///   uma requisição anterior ainda esteja pendente.
-  /// - `.timeout(...)` garante um limite máximo de espera MESMO que o
-  ///   Dio interno não respeite seu próprio timeout configurado (ex: em
-  ///   cenários de conexão "pendurada"/half-open), evitando que este
-  ///   Future fique pendente indefinidamente e trave o próximo ciclo do
-  ///   Timer.periodic.
-  /// - O try/catch mais externo garante que QUALQUER exceção (timeout,
-  ///   erro de socket, DNS, etc.) resulte simplesmente em "Offline",
-  ///   nunca propagando uma exceção não tratada para o Timer.
-  Future<void> _verificarStatusApi() async {
-    if (_verificacaoStatusEmAndamento) return;
-    _verificacaoStatusEmAndamento = true;
-
-    bool online = false;
-    try {
-      const double bateriaSimulada = 100;
-      online = await ApiService()
-          .enviarStatus(bateriaSimulada, '1.0.0')
-          .timeout(
-        const Duration(seconds: 8),
-        onTimeout: () {
-          debugPrint(
-              '⚠️ [SegurancaTab] Timeout ao verificar status da API (>8s sem resposta).');
-          return false;
-        },
-      );
-    } catch (e) {
-      debugPrint('⚠️ [SegurancaTab] Falha inesperada ao verificar status da API: $e');
-      online = false;
-    }
-
-    _verificacaoStatusEmAndamento = false;
-    if (!mounted) return;
-    setState(() {
-      _apiOnline = online;
-    });
   }
 
 
@@ -903,8 +830,6 @@ class _SegurancaTabState extends State<SegurancaTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _buildIndicadorStatusApi(),
-                  const SizedBox(height: 12),
                   _buildCampoContexto(),
                   const SizedBox(height: 24),
                   Text(
@@ -926,60 +851,6 @@ class _SegurancaTabState extends State<SegurancaTab> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  /// Indicador visual compacto de conectividade com o backend FastAPI
-  /// (security_backend): um pequeno "chip" com ícone e texto
-  /// "Online"/"Offline"/"Verificando...", com a cor refletindo o status
-  /// (verde = conectado, vermelho = sem conexão, cinza = checando).
-  Widget _buildIndicadorStatusApi() {
-    late final Color cor;
-    late final IconData icone;
-    late final String texto;
-
-    if (_apiOnline == null) {
-      cor = Colors.grey;
-      icone = Icons.sync;
-      texto = AppLocalizations.of(context)!.segurancaServidorVerificando;
-    } else if (_apiOnline == true) {
-      cor = Colors.green;
-      icone = Icons.cloud_done;
-      texto = AppLocalizations.of(context)!.segurancaServidorOnline;
-    } else {
-      cor = Colors.red;
-      icone = Icons.cloud_off;
-      texto = AppLocalizations.of(context)!.segurancaServidorOffline;
-    }
-
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cor.withOpacity(0.4)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icone, color: cor, size: 14),
-            const SizedBox(width: 6),
-            Text(
-              texto,
-              style: TextStyle(color: cor, fontSize: 11, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
       ),
     );
   }

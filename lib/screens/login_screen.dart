@@ -7,6 +7,7 @@ import 'package:security_check_app/l10n/app_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../app_navigator.dart';
 import '../main.dart' show TelaInicialComPossivelDialogoPin;
+import '../services/bloqueio_app_service.dart';
 import '../services/contatos_emergencia_service.dart';
 import '../services/fcm_service.dart';
 import '../services/firebase_auth_service.dart';
@@ -121,9 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // CORREÇÃO (Bug de entrega): a política "Opção A" desloga a sessão
-      // a cada cold start (ver `main.dart`), então o único momento em que
-      // sabemos o `uid` correto é logo após um login bem-sucedido como
+      // CORREÇÃO (Bug de entrega): logo após um login bem-sucedido como
       // este — [_finalizarLoginComSucesso] sincroniza aqui os contatos de
       // emergência já cadastrados no SQLite local com
       // `usuarios/{uid}.contatosEmergencia`, sem depender de o usuário
@@ -332,9 +331,13 @@ class _LoginScreenState extends State<LoginScreen> {
   /// perfil comum, sem SMS OTP — substituiu `VerificacaoTelefoneScreen`)
   /// ANTES de qualquer outra coisa — inclusive antes do Assistente de
   /// Configuração Inicial. Só depois do telefone salvo (ou já existente)
-  /// é que [_decidirProximaTelaAposLogin] decide entre Onboarding e o
+  /// é que [decidirProximaTelaAposAutenticacao] decide entre Onboarding e o
   /// fluxo principal.
   Future<void> _finalizarLoginComSucesso({required bool viaLoginSocial}) async {
+    // Login real acabou de acontecer: o app não deve abrir bloqueado
+    // (ver BloqueioAppService).
+    BloqueioAppService().desbloquear();
+
     // Revoga qualquer sessão em OUTRO aparelho da mesma conta (pedido do
     // usuário, 2026-09-06 — recuperação de acesso ao trocar/perder o
     // celular) — AGUARDADA (nunca unawaited) e ANTES de qualquer outra
@@ -358,39 +361,16 @@ class _LoginScreenState extends State<LoginScreen> {
         appNavigatorKey.currentState?.pushReplacement(
           MaterialPageRoute(
             builder: (context) =>
-                CompletarPerfilScreen(aoConcluir: _decidirProximaTelaAposLogin),
+                CompletarPerfilScreen(aoConcluir: decidirProximaTelaAposAutenticacao),
           ),
         );
         return;
       }
     }
 
-    await _decidirProximaTelaAposLogin();
+    await decidirProximaTelaAposAutenticacao();
   }
 
-  /// Decide entre o Assistente de Configuração Inicial
-  /// ([OnboardingScreen], se ainda não concluído nesta instalação — ver
-  /// [OnboardingService]) e o fluxo principal direto
-  /// ([_navegarParaFluxoPrincipal]). Extraído de [_finalizarLoginComSucesso]
-  /// para ser reutilizável como o callback `aoConcluir` de
-  /// [CompletarPerfilScreen] — por isso usa [appNavigatorKey] (nunca
-  /// `Navigator.of(context)`/`mounted` desta State): quando chamado a
-  /// partir de lá (ou do próprio [OnboardingScreen] mais adiante),
-  /// `_LoginScreenState` já foi substituída/descartada havia muito tempo
-  /// (mesmo raciocínio já documentado em [_navegarParaFluxoPrincipal]).
-  Future<void> _decidirProximaTelaAposLogin() async {
-    final onboardingConcluido = await OnboardingService().jaConcluido();
-
-    if (onboardingConcluido) {
-      _navegarParaFluxoPrincipal();
-    } else {
-      appNavigatorKey.currentState?.pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => OnboardingScreen(aoConcluir: _navegarParaFluxoPrincipal),
-        ),
-      );
-    }
-  }
 
   String _mensagemErroLogin(FirebaseAuthException e) {
     switch (e.code) {
@@ -483,87 +463,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// Navega para o fluxo principal SEMPRE (login concluído normalmente —
-  /// nenhuma exceção à barreira de autenticação, ver política de segurança
-  /// em `main.dart`). A ÚNICA diferença quando o app foi aberto por uma
-  /// notificação de solicitação de localização (ver
-  /// [NotificacaoService.consumirPayloadSolicitacaoPendente]): em vez de o
-  /// usuário precisar navegar manualmente até a aba Monitoramento depois de
-  /// logar, o modal de decisão já abre direto por cima da Home.
-  ///
-  /// CORREÇÃO DE BUG REAL (2026-08-16): usa [appNavigatorKey] (mesmo
-  /// padrão já usado por [_abrirModalDecisaoAposLogin] logo abaixo) em vez
-  /// de `Navigator.of(context)` — necessário desde que este método passou
-  /// a também ser usado como o callback `aoConcluir` de [OnboardingScreen]
-  /// (ver `_finalizarLoginComSucesso`): quando chamado a partir de lá,
-  /// `_LoginScreenState` (e seu `context`) já foi DESCARTADO havia muito
-  /// tempo (a troca de rota `pushReplacement` para o Assistente já
-  /// aconteceu antes, e o usuário pode levar minutos decidindo as
-  /// permissões) — usar o `context` antigo lançaria
-  /// `FlutterError: This widget has been unmounted`. `appNavigatorKey`
-  /// aponta para o Navigator RAIZ do app, sempre válido independente de
-  /// qual tela specific o chamou.
-  void _navegarParaFluxoPrincipal() {
-    final payloadPendente = NotificacaoService.consumirPayloadSolicitacaoPendente();
 
-    appNavigatorKey.currentState?.pushReplacement(
-      MaterialPageRoute(
-        builder: (context) =>
-            const TelaInicialComPossivelDialogoPin(aguardandoConfirmacaoPin: false),
-      ),
-    );
-
-    if (payloadPendente != null) {
-      _abrirModalDecisaoAposLogin(payloadPendente);
-    }
-  }
-
-  void _abrirModalDecisaoAposLogin(Map<String, dynamic> dados) {
-    final idPermissao = dados['idPermissao'] as String?;
-    final uidSolicitante = dados['uidSolicitante'] as String?;
-    if (idPermissao == null || uidSolicitante == null) return;
-
-    // Ação rápida [Aceitar]/[Recusar] tocada direto na notificação (ver
-    // `NotificacaoService.acaoAceitarMonitoramentoId`/
-    // `acaoRecusarMonitoramentoId`) ANTES de existir sessão — o usuário já
-    // decidiu ao tocar a ação específica; depois do login, aplica a MESMA
-    // decisão sem reabrir o modal de confirmação por cima dela.
-    final acaoDireta = dados['acaoDireta'] as String?;
-    if (acaoDireta == NotificacaoService.acaoAceitarMonitoramentoId ||
-        acaoDireta == NotificacaoService.acaoRecusarMonitoramentoId) {
-      // Ver documentação completa em
-      // [MonitoramentoService.marcarResolvidoDireto] — mesma proteção
-      // contra o modal de decisão reabrir por cima desta resolução
-      // direta, agora também no caminho de login pendente. Fire-and-forget
-      // (mesmo padrão do `responderSolicitacao` logo abaixo, nunca
-      // aguardado por este método síncrono) — a marca em disco é rápida o
-      // bastante para vencer a corrida mesmo sem `await` aqui.
-      unawaited(MonitoramentoService.marcarResolvidoDireto(idPermissao));
-      MonitoramentoService().responderSolicitacao(
-        permissaoId: idPermissao,
-        aprovar: acaoDireta == NotificacaoService.acaoAceitarMonitoramentoId,
-        uidSolicitante: uidSolicitante,
-        nomeSolicitante: (dados['nomeSolicitante'] as String?) ?? '',
-        telefoneSolicitante: (dados['telefoneSolicitante'] as String?) ?? '',
-      );
-      return;
-    }
-
-    // A Home recém-empurrada acima ainda não terminou de montar neste ponto
-    // — aguarda o próximo frame antes de usar o contexto do Navigator para
-    // abrir o modal por cima dela.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final contextoNavegador = appNavigatorKey.currentContext;
-      if (contextoNavegador == null) return;
-      exibirDialogoDecisaoMonitoramento(
-        context: contextoNavegador,
-        idPermissao: idPermissao,
-        uidSolicitante: uidSolicitante,
-        nomeSolicitante: (dados['nomeSolicitante'] as String?) ?? '',
-        telefoneSolicitante: (dados['telefoneSolicitante'] as String?) ?? '',
-      );
-    });
-  }
 
   /// Abre o modal de recuperação de senha real via Firebase Auth (ver
   /// [RecuperarSenhaDialog]) — reespecificação do usuário (2026-08-16):
@@ -900,4 +800,125 @@ class _LoginScreenState extends State<LoginScreen> {
       contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
     );
   }
+}
+
+// ================================================================
+// Navegação pós-autenticação — funções de nível superior (não métodos
+// da State) porque também são usadas quando o app abre com a sessão já
+// existente (ver `_SplashGate` em `main.dart`), sem passar pela
+// LoginScreen, e porque rodam depois que a LoginScreen já foi descartada
+// (callbacks de CompletarPerfilScreen/OnboardingScreen).
+// ================================================================
+
+/// Decide entre o Assistente de Configuração Inicial
+/// ([OnboardingScreen], se ainda não concluído nesta instalação — ver
+/// [OnboardingService]) e o fluxo principal direto
+/// ([navegarParaFluxoPrincipal]). Extraído de [_finalizarLoginComSucesso]
+/// para ser reutilizável como o callback `aoConcluir` de
+/// [CompletarPerfilScreen] — por isso usa [appNavigatorKey] (nunca
+/// `Navigator.of(context)`/`mounted` desta State): quando chamado a
+/// partir de lá (ou do próprio [OnboardingScreen] mais adiante),
+/// `_LoginScreenState` já foi substituída/descartada havia muito tempo
+/// (mesmo raciocínio já documentado em [navegarParaFluxoPrincipal]).
+Future<void> decidirProximaTelaAposAutenticacao() async {
+  final onboardingConcluido = await OnboardingService().jaConcluido();
+
+  if (onboardingConcluido) {
+    navegarParaFluxoPrincipal();
+  } else {
+    appNavigatorKey.currentState?.pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => OnboardingScreen(aoConcluir: navegarParaFluxoPrincipal),
+      ),
+    );
+  }
+}
+
+/// Navega para o fluxo principal SEMPRE (login concluído normalmente —
+/// nenhuma exceção à barreira de autenticação, ver política de segurança
+/// em `main.dart`). A ÚNICA diferença quando o app foi aberto por uma
+/// notificação de solicitação de localização (ver
+/// [NotificacaoService.consumirPayloadSolicitacaoPendente]): em vez de o
+/// usuário precisar navegar manualmente até a aba Monitoramento depois de
+/// logar, o modal de decisão já abre direto por cima da Home.
+///
+/// CORREÇÃO DE BUG REAL (2026-08-16): usa [appNavigatorKey] (mesmo
+/// padrão já usado por [_abrirModalDecisaoAposLogin] logo abaixo) em vez
+/// de `Navigator.of(context)` — necessário desde que este método passou
+/// a também ser usado como o callback `aoConcluir` de [OnboardingScreen]
+/// (ver `_finalizarLoginComSucesso`): quando chamado a partir de lá,
+/// `_LoginScreenState` (e seu `context`) já foi DESCARTADO havia muito
+/// tempo (a troca de rota `pushReplacement` para o Assistente já
+/// aconteceu antes, e o usuário pode levar minutos decidindo as
+/// permissões) — usar o `context` antigo lançaria
+/// `FlutterError: This widget has been unmounted`. `appNavigatorKey`
+/// aponta para o Navigator RAIZ do app, sempre válido independente de
+/// qual tela specific o chamou.
+void navegarParaFluxoPrincipal() {
+  appNavigatorKey.currentState?.pushReplacement(
+    MaterialPageRoute(
+      builder: (context) =>
+          const TelaInicialComPossivelDialogoPin(aguardandoConfirmacaoPin: false),
+    ),
+  );
+
+  abrirSolicitacaoPendenteAposAutenticacao();
+}
+
+/// Consome a solicitação de monitoramento que abriu o app (ver
+/// [NotificacaoService.consumirPayloadSolicitacaoPendente]) e abre o modal
+/// de decisão por cima da Home — usado depois de um login e também quando
+/// o app abre com a sessão já existente (ver `_SplashGate` em `main.dart`).
+void abrirSolicitacaoPendenteAposAutenticacao() {
+  final payloadPendente = NotificacaoService.consumirPayloadSolicitacaoPendente();
+  if (payloadPendente != null) {
+    _abrirModalDecisaoAposLogin(payloadPendente);
+  }
+}
+
+void _abrirModalDecisaoAposLogin(Map<String, dynamic> dados) {
+  final idPermissao = dados['idPermissao'] as String?;
+  final uidSolicitante = dados['uidSolicitante'] as String?;
+  if (idPermissao == null || uidSolicitante == null) return;
+
+  // Ação rápida [Aceitar]/[Recusar] tocada direto na notificação (ver
+  // `NotificacaoService.acaoAceitarMonitoramentoId`/
+  // `acaoRecusarMonitoramentoId`) ANTES de existir sessão — o usuário já
+  // decidiu ao tocar a ação específica; depois do login, aplica a MESMA
+  // decisão sem reabrir o modal de confirmação por cima dela.
+  final acaoDireta = dados['acaoDireta'] as String?;
+  if (acaoDireta == NotificacaoService.acaoAceitarMonitoramentoId ||
+      acaoDireta == NotificacaoService.acaoRecusarMonitoramentoId) {
+    // Ver documentação completa em
+    // [MonitoramentoService.marcarResolvidoDireto] — mesma proteção
+    // contra o modal de decisão reabrir por cima desta resolução
+    // direta, agora também no caminho de login pendente. Fire-and-forget
+    // (mesmo padrão do `responderSolicitacao` logo abaixo, nunca
+    // aguardado por este método síncrono) — a marca em disco é rápida o
+    // bastante para vencer a corrida mesmo sem `await` aqui.
+    unawaited(MonitoramentoService.marcarResolvidoDireto(idPermissao));
+    MonitoramentoService().responderSolicitacao(
+      permissaoId: idPermissao,
+      aprovar: acaoDireta == NotificacaoService.acaoAceitarMonitoramentoId,
+      uidSolicitante: uidSolicitante,
+      nomeSolicitante: (dados['nomeSolicitante'] as String?) ?? '',
+      telefoneSolicitante: (dados['telefoneSolicitante'] as String?) ?? '',
+    );
+    return;
+  }
+
+  // A Home recém-empurrada acima ainda não terminou de montar neste ponto
+  // — aguarda o próximo frame antes de usar o contexto do Navigator para
+  // abrir o modal por cima dela.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final contextoNavegador = appNavigatorKey.currentContext;
+    if (contextoNavegador == null) return;
+    exibirDialogoDecisaoMonitoramento(
+      context: contextoNavegador,
+      idPermissao: idPermissao,
+      uidSolicitante: uidSolicitante,
+      nomeSolicitante: (dados['nomeSolicitante'] as String?) ?? '',
+      telefoneSolicitante: (dados['telefoneSolicitante'] as String?) ?? '',
+    );
+  });
 }

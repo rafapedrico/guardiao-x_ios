@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'bloqueio_app_service.dart';
 
 /// Serviço central de autenticação do "Guardião X" — Firebase Auth real
 /// (e-mail/senha), com barreira estrita de e-mail verificado: nenhuma
@@ -13,24 +14,16 @@ import 'package:flutter/foundation.dart';
 /// server-side, ver `FirebaseSyncService.salvarTelefonePerfil`) antes de
 /// liberar o acesso.
 ///
-/// POLÍTICA DE SEGURANÇA (Opção A): sessões do Firebase Auth NUNCA
-/// sobrevivem a um cold start NORMAL — `main()` chama [logout] logo após
-/// inicializar o Firebase, antes de `runApp`, para que o app sempre
-/// reabra na `LoginScreen` e exija credenciais de novo (ver
-/// `_telaInicial` em `main.dart`). EXCEÇÃO deliberada: um cold start via
-/// SOS físico (botão de Volume+ com o app fechado, ver
-/// `LockscreenCameraActivity`/`main.dart`) NÃO chama [logout] — esse
-/// fluxo nunca exibe nenhuma UI de conta (só a câmera), então preservar
-/// a sessão não expõe nada a quem estiver com o aparelho, e é o que
-/// permite o SOS físico disparar com Push/link real da foto
-/// mesmo 100% a frio (sem essa exceção, `uidAtual` ficava sempre `null`
-/// nesse cenário, e o SOS físico caía sempre no SMS de fallback sem
-/// link real).
+/// SESSÃO (2026-10-03, substitui a antiga "Opção A" — logout a cada cold
+/// start): a sessão do Firebase Auth fica SEMPRE persistida; [logout] só
+/// roda quando o usuário toca em "Sair". O conteúdo do app é protegido
+/// pelo bloqueio local (`BloqueioAppService`: Face ID/biometria, código
+/// do aparelho ou PIN). Assim o Widget SOS e o botão físico disparam com
+/// Push/link real da foto mesmo 100% a frio.
 ///
 /// Toda a arquitetura híbrida de alertas (vínculo telefone/fcmToken,
 /// regras do Firestore) depende de um `uid` real: é ele que passa a
-/// identificar o documento em `usuarios/{uid}` no lugar do antigo
-/// `ApiService.usuarioIdPadrao` fixo.
+/// identificar o documento em `usuarios/{uid}`.
 class FirebaseAuthService {
   FirebaseAuthService._internal();
   static final FirebaseAuthService _instance = FirebaseAuthService._internal();
@@ -142,6 +135,8 @@ class FirebaseAuthService {
   // a antiga prova de posse por SMS.
 
   Future<void> logout() async {
+    // Sem sessão não há o que proteger com o bloqueio local.
+    BloqueioAppService().aoEncerrarSessao();
     try {
       await _auth.signOut();
     } catch (e) {

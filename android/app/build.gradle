@@ -110,6 +110,9 @@ dependencies {
     // Necessária para NotificationCompat.Builder usado pelo VolumeSosService
     // (Foreground Service persistente do gatilho físico de SOS).
     implementation "androidx.core:core-ktx:1.13.1"
+    // Tema AppCompat exigido pelo local_auth (BiometricPrompt) no Android 8
+    // e anteriores — ver res/values*/styles.xml.
+    implementation "androidx.appcompat:appcompat:1.7.0"
     // Required for PreferenceManager
     implementation "androidx.preference:preference-ktx:1.2.1"
 

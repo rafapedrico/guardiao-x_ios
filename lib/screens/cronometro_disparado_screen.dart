@@ -14,6 +14,7 @@ import '../services/firebase_sync_service.dart';
 import '../services/l10n_headless_service.dart';
 import '../services/location_service.dart';
 import '../services/rotina_alarme_service.dart';
+import '../services/bloqueio_app_service.dart';
 import '../widgets/confirmacao_alerta_emergencia.dart';
 import '../widgets/pin_dialog.dart';
 
@@ -66,8 +67,9 @@ class CronometroDisparadoScreen extends StatefulWidget {
       _CronometroDisparadoScreenState();
 }
 
-class _CronometroDisparadoScreenState
-    extends State<CronometroDisparadoScreen> {
+// Emergência: funciona sem desbloquear o app (ver BloqueioAppService).
+class _CronometroDisparadoScreenState extends State<CronometroDisparadoScreen>
+    with LiberaBloqueioEnquantoAberta<CronometroDisparadoScreen> {
   final AudioPlayer _player = AudioPlayer();
 
   static bool _instanciaGraficaAberta = false;

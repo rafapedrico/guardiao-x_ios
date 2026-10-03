@@ -7,7 +7,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database_helper.dart';
-import 'api_service.dart';
 import 'l10n_headless_service.dart';
 import 'plano_ciclo_service.dart';
 import '../utils/telefone_utils.dart';
@@ -261,38 +260,6 @@ class EmergencyAlertService {
     }
   }
 
-  /// Tenta obter uma [Position] "crua" (não formatada) equivalente à
-  /// usada no SMS, para ser enviada também ao backend FastAPI em
-  /// `/api/alerta`. Reaproveita a mesma estratégia de fallback (posição
-  /// em memória -> última conhecida -> nova leitura do GPS), mas nunca
-  /// lança exceção: retorna `null` se nenhuma coordenada estiver
-  /// disponível por qualquer motivo.
-  Future<Position?> _obterPosicaoBruta({Position? posicaoEmMemoria}) async {
-    if (posicaoEmMemoria != null) return posicaoEmMemoria;
-    try {
-      final ultimaConhecida = await Geolocator.getLastKnownPosition();
-      if (ultimaConhecida != null) return ultimaConhecida;
-    } catch (_) {}
-    try {
-      final servicoAtivo = await Geolocator.isLocationServiceEnabled();
-      if (!servicoAtivo) return null;
-      LocationPermission permissao = await Geolocator.checkPermission();
-      if (permissao == LocationPermission.denied) {
-        permissao = await Geolocator.requestPermission();
-      }
-      if (permissao == LocationPermission.denied ||
-          permissao == LocationPermission.deniedForever) {
-        return null;
-      }
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 7),
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
   /// Retorna SOMENTE a última posição conhecida em cache pelo sistema
   /// (sem nunca consultar o GPS em tempo real), usada exclusivamente
   /// pela ETAPA 1 (disparo imediato) do fluxo de SOS via botão físico de
@@ -313,9 +280,6 @@ class EmergencyAlertService {
   /// 3. Obtém a localização GPS mais recente disponível.
   /// 4. Monta a mensagem e envia via MethodChannel nativo (SmsManager).
   /// 5. Registra o disparo no histórico (categoria 'critico').
-  /// 6. Dispara (fire-and-forget) o mesmo alerta para o backend FastAPI
-  ///    (security_backend), via POST /api/alerta, em paralelo ao SMS
-  ///    nativo — NUNCA bloqueia nem depende do sucesso dessa chamada.
   ///
   /// [contexto] pode ser informado diretamente (fluxo com app aberto,
   /// vindo do TextEditingController da UI) ou omitido (fluxo headless),
@@ -380,23 +344,6 @@ class EmergencyAlertService {
       debugPrint('⚠️ Falha ao registrar evento no histórico: $e');
     }
 
-    // Dispara (fire-and-forget) o alerta também para o backend FastAPI,
-    // em paralelo ao SMS nativo abaixo. Protegido internamente pelo
-    // próprio ApiService (nunca lança exceção nem bloqueia este fluxo).
-    _obterPosicaoBruta(posicaoEmMemoria: posicaoEmMemoria).then((posicao) {
-      if (posicao != null) {
-        ApiService().dispararAlertaWeb(
-          latitude: posicao.latitude,
-          longitude: posicao.longitude,
-          contexto: anotacoesUsuario,
-          timestampLocal: DateTime.now(),
-        );
-      } else {
-
-        debugPrint(
-            '⚠️ [EmergencyAlertService] Localização indisponível: alerta web não enviado (SMS nativo prossegue normalmente).');
-      }
-    });
 
     await _enviarSms(contatosEmergencia, mensagemAlerta);
   }
@@ -509,23 +456,6 @@ class EmergencyAlertService {
       debugPrint('⚠️ [TENTATIVA DE DESARME INCORRETA] Falha ao registrar '
           'evento no histórico: $e');
     }
-
-    // Dispara (fire-and-forget) o alerta também para o backend FastAPI, em
-    // paralelo ao SMS nativo abaixo.
-    _obterPosicaoBruta(posicaoEmMemoria: posicaoEmMemoria).then((posicao) {
-      if (posicao != null) {
-        ApiService().dispararAlertaWeb(
-          latitude: posicao.latitude,
-          longitude: posicao.longitude,
-          contexto: motivoTexto,
-          timestampLocal: DateTime.now(),
-        );
-      } else {
-        debugPrint('⚠️ [TENTATIVA DE DESARME INCORRETA] Localização '
-            'indisponível: alerta web não enviado (SMS nativo prossegue '
-            'normalmente).');
-      }
-    });
 
     await _enviarSms(contatosEmergencia, mensagemAlerta);
   }
@@ -720,8 +650,8 @@ class EmergencyAlertService {
   /// Canal SMS OFICIAL do P1 da sequência unificada de SOS (ver
   /// [SosDisparoService.executarP1LocalizacaoImediata]) — enviado SEMPRE,
   /// em paralelo ao canal de nuvem (Push) quando há sessão
-  /// autenticada, e como ÚNICO canal quando não há (cold-start via
-  /// lockscreen, ver política "Opção A" de `FirebaseAuthService`). Este
+  /// autenticada, e como ÚNICO canal quando não há (ninguém logado no
+  /// aparelho, ou Firebase indisponível). Este
   /// método NUNCA é chamado diretamente por `main.dart`/
   /// `seguranca_tab.dart`, só por [SosDisparoService].
   ///
@@ -815,16 +745,6 @@ class EmergencyAlertService {
       );
     } catch (e) {
       debugPrint('⚠️ [SOS FÍSICO] Falha ao registrar evento no histórico: $e');
-    }
-
-    if (posicaoAtual != null) {
-      // Fire-and-forget: não bloqueia o envio do SMS abaixo.
-      ApiService().dispararAlertaWeb(
-        latitude: posicaoAtual.latitude,
-        longitude: posicaoAtual.longitude,
-        contexto: anotacoesUsuario,
-        timestampLocal: DateTime.now(),
-      );
     }
 
     await _enviarSms(contatosEmergencia, mensagemImediata);

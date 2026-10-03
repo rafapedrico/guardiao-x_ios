@@ -36,6 +36,10 @@
 	<!-- Câmera — recurso de Captura e Dissuasão (CameraCapturaScreen).
 	     enableAudio: false na CameraController (ver camera_captura_screen.dart),
 	     por isso NÃO é preciso NSMicrophoneUsageDescription. -->
+	<!-- Bloqueio local do app (local_auth): Face ID para desbloquear o Guardião-X
+	     ao abrir ou ao voltar do segundo plano (ver BloqueioAppService). -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>O Guardião-X usa o Face ID para desbloquear o app e proteger seus dados de segurança.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>O Guardião-X usa a câmera para tirar uma foto discreta de dissuasão durante um alerta de emergência, anexada automaticamente ao aviso enviado aos seus contatos de confiança.</string>
 

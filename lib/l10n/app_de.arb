@@ -144,9 +144,6 @@
   "historicoCronometroPinIncorretoMotivo": "die PIN wurde beim Versuch, den Sicherheits-Countdown zu entschärfen, 3 Mal hintereinander falsch eingegeben.",
   "historicoCronometroFechamentoForcadoMotivo": "die App wurde zwangsweise geschlossen, während der Sicherheits-Countdown noch klingelte, ohne Bestätigung der Entschärfung.",
   "segurancaTituloSecaoTempo": "Wie lange bis ich ankomme",
-  "segurancaServidorVerificando": "Server wird überprüft...",
-  "segurancaServidorOnline": "Server Online",
-  "segurancaServidorOffline": "Server Offline",
   "segurancaDicaContextoLabel": "Kontexthinweis",
   "segurancaDicaContextoHint": "Z.B.: Autokennzeichen / Bus / Ort",
   "horasLabel": "Stunden",
@@ -895,5 +892,16 @@
   "sosWidgetTutorialTelaBloqueioPasso3": "Tippen Sie auf „Wächter-X“ und fügen Sie den Panikknopf hinzu.",
   "sosWidgetTutorialEntendi": "Verstanden",
   "faqPerguntaWidgetSos": "Wie füge ich die SOS-Taste zum Home-Bildschirm des iPhone hinzu?",
-  "faqRespostaWidgetSos": "Auf dem Home-Bildschirm: Gehen Sie zum Home-Bildschirm zurück und halten Sie eine freie Stelle gedrückt, bis die Symbole wackeln, tippen Sie auf „Bearbeiten“ → „Widget hinzufügen“ (oder auf „+“), suchen Sie nach „Wächter-X“ und fügen Sie den „Panikknopf“ hinzu. Auf dem Sperrbildschirm: Sperrbildschirm gedrückt halten → „Anpassen“ → „Sperrbildschirm“ → auf den Widget-Bereich tippen → „Wächter-X“. Ein Tippen auf die Taste sendet Ihren Standort und öffnet die Kamera. Ob sie aktiv ist, sehen Sie unter Einstellungen → Berechtigungsstatus."
+  "faqRespostaWidgetSos": "Auf dem Home-Bildschirm: Gehen Sie zum Home-Bildschirm zurück und halten Sie eine freie Stelle gedrückt, bis die Symbole wackeln, tippen Sie auf „Bearbeiten“ → „Widget hinzufügen“ (oder auf „+“), suchen Sie nach „Wächter-X“ und fügen Sie den „Panikknopf“ hinzu. Auf dem Sperrbildschirm: Sperrbildschirm gedrückt halten → „Anpassen“ → „Sperrbildschirm“ → auf den Widget-Bereich tippen → „Wächter-X“. Ein Tippen auf die Taste sendet Ihren Standort und öffnet die Kamera. Ob sie aktiv ist, sehen Sie unter Einstellungen → Berechtigungsstatus.",
+  "bloqueioTitulo": "Wächter-X gesperrt",
+  "bloqueioSubtitulo": "Bestätigen Sie, dass Sie es sind, um fortzufahren.",
+  "bloqueioMotivoBiometria": "Wächter-X entsperren",
+  "bloqueioFalha": "Bestätigung fehlgeschlagen. Versuchen Sie es erneut oder verwenden Sie die PIN.",
+  "bloqueioBotaoDesbloquear": "Entsperren",
+  "bloqueioBotaoUsarPin": "Wächter-X-PIN verwenden",
+  "bloqueioBotaoSair": "Abmelden",
+  "bloqueioDesbloqueado": "App entsperrt",
+  "sosSemLoginTitulo": "SOS-Taste aktivieren",
+  "sosSemLoginTexto": "Damit die SOS-Taste funktioniert, melden Sie sich einmal auf diesem Gerät bei Ihrem Wächter-X-Konto an. Danach sendet ein Tippen auf die Taste Ihren Standort und öffnet die Kamera, ohne nach einem Passwort zu fragen.",
+  "sosSemLoginBotaoEntrar": "Jetzt anmelden"
 }

@@ -144,9 +144,6 @@
   "historicoCronometroPinIncorretoMotivo": "il PIN è stato inserito in modo errato 3 volte di seguito nel tentativo di disattivare il timer di sicurezza.",
   "historicoCronometroFechamentoForcadoMotivo": "l'app è stata chiusa forzatamente mentre il timer di sicurezza stava ancora suonando, senza conferma della disattivazione.",
   "segurancaTituloSecaoTempo": "Tra quanto arriverò",
-  "segurancaServidorVerificando": "Verifica del server...",
-  "segurancaServidorOnline": "Server Online",
-  "segurancaServidorOffline": "Server Offline",
   "segurancaDicaContextoLabel": "Suggerimento di contesto",
   "segurancaDicaContextoHint": "Es: Targa dell'auto / Autobus / Luogo",
   "horasLabel": "Ore",
@@ -895,5 +892,16 @@
   "sosWidgetTutorialTelaBloqueioPasso3": "Tocca \"Guardiano-X\" e aggiungi il Pulsante Antipanico.",
   "sosWidgetTutorialEntendi": "Ho capito",
   "faqPerguntaWidgetSos": "Come aggiungo il Pulsante SOS alla schermata Home dell'iPhone?",
-  "faqRespostaWidgetSos": "Nella schermata Home: torna alla schermata Home e tieni premuto uno spazio vuoto finché le icone non iniziano a muoversi, tocca \"Modifica\" → \"Aggiungi widget\" (o il \"+\"), cerca \"Guardiano-X\" e aggiungi il \"Pulsante Antipanico\". Nella schermata di blocco: tieni premuta la schermata di blocco → \"Personalizza\" → \"Schermata di blocco\" → tocca l'area dei widget → \"Guardiano-X\". Un tocco sul pulsante invia la tua posizione e apre la fotocamera. Puoi verificare che sia attivo in Impostazioni → Stato dei Permessi."
+  "faqRespostaWidgetSos": "Nella schermata Home: torna alla schermata Home e tieni premuto uno spazio vuoto finché le icone non iniziano a muoversi, tocca \"Modifica\" → \"Aggiungi widget\" (o il \"+\"), cerca \"Guardiano-X\" e aggiungi il \"Pulsante Antipanico\". Nella schermata di blocco: tieni premuta la schermata di blocco → \"Personalizza\" → \"Schermata di blocco\" → tocca l'area dei widget → \"Guardiano-X\". Un tocco sul pulsante invia la tua posizione e apre la fotocamera. Puoi verificare che sia attivo in Impostazioni → Stato dei Permessi.",
+  "bloqueioTitulo": "Guardiano-X bloccato",
+  "bloqueioSubtitulo": "Conferma che sei tu per continuare.",
+  "bloqueioMotivoBiometria": "Sblocca Guardiano-X",
+  "bloqueioFalha": "Impossibile confermare. Riprova o usa il PIN.",
+  "bloqueioBotaoDesbloquear": "Sblocca",
+  "bloqueioBotaoUsarPin": "Usa il PIN di Guardiano-X",
+  "bloqueioBotaoSair": "Esci dall'account",
+  "bloqueioDesbloqueado": "App sbloccata",
+  "sosSemLoginTitulo": "Attiva il Pulsante SOS",
+  "sosSemLoginTexto": "Perché il Pulsante SOS funzioni, accedi una volta al tuo account Guardiano-X su questo dispositivo. Dopo, un tocco sul pulsante invia la tua posizione e apre la fotocamera, senza chiedere la password.",
+  "sosSemLoginBotaoEntrar": "Accedi ora"
 }

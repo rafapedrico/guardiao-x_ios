@@ -94,7 +94,6 @@ dependencies:
   # Networking & GPS
   http: ^1.1.2
   geolocator: ^10.1.0
-  dio: ^5.7.0
 
   # UI
   cupertino_icons: ^1.0.6
@@ -139,6 +138,7 @@ dependencies:
   # app via o URL Scheme guardiaox://sos. Usado só para resolver esse link
   # (cold start e app já aberto) — ver lib/services/sos_deep_link_service.dart.
   app_links: ^7.2.1
+  local_auth: ^3.0.2
 
 
 

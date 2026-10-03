@@ -144,9 +144,6 @@
   "historicoCronometroPinIncorretoMotivo": "尝试解除安全倒计时器时,PIN连续3次输入错误。",
   "historicoCronometroFechamentoForcadoMotivo": "安全倒计时器仍在响铃时应用被强制关闭,未确认解除。",
   "segurancaTituloSecaoTempo": "我还有多久到达",
-  "segurancaServidorVerificando": "正在检查服务器...",
-  "segurancaServidorOnline": "服务器在线",
-  "segurancaServidorOffline": "服务器离线",
   "segurancaDicaContextoLabel": "情境提示",
   "segurancaDicaContextoHint": "例如：车牌号 / 公交车 / 地点",
   "horasLabel": "小时",
@@ -895,5 +892,16 @@
   "sosWidgetTutorialTelaBloqueioPasso3": "轻点“守护者-X”并添加紧急按钮。",
   "sosWidgetTutorialEntendi": "知道了",
   "faqPerguntaWidgetSos": "如何将 SOS 按钮添加到 iPhone 主屏幕？",
-  "faqRespostaWidgetSos": "在主屏幕上：返回主屏幕，按住空白区域直到图标开始晃动，轻点“编辑”→“添加小组件”（或“+”），搜索“守护者-X”并添加“紧急按钮”。在锁定屏幕上：按住锁定屏幕 →“自定”→“锁定屏幕”→ 轻点小组件区域 →“守护者-X”。轻点一下按钮即可发送您的位置并打开相机。您可以在“设置”→“权限状态”中查看它是否已启用。"
+  "faqRespostaWidgetSos": "在主屏幕上：返回主屏幕，按住空白区域直到图标开始晃动，轻点“编辑”→“添加小组件”（或“+”），搜索“守护者-X”并添加“紧急按钮”。在锁定屏幕上：按住锁定屏幕 →“自定”→“锁定屏幕”→ 轻点小组件区域 →“守护者-X”。轻点一下按钮即可发送您的位置并打开相机。您可以在“设置”→“权限状态”中查看它是否已启用。",
+  "bloqueioTitulo": "守护者-X 已锁定",
+  "bloqueioSubtitulo": "请确认是您本人以继续。",
+  "bloqueioMotivoBiometria": "解锁守护者-X",
+  "bloqueioFalha": "无法确认。请重试或使用 PIN 码。",
+  "bloqueioBotaoDesbloquear": "解锁",
+  "bloqueioBotaoUsarPin": "使用守护者-X PIN 码",
+  "bloqueioBotaoSair": "退出账户",
+  "bloqueioDesbloqueado": "应用已解锁",
+  "sosSemLoginTitulo": "启用 SOS 按钮",
+  "sosSemLoginTexto": "要使 SOS 按钮生效，请在此设备上登录一次您的守护者-X账户。之后，轻点按钮即可发送您的位置并打开相机，无需输入密码。",
+  "sosSemLoginBotaoEntrar": "立即登录"
 }

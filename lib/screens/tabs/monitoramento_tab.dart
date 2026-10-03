@@ -192,117 +192,117 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     final telefoneController = TextEditingController();
     String? erroValidacao;
 
-    // StatefulBuilder (em vez de SnackBar) porque um SnackBar disparado a
-    // partir do `context` da tela fica renderizado ATRÁS da barreira do
-    // AlertDialog (dialogs abrem em uma rota separada, acima do Scaffold
-    // onde o SnackBar é ancorado) — o aviso de campos obrigatórios ficava
-    // efetivamente invisível. Exibindo o erro dentro do próprio diálogo,
-    // ele fica sempre visível e some assim que o usuário corrige os campos.
-    final salvou = await showDialog<bool>(
+    // Folha inferior de altura livre (`isScrollControlled`) em vez de
+    // AlertDialog — feedback do 1º teste no iPhone (build 105): no diálogo,
+    // o `autofocus` do campo de nome subia o teclado na hora e o conteúdo
+    // era esmagado, sumindo com "Buscar na agenda" (sobravam só o nome e
+    // os botões). Agora: sem autofocus, "Buscar na agenda" fixo no topo,
+    // conteúdo rolável e o padding inferior acompanha o teclado
+    // (`viewInsets`). O erro de validação continua DENTRO da folha
+    // (StatefulBuilder): um SnackBar da tela ficaria atrás dela.
+    final salvou = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setStateDialog) => AlertDialog(
-          // `scrollable: true` (embrulha title+content num SingleChildScrollView
-          // interno do próprio AlertDialog) — sem isso, com a fonte do
-          // sistema aumentada os 2 campos + botão "+ Adicionar Contato da
-          // Agenda" (+ eventual texto de erro) ultrapassavam a altura do
-          // diálogo, e a área de `actions` ("Cancelar"/"Salvar Contato")
-          // era desenhada por cima do conteúdo, encobrindo o botão da
-          // agenda. Com fonte padrão o comportamento visual é idêntico —
-          // só passa a rolar internamente quando não couber.
-          scrollable: true,
-          title: Text(l10n.monitoramentoAdicionarContato),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nomeController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  labelText: l10n.monitoramentoNomeLabel,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.person_outline),
+        builder: (ctx, setStateDialog) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.monitoramentoAdicionarContato,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: telefoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: l10n.monitoramentoTelefoneLabel,
-                  // Sem isso, o label às vezes não flutua acima da borda a
-                  // tempo (efeito visível ao digitar rápido no teclado
-                  // numérico) e fica sobreposto aos dígitos já digitados.
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Composto manualmente (em vez de TextButton.icon) porque o
-              // Row interno do TextButton.icon não dá nenhuma flexibilidade
-              // ao label — com a fonte do sistema bem aumentada, o texto
-              // "+ Adicionar Contato da Agenda" estourava a largura do
-              // diálogo (RenderFlex overflow) em vez de quebrar linha. O
-              // Flexible aqui permite quebrar em 2 linhas quando não couber.
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
                   onPressed: () => _importarContatoDaAgenda(
                     nomeController: nomeController,
                     telefoneController: telefoneController,
                   ),
-                  style: TextButton.styleFrom(foregroundColor: _corDestaque),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.contact_phone_outlined, size: 18),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          l10n.adicionarContatoAgenda,
-                          softWrap: true,
-                        ),
-                      ),
-                    ],
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _corDestaque,
+                    side: BorderSide(color: _corDestaque.withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  icon: const Icon(Icons.contact_phone_outlined, size: 18),
+                  // O rótulo do OutlinedButton.icon já é flexível: com fonte
+                  // grande quebra em 2 linhas em vez de estourar a largura.
+                  label: Text(l10n.adicionarContatoAgenda, softWrap: true),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nomeController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.monitoramentoNomeLabel,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.person_outline),
                   ),
                 ),
-              ),
-              if (erroValidacao != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  erroValidacao!,
-                  style: const TextStyle(
-                    color: Colors.redAccent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 12),
+                TextField(
+                  controller: telefoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: l10n.monitoramentoTelefoneLabel,
+                    // Sem isso, o label às vezes não flutua acima da borda a
+                    // tempo (efeito visível ao digitar rápido no teclado
+                    // numérico) e fica sobreposto aos dígitos já digitados.
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.phone_outlined),
                   ),
+                ),
+                if (erroValidacao != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    erroValidacao!,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: Text(l10n.cancelar),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(backgroundColor: _corDestaque),
+                        onPressed: () {
+                          final nome = nomeController.text.trim();
+                          final telefone = telefoneController.text.trim();
+                          if (nome.isEmpty || telefone.isEmpty) {
+                            setStateDialog(() {
+                              erroValidacao = l10n.monitoramentoCamposObrigatorios;
+                            });
+                            return;
+                          }
+                          Navigator.of(ctx).pop(true);
+                        },
+                        child: Text(l10n.monitoramentoSalvarContato, textAlign: TextAlign.center),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(l10n.cancelar),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: _corDestaque),
-              onPressed: () {
-                final nome = nomeController.text.trim();
-                final telefone = telefoneController.text.trim();
-                if (nome.isEmpty || telefone.isEmpty) {
-                  setStateDialog(() {
-                    erroValidacao = l10n.monitoramentoCamposObrigatorios;
-                  });
-                  return;
-                }
-                Navigator.of(ctx).pop(true);
-              },
-              child: Text(l10n.monitoramentoSalvarContato),
-            ),
-          ],
         ),
       ),
     );
@@ -317,7 +317,7 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
 
   /// Abre o seletor nativo de contatos (mesmo mecanismo usado na aba
   /// Configurações, ver `ConfiguracoesTabState._adicionarContatoDaAgenda`)
-  /// e apenas PRE-PREENCHE os campos do diálogo — quem confirma o
+  /// e apenas PRE-PREENCHE os campos da folha — quem confirma o
   /// cadastro continua sendo o botão "Salvar", dando ao usuário a chance
   /// de revisar/editar antes de gravar.
   Future<void> _importarContatoDaAgenda({

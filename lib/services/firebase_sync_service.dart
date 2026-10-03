@@ -12,8 +12,7 @@ import 'plano_ciclo_service.dart';
 /// serviço. CORREÇÃO (bug real observado em teste): sem isto, uma
 /// chamada ao Firestore sem conectividade real com a internet (ex:
 /// Wi-Fi só com acesso à rede local, sem rota para a internet) pode
-/// ficar PENDURADA por um tempo indefinido — diferente de `ApiService`
-/// (Dio), que já tinha timeouts explícitos, `cloud_firestore` não tem
+/// ficar PENDURADA por um tempo indefinido — `cloud_firestore` não tem
 /// um teto padrão curto. Como o disparo de emergência (ver
 /// `rotina_alarme_service.dart`/`_callbackJanelaFinalExpirada`) `await`
 /// este serviço ANTES do SMS nativo (que não depende de internet), uma
@@ -37,10 +36,8 @@ enum ResultadoSalvarTelefone {
 
 /// Serviço centralizado de sincronização com o Firebase/Firestore,
 /// atuando como uma camada de resiliência EXTRA e totalmente independente
-/// do backend FastAPI local ([ApiService]) e do SMS nativo
-/// ([EmergencyAlertService]): enquanto aqueles dependem do celular estar
-/// ligado, funcional e (no caso do backend local) na mesma rede Wi-Fi no
-/// momento do envio, os dados gravados aqui já estão na nuvem assim que a
+/// do SMS nativo ([EmergencyAlertService]): enquanto ele depende do celular
+/// estar ligado e funcional no momento do envio, os dados gravados aqui já estão na nuvem assim que a
 /// chamada retorna — sobrevivendo mesmo que o aparelho seja
 /// destruído/desligado/perca sinal logo em seguida.
 ///

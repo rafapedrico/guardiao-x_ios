@@ -144,9 +144,9 @@ class FcmService {
   ///
   /// CORREÇÃO: antes, todo este registro só acontecia dentro de
   /// [inicializar], chamado exclusivamente em `login_screen.dart` após um
-  /// login manual bem-sucedido — como a política "Opção A"
-  /// (`FirebaseAuthService().logout()` a cada cold start) sempre deixa o
-  /// app sem sessão logo no início, um aparelho recém-instalado (ou que
+  /// login manual bem-sucedido — na época (antiga política "Opção A",
+  /// logout a cada cold start) o app ficava sem sessão logo no início, e
+  /// um aparelho recém-instalado (ou que
   /// ainda não completou o primeiro login nesta execução) ficava sem o
   /// handler de background e sem a permissão de notificação armados —
   /// alertas chegando nessa janela eram perdidos silenciosamente. Separar

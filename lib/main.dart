@@ -17,9 +17,11 @@ import 'screens/alerta_recebido_screen.dart';
 import 'screens/cronometro_disparado_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/onboarding_screen.dart';
+import 'screens/sos_sem_login_screen.dart';
 import 'services/alarme_service.dart';
-import 'services/api_service.dart';
 import 'services/background_location_heartbeat_service.dart';
+import 'services/bloqueio_app_service.dart';
 import 'services/captura_dissuasao_service.dart';
 import 'services/database_helper.dart';
 import 'services/emergency_alert_service.dart';
@@ -30,6 +32,7 @@ import 'services/firebase_sync_service.dart';
 import 'services/font_scale_service.dart';
 import 'services/locale_service.dart';
 import 'services/notificacao_service.dart';
+import 'services/onboarding_service.dart';
 import 'services/plano_ciclo_service.dart';
 import 'services/premium_purchase_service.dart';
 import 'services/relatorio_falha_entrega_service.dart';
@@ -39,6 +42,7 @@ import 'services/sos_deep_link_service.dart';
 import 'services/sos_disparo_service.dart';
 import 'services/volume_sos_service.dart';
 import 'services/wallpaper_service.dart';
+import 'widgets/camada_bloqueio_app.dart';
 import 'widgets/pin_dialog.dart';
 import 'widgets/plano_bloqueado_dialog.dart';
 
@@ -58,10 +62,10 @@ const String _rotaInicialCronometroAlarme = '/cronometro_alarme_confirmacao';
 // SÍNCRONAS de rota (sem I/O, não são `await` — decidem qual widget é
 // o primeiro frame) + runApp() imediato.
 //
-// ETAPA 2 (_iniciarFirebaseEAuth): disparada (sem `await`) logo após o
-// runApp() — SÓ Firebase core + FirebaseAuth, o mínimo para os botões
-// de login funcionarem. Nada de FCM/heartbeat aqui. Devolve dois
-// futuros (core rápido vs. completo com logout) — ver a função.
+// ETAPA 2 (_garantirFirebaseEAuth): disparada (sem `await`) logo após o
+// runApp() — SÓ Firebase core + FirebaseAuth (com a sessão persistida
+// restaurada) e o token FCM. Nada de heartbeat aqui. Futuro único,
+// compartilhado por todos os pontos de entrada — ver a função.
 //
 // ETAPA 3 (iniciarServicosPosLoginOuDashboard, chamada por
 // HomeScreen.initState — ver home_screen.dart): TODOS os serviços
@@ -70,15 +74,18 @@ const String _rotaInicialCronometroAlarme = '/cronometro_alarme_confirmacao';
 // depois que o usuário efetivamente loga e chega no dashboard — nunca
 // antes, nem em paralelo com o cold start.
 //
-// TRADE-OFF DE SEGURANÇA DELIBERADO (pedido explícito do usuário,
-// ETAPA 3): como a Opção A força logout a cada cold start normal, o
-// Foreground Service nativo do botão físico (VolumeSosService) e o
-// AlarmeService de rotina só reativam DEPOIS do próximo login — ou
-// seja, entre um cold start normal e o usuário efetivamente logar de
-// novo, o botão físico de SOS e os alarmes de rotina ficam inativos.
-// Isso é uma mudança de comportamento real (antes, esses serviços
-// religavam em paralelo com QUALQUER cold start, sem depender de
-// login) — ver relato ao usuário.
+// SESSÃO E BLOQUEIO (2026-10-03, substitui a antiga "Opção A"): a
+// sessão do Firebase Auth fica SEMPRE persistida — logout só quando o
+// usuário toca em "Sair". O que protege o app é o bloqueio local
+// ([BloqueioAppService]/[CamadaBloqueioApp]: Face ID/Touch ID/biometria,
+// código do aparelho ou PIN do Guardião-X), exigido no cold start e ao
+// voltar do segundo plano. Antes, a Opção A deslogava a cada cold start
+// e o Widget SOS do iOS caía na LoginScreen sem sessão para enviar o
+// alerta (build 105: 4 de 5 toques). Emergências (Widget SOS, botão
+// físico, alerta recebido, alarmes) pulam o bloqueio enquanto estão na
+// tela. Como a sessão agora sobrevive ao cold start, a HomeScreen (e com
+// ela o VolumeSosService e os alarmes de rotina da ETAPA 3) sobe já no
+// cold start normal, por baixo da camada de bloqueio.
 // ================================================================
 
 /// Guarda para [iniciarServicosPosLoginOuDashboard] disparar UMA ÚNICA
@@ -86,30 +93,10 @@ const String _rotaInicialCronometroAlarme = '/cronometro_alarme_confirmacao';
 /// remontada (troca de aba, deep-link, etc.).
 bool _servicosPosLoginJaIniciados = false;
 
-/// Guarda contra o `logout()` da Opção A (ver [_iniciarFirebaseEAuth])
-/// ocorrer NO MEIO de um disparo de SOS iniciado pelo Widget de Home
-/// Screen do iOS ([SosDeepLinkService]/[_verificarDeepLinkSosNoColdStartEDisparar]).
-///
-/// POR QUE ISTO EXISTE: diferente dos outros 3 cold starts de emergência
-/// (SOS físico, Rotina, Cronômetro), que detectam a rota especial de
-/// forma 100% SÍNCRONA via `defaultRouteName` (native Intent extras, só
-/// Android) ANTES do runApp(), um URL Scheme custom no iOS só pode ser
-/// lido de forma ASSÍNCRONA (chamada de MethodChannel, ver
-/// [SosDeepLinkService.linkInicial]) — não há nenhum sinal síncrono
-/// equivalente disponível antes do primeiro frame. Isso significa que,
-/// no cold start via Widget, o app SEMPRE nasce pelo caminho NORMAL
-/// (`_SplashGate`), e só decide preservar a sessão (`preservarSessaoExistente:
-/// true`) depois, quando o link assíncrono resolver — normalmente poucos
-/// milissegundos depois do runApp(), bem antes dos ~3.2s da animação de
-/// splash. Sem este guard, um dispositivo lento (ou um usuário que
-/// demora para tirar a foto do P2, que é sempre manual) correria o risco
-/// real de a splash completar sua animação e disparar seu PRÓPRIO
-/// `_iniciarFirebaseEAuth(preservarSessaoExistente: false)` (ver
-/// [_SplashGateState._aguardarProntidao]) NO MEIO do envio do SOS via
-/// widget, derrubando a sessão que o canal de Push (único canal real de
-/// P1/P2 no iOS, ver [SosDisparoService]) depende. Este guard elimina a
-/// corrida por completo, independente de qualquer timing.
-bool _sosViaWidgetEmAndamento = false;
+/// Futuro ÚNICO de [_garantirFirebaseEAuth] — compartilhado pela splash,
+/// pelo Widget SOS e pelos cold starts de emergência, para nunca
+/// inicializar duas vezes nem correr uma contra a outra.
+Future<void>? _futuroFirebaseEAuth;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -176,6 +163,10 @@ void main() {
   // sozinhos caso ainda não tenha rodado).
   EncryptionService().initialize();
 
+  // Observa o ciclo de vida do app para o bloqueio local (volta do
+  // segundo plano depois de alguns minutos) — ver [BloqueioAppService].
+  BloqueioAppService().iniciar();
+
   // REQUISITO OFICIAL DO FLUTTER/FLUTTERFIRE (reespecificação do
   // usuário, 2026-08-15): `FirebaseMessaging.onBackgroundMessage(...)`
   // deve ser registrado o MAIS CEDO possível dentro de `main()`, SEM
@@ -183,10 +174,10 @@ void main() {
   // no lado nativo, QUAL função Dart o Android deve invocar quando uma
   // mensagem chegar com o app fechado. Fire-and-forget (sem `await`):
   // `Firebase.initializeApp()` sozinho pode levar 4s+ (ver comentário
-  // completo em [_iniciarFirebaseEAuth]), e não faz sentido atrasar o
+  // completo em [_garantirFirebaseEAuth]), e não faz sentido atrasar o
   // primeiro frame (`runApp()`, logo abaixo) por causa disso. Chamar
   // `Firebase.initializeApp()` de novo aqui (além da chamada existente
-  // em [_iniciarFirebaseEAuth]) é seguro e barato — o SDK é idempotente,
+  // em [_garantirFirebaseEAuth]) é seguro e barato — o SDK é idempotente,
   // a segunda chamada só devolve a instância já inicializada sem
   // repetir nenhum I/O.
   unawaited(_registrarHandlerFcmDeBackgroundImediatamente());
@@ -209,8 +200,7 @@ void main() {
   // Widget de Home Screen (`ios/SOSWidget/`) abre o app via
   // `guardiaox://sos`. Checado o quanto antes (mesma tier dos dois
   // `unawaited` acima, ANTES até do runApp() abaixo) para resolver o
-  // mais cedo possível — ver [_sosViaWidgetEmAndamento] para a corrida
-  // que isso ainda assim exige contra a splash do cold start normal.
+  // mais cedo possível — ver [_verificarDeepLinkSosNoColdStartEDisparar].
   // Fire-and-forget: nunca atrasa o primeiro frame.
   unawaited(_verificarDeepLinkSosNoColdStartEDisparar());
 
@@ -224,7 +214,13 @@ void main() {
   SosDeepLinkService().aoReceberLink.listen((uri) {
     if (SosDeepLinkService().ehLinkDeSos(uri)) {
       debugPrint('🆘 [main] SOS via Widget (iOS) — app já em execução.');
-      _dispararFluxoCompletoDeSos(origem: 'sos_widget_ios');
+      // Libera o bloqueio NA HORA (síncrono, antes de qualquer `await`):
+      // o app pode estar voltando do segundo plano e já ter se bloqueado
+      // no `resumed` — o SOS nunca espera desbloqueio.
+      final encerrarLiberacao = BloqueioAppService().liberarParaEmergencia();
+      unawaited(_garantirFirebaseEAuth().then(
+        (_) => _iniciarSosDoWidget(encerrarLiberacao: encerrarLiberacao),
+      ));
     }
   }, onError: (e) {
     debugPrint('⚠️ [main] Erro no stream de deep link do Widget de SOS: $e');
@@ -255,10 +251,16 @@ void main() {
       coldStartViaRotinaAlarme ||
       coldStartViaCronometroAlarme) {
     // Os TRÊS cold starts de emergência (SOS físico, Alarme de Rotina,
-    // Cronômetro Regressivo) precisam preservar a sessão — ver
-    // documentação completa em [_iniciarFirebaseEAuth].
-    futuroFirebaseEAuthImediato =
-        _iniciarFirebaseEAuth(preservarSessaoExistente: true);
+    // Cronômetro Regressivo) não têm animação para proteger — Firebase
+    // imediato. Rotina/Cronômetro deixam o app bloqueado por baixo (as
+    // telas de alarme liberam o bloqueio enquanto estão abertas); o SOS
+    // físico a frio roda numa Activity própria sobre a tela de bloqueio
+    // do Android, que só fecha ao final — nada a bloquear lá.
+    futuroFirebaseEAuthImediato = _garantirFirebaseEAuth();
+    if (!coldStartViaSosFisico) {
+      unawaited(futuroFirebaseEAuthImediato
+          .then((_) => BloqueioAppService().bloquearSeHouverSessao()));
+    }
   }
 
   // ETAPA 1, fim: primeiro frame disparado imediatamente — ZERO
@@ -279,7 +281,7 @@ void main() {
       // Só aguarda AQUI (depois do primeiro frame, tela preta já
       // visível) — nunca antes do runApp(). O disparo em si precisa do
       // Firebase pronto para usar Push/link real da foto (ver política
-      // de sessão em [_iniciarFirebaseEAuth]).
+      // de sessão em [_garantirFirebaseEAuth]).
       futuroFirebaseEAuthImediato!.then((_) {
         _dispararSequenciaUnificadaDeSos(origem: 'sos_fisico').then((abriuCamera) {
           // CORREÇÃO DE BUG REAL CONFIRMADO EM TESTE FÍSICO (Motorola
@@ -347,7 +349,7 @@ Future<void> _inicializarPreferenciasVisuais() async {
 /// Registra `FirebaseMessaging.onBackgroundMessage` o mais cedo possível
 /// (ver chamada em [main], logo no início da função, incondicional) —
 /// ÚNICA responsabilidade desta função, deliberadamente separada de
-/// [_iniciarFirebaseEAuth] (que também chama `Firebase.initializeApp()`,
+/// [_garantirFirebaseEAuth] (que também chama `Firebase.initializeApp()`,
 /// entre várias outras coisas, mas só é disparada incondicionalmente
 /// para os 3 cold starts de emergência — no cold start NORMAL, fica
 /// atrás da animação da splash, ver [_SplashGateState._aguardarProntidao]).
@@ -456,82 +458,79 @@ Future<void> _inicializarNotificacoesEAbrirAlertaPendente() async {
 /// Resolve o link (se houver) que causou ESTE cold start e, sendo o
 /// gatilho de SOS do Widget de Home Screen do iOS
 /// (`guardiaox://sos`, ver [SosDeepLinkService]), dispara a MESMA
-/// sequência unificada do SOS físico ([_dispararSequenciaUnificadaDeSos])
-/// — Firebase+Auth com sessão preservada, câmera aberta em seguida.
+/// sequência unificada do SOS físico ([_dispararSequenciaUnificadaDeSos]).
 ///
-/// DIFERENÇA DELIBERADA em relação ao cold start do SOS físico
-/// (`coldStartViaSosFisico`, no corpo de [main]): aquele é detectado de
-/// forma 100% SÍNCRONA (`defaultRouteName`, mecanismo Android-only) e por
-/// isso já nasce direto em [_TelaPretaAguardandoSos] (zero flash de UI).
-/// Este, por depender de uma leitura ASSÍNCRONA (`app_links`, único
-/// mecanismo disponível para um URL Scheme custom no iOS), sempre nasce
-/// pelo caminho normal (`_SplashGate`) e só troca de rota (via
-/// `appNavigatorKey`, empurrando por cima) quando o link resolver —
-/// tipicamente poucos milissegundos depois, mas tecnicamente permite um
-/// flash breve da splash/LoginScreen antes da câmera aparecer. Aceito
-/// conscientemente: não há nenhum sinal síncrono equivalente possível no
-/// iOS para um URL Scheme custom (ver documentação completa em
-/// [_sosViaWidgetEmAndamento]).
+/// O app nasce pelo caminho normal (`_SplashGate`) — no iOS um URL Scheme
+/// só pode ser lido de forma ASSÍNCRONA — e a câmera é empurrada por cima
+/// quando o link resolve (poucos milissegundos). Desde o fim da Opção A
+/// não existe mais corrida com logout: a sessão nunca é derrubada no cold
+/// start, e o bloqueio local é liberado enquanto o SOS estiver na tela
+/// ([BloqueioAppService.liberarParaEmergencia]).
 Future<void> _verificarDeepLinkSosNoColdStartEDisparar() async {
   final Uri? link = await SosDeepLinkService().linkInicial();
   if (link == null || !SosDeepLinkService().ehLinkDeSos(link)) return;
 
   debugPrint('🆘 [main] Cold start via Widget de SOS (iOS): $link');
-  _sosViaWidgetEmAndamento = true;
+  final encerrarLiberacao = BloqueioAppService().liberarParaEmergencia();
 
-  // Mesma política de sessão dos outros 3 cold starts de emergência (ver
-  // [_iniciarFirebaseEAuth]) — preserva a sessão existente para que o
-  // canal de Push (único canal real de P1/P2 no iOS, ver
-  // [SosDisparoService]) tenha uma chance real de disparar.
-  await _iniciarFirebaseEAuth(preservarSessaoExistente: true);
+  await _garantirFirebaseEAuth();
+  // O app continua bloqueado por baixo — depois do SOS, voltar ao resto
+  // do app passa pelo desbloqueio.
+  BloqueioAppService().bloquearSeHouverSessao();
 
-  // Aguarda o primeiro frame antes de navegar — mesmo cuidado do bloco
-  // `coldStartViaSosFisico` em [main] (o `appNavigatorKey.currentState`
-  // só existe depois que o runApp() síncrono já rodou, o que já deve ter
-  // acontecido a esta altura dado o `await` acima).
+  // Aguarda o primeiro frame antes de navegar (o `appNavigatorKey` só
+  // existe depois do runApp()).
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    _dispararSequenciaUnificadaDeSos(origem: 'sos_widget_ios').then((abriuCamera) {
-      if (!abriuCamera) {
-        debugPrint(
-            '🚨 [main] SOS via Widget (iOS): câmera não abriu (P1 já disparado em paralelo) — nada mais a fazer aqui.');
-      }
-    });
+    _iniciarSosDoWidget(encerrarLiberacao: encerrarLiberacao);
   });
 }
 
-/// ETAPA 2: o MÍNIMO de Firebase necessário para os botões de login
-/// funcionarem — só `Firebase.initializeApp()` + a política de sessão
-/// (Opção A). Nada de FCM/heartbeat aqui (ver ETAPA 3,
-/// [iniciarServicosPosLoginOuDashboard]). Chamada sem `await` logo após
-/// o runApp() em [main] — nunca antes.
+/// SOS pedido pelo Widget (cold ou warm start). Sem sessão (ninguém nunca
+/// entrou neste aparelho) não há como enviar alerta: abre a tela que
+/// explica que é preciso entrar uma vez para ativar o botão — nunca a
+/// LoginScreen crua. Com sessão, dispara a sequência completa (Push com
+/// localização → câmera → foto → tela vermelha), sem desbloqueio.
+void _iniciarSosDoWidget({required VoidCallback encerrarLiberacao}) {
+  if (!BloqueioAppService.sessaoValida()) {
+    encerrarLiberacao();
+    debugPrint('🆘 [main] SOS via Widget sem sessão — explicando como ativar.');
+    appNavigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => const SosSemLoginScreen()),
+    );
+    return;
+  }
+  // A câmera/tela vermelha tem sua própria liberação enquanto estiver
+  // aberta ([LiberaBloqueioEnquantoAberta]); esta aqui cobre só o
+  // intervalo até ela abrir (checagem do plano, P1).
+  _dispararSequenciaUnificadaDeSos(origem: 'sos_widget_ios').then((abriuCamera) {
+    if (!abriuCamera) {
+      debugPrint(
+          '🚨 [main] SOS via Widget (iOS): câmera não abriu (P1 já disparado em paralelo).');
+    }
+  }).catchError((e) {
+    debugPrint('⚠️ [main] Falha no SOS via Widget: $e');
+  }).whenComplete(encerrarLiberacao);
+}
+
+/// ETAPA 2: o MÍNIMO de Firebase — `Firebase.initializeApp()`, App Check,
+/// a sessão persistida restaurada e o token FCM. Nada de heartbeat aqui
+/// (ver ETAPA 3, [iniciarServicosPosLoginOuDashboard]). Memoizada: todos os
+/// pontos de entrada (splash, Widget SOS, cold starts de emergência)
+/// compartilham a MESMA execução.
 ///
-/// NINGUÉM na UI aguarda este futuro completo para trocar a splash pela
-/// LoginScreen (pedido explícito do usuário, 2026-08-06 — MEDIDO no
-/// dispositivo físico: `Firebase.initializeApp()` sozinho pode levar 4s+,
-/// I/O real do SDK nativo, e o `logout()` da política de sessão abaixo
-/// pode somar mais alguns segundos quando já existe uma sessão real
-/// logada; nenhum dos dois é algo que dá pra acelerar reorganizando
-/// `await`s no Dart). [_SplashGate] só espera a animação terminar (ver
-/// [_ConteudoSplashAnimadaState]) — Firebase termina de inicializar 100%
-/// em segundo plano, aproveitando o tempo que o usuário leva pra digitar
-/// e-mail/senha antes de tocar em "Entrar". Só o SOS físico em [main]
-/// continua aguardando este futuro por completo, já que esse fluxo
-/// precisa da sessão 100% resolvida antes de disparar.
-///
-/// Não bloquear a LoginScreen no Firebase/`logout()` é seguro: a tela
-/// não lê nem exibe nenhum dado da sessão anterior (só um formulário
-/// estático), e qualquer novo login (`signInWithEmailAndPassword` ou
-/// social) sempre substitui a sessão antiga no SDK, independente deste
-/// futuro já ter resolvido ou não — a garantia real da Opção A (nunca
-/// abrir direto na Home com sessão persistida) não depende deste timing.
-/// Se o usuário tocar em "Entrar" antes do Firebase estar pronto, o
-/// `catch` genérico já existente em [LoginScreen] mostra a mensagem de
-/// erro padrão, sem crash — caso raro, dado o tempo normal de digitação.
+/// `Firebase.initializeApp()` sozinho pode levar 4s+ (MEDIDO no
+/// dispositivo físico, 2026-08-06) — por isso, no cold start normal, ele
+/// só é disparado DEPOIS da animação da splash (ver
+/// [_SplashGateState._aguardarProntidao]), que então aguarda este futuro
+/// para saber se existe sessão (Home bloqueada) ou não (LoginScreen).
 ///
 /// Protegida por try/catch e NUNCA lança exceção: se o Firebase falhar
 /// ao inicializar (sem rede, projeto mal configurado, etc.), o app
 /// continua funcional para login local/SMS, que não dependem dele.
-Future<void> _iniciarFirebaseEAuth({required bool preservarSessaoExistente}) async {
+Future<void> _garantirFirebaseEAuth() =>
+    _futuroFirebaseEAuth ??= _inicializarFirebaseEAuth();
+
+Future<void> _inicializarFirebaseEAuth() async {
   // CORREÇÃO DE BUG REAL CONFIRMADO EM TESTE FÍSICO (2026-08-15, via
   // logcat no Moto G7 Play): esta função roda em CADA execução de
   // main() — inclusive no cold-start dedicado do botão físico de SOS
@@ -601,9 +600,8 @@ Future<void> _iniciarFirebaseEAuth({required bool preservarSessaoExistente}) asy
   // (`login_screen.dart`) ou já no dashboard
   // ([iniciarServicosPosLoginOuDashboard], abaixo). Resultado: se o token
   // do aparelho rotacionar (reinstalação, limpeza de dados do app,
-  // renovação periódica do próprio FCM) enquanto o usuário permanece
-  // deslogado (Opção A força logout a cada cold start normal — ver
-  // política logo abaixo), o token gravado no Firestore fica
+  // renovação periódica do próprio FCM) enquanto o usuário não chega à
+  // Home, o token gravado no Firestore fica
   // PERMANENTEMENTE desatualizado até o próximo login manual — nenhum
   // Push chega a esse aparelho nesse meio tempo, mesmo com o Guardião-X
   // instalado e o número certo cadastrado como contato de emergência.
@@ -624,17 +622,14 @@ Future<void> _iniciarFirebaseEAuth({required bool preservarSessaoExistente}) asy
 
   // CORREÇÃO (bug real confirmado, 2026-08-15 — "app receptor deslogado
   // não recebe alerta"): sincroniza o TOKEN aqui, usando a sessão que o
-  // SDK acabou de restaurar automaticamente do disco em
-  // [Firebase.initializeApp] (linha acima) — ANTES do `logout()` da
-  // Opção A rodar mais abaixo. Isso NÃO enfraquece a Opção A (nenhuma
-  // sessão fica viva além do que já ficava; o logout() continua rodando
-  // normalmente logo em seguida) — só aproveita a janela em que a
-  // sessão anterior ainda está legitimamente disponível, em TODO cold
+  // SDK restaura do disco em [Firebase.initializeApp] — em TODO cold
   // start (não só em logins reais), para manter o token sempre fresco.
-  // Sem sessão restaurada (nunca logou neste aparelho, ou já deslogou
-  // manualmente antes) é um no-op silencioso.
+  // `aguardarUidPronto`: a restauração da sessão é assíncrona; quem
+  // aguarda este futuro (splash, Widget SOS) precisa saber de verdade se
+  // há sessão. Sem sessão (nunca entrou neste aparelho, ou tocou em
+  // "Sair") é um no-op silencioso.
   try {
-    if (FirebaseAuthService().uidAtual != null) {
+    if (await FirebaseAuthService().aguardarUidPronto() != null) {
       // Ver documentação completa em [FirebaseAuthService.garantirTokenPronto]
       // — sem isto, a escrita abaixo falhava com
       // `[cloud_firestore/permission-denied]` mesmo com um `uid` válido
@@ -643,63 +638,12 @@ Future<void> _iniciarFirebaseEAuth({required bool preservarSessaoExistente}) asy
       // chamada).
       await FirebaseAuthService().garantirTokenPronto();
       await FcmService().inicializar();
-      debugPrint('📲 [main] Token FCM sincronizado a partir da sessão restaurada '
-          '(cold start, antes do logout da Opção A).');
+      debugPrint('📲 [main] Token FCM sincronizado a partir da sessão restaurada (cold start).');
     }
   } catch (e) {
     debugPrint('⚠️ [main] Falha ao sincronizar token FCM no cold start: $e');
   }
 
-  // POLÍTICA DE SEGURANÇA (Opção A): todo cold start NORMAL (usuário
-  // abrindo o app pelo ícone) encerra qualquer sessão do Firebase Auth
-  // persistida no disco — o app NUNCA deve abrir direto na Home usando
-  // uma sessão antiga, mesmo que o dispositivo/emulador já tivesse um
-  // login válido de uma execução anterior. Login (com a barreira de
-  // `emailVerified`) volta a ser exigido a cada abertura normal.
-  //
-  // EXCEÇÃO DELIBERADA, agora estendida aos TRÊS cold starts de
-  // emergência (SOS físico, Alarme de Rotina, Cronômetro Regressivo —
-  // [preservarSessaoExistente]): nenhum deles exibe qualquer tela de
-  // login/conta — SOS físico vai direto para `_TelaPretaAguardandoSos`
-  // (tela preta, zero dado de usuário); Rotina/Cronômetro vão direto
-  // para [AlarmeDisparadoScreen]/[CronometroDisparadoScreen] (só teclado
-  // de PIN + confirmação de alerta, também sem nenhum dado de conta).
-  //
-  // BUG REAL CONFIRMADO (2026-08-14): esta exceção originalmente só
-  // cobria o SOS físico (documentado abaixo) — Rotina e Cronômetro
-  // continuavam fazendo logout() normalmente em QUALQUER cold start via
-  // alarme nativo (app fechado/morto quando o alarme disparou), pelo
-  // MESMO motivo já identificado e corrigido para o SOS físico: o
-  // `logout()` roda em paralelo (sem `await`) com a tela de PIN/som já
-  // exibida, e costuma terminar bem ANTES do usuário resolver o
-  // teclado (PIN correto, 3 erros, ou os 60s de tolerância se
-  // esgotando) — nesse ponto `FirebaseAuthService().uidAtual` já está
-  // `null`, e todo o disparo de emergência que depende de sessão
-  // (`FirebaseSyncService.dispararAlertaTentativaDesarmeIncorreto` —
-  // ver `_firebaseDisponivel`, que exige um `uid`) vira NO-OP
-  // silencioso: nem o Firestore é escrito, nem a Cloud Function dispara
-  // o Push para o app receptor. SMS nativo e histórico LOCAL continuam
-  // funcionando (não dependem de sessão), o que produzia exatamente o
-  // sintoma relatado num teste real de timeout: "teclado, som,
-  // confirmação em tela e histórico local funcionaram, mas SMS/Push/
-  // histórico do receptor nunca chegaram". Preservar a sessão aqui
-  // mantém a MESMA garantia de segurança da Opção A (nenhuma tela com
-  // dados de conta é exibida em nenhum dos três fluxos) e permite que o
-  // alerta dispare em todos os canais (SMS + Push/Firestore), mesmo
-  // 100% a frio.
-  try {
-    // `!_sosViaWidgetEmAndamento` — ver documentação completa na
-    // declaração da flag: cobre a corrida entre esta chamada (disparada
-    // pela splash do cold start NORMAL, alguns segundos depois) e um
-    // disparo de SOS via Widget de Home Screen (iOS) que já esteja em
-    // andamento, cuja detecção é assíncrona e não tem como "vencer" essa
-    // corrida por timing sozinha.
-    if (!preservarSessaoExistente && !_sosViaWidgetEmAndamento) {
-      await FirebaseAuthService().logout();
-    }
-  } catch (e) {
-    debugPrint('⚠️ [Firebase] Falha ao aplicar política de sessão: $e');
-  }
 
 }
 
@@ -712,10 +656,10 @@ Future<void> _iniciarFirebaseEAuth({required bool preservarSessaoExistente}) asy
 /// paralelo com o cold start. Guardada por [_servicosPosLoginJaIniciados]
 /// para nunca rodar duas vezes na mesma sessão do engine.
 ///
-/// TRADE-OFF DE SEGURANÇA: ver nota completa no cabeçalho deste
-/// arquivo — entre um cold start normal (que sempre força logout, ver
-/// Opção A) e o usuário logar de novo, o botão físico de SOS e os
-/// alarmes de rotina ficam inativos, já que dependem deste bloco.
+/// Com a sessão persistida (fim da Opção A, ver cabeçalho do arquivo), a
+/// HomeScreen sobe já no cold start normal, por baixo do bloqueio local —
+/// então o botão físico de SOS e os alarmes de rotina voltam a ficar
+/// ativos sem depender de um novo login.
 Future<void> iniciarServicosPosLoginOuDashboard() async {
   if (_servicosPosLoginJaIniciados) return;
   _servicosPosLoginJaIniciados = true;
@@ -790,7 +734,6 @@ Future<void> iniciarServicosPosLoginOuDashboard() async {
     debugPrint('⚠️ [main] Erro no EventChannel de alarme de rotina: $e');
   });
 
-  _testarConectividadeInicialComBackend();
 }
 
 /// Dispara P1 (localização imediata, deduplicada entre engines — ver
@@ -898,19 +841,12 @@ Future<void> _exibirPinDeRotinaAoAbrirPorAlarme() async {
 
 void _dispararFluxoCompletoDeSos({required String origem}) {
   debugPrint('🆘 [main] Disparando fluxo completo de SOS — origem: $origem');
+  // O SOS nunca espera desbloqueio (ver BloqueioAppService).
+  final encerrarLiberacao = BloqueioAppService().liberarParaEmergencia();
   _dispararSequenciaUnificadaDeSos(origem: origem).catchError((e) {
     debugPrint('⚠️ [main] Falha ao processar SOS ($origem): $e');
     return false;
-  });
-}
-
-Future<void> _testarConectividadeInicialComBackend() async {
-  try {
-    const double bateriaSimulada = 100;
-    await ApiService().enviarStatus(bateriaSimulada, '1.0.0');
-  } catch (e) {
-    debugPrint('⚠️ Falha ao testar conectividade inicial com o backend: $e');
-  }
+  }).whenComplete(encerrarLiberacao);
 }
 
 class SecurityCheckApp extends StatefulWidget {
@@ -1065,24 +1001,11 @@ class _SecurityCheckAppState extends State<SecurityCheckApp> {
   /// chegar a existir sobre a lockscreen. Uma tela preta neutra ocupa esse
   /// instante até a CameraCapturaScreen ser empurrada por cima.
   ///
-  /// POLÍTICA DE SEGURANÇA (Opção A): fora desses casos especiais de
-  /// emergência, SEMPRE mostra a LoginScreen — o app nunca pula direto
-  /// para dentro do fluxo principal com base numa sessão persistida do
-  /// Firebase Auth. Isso é garantido em duas camadas: `main()` já dispara
-  /// `FirebaseAuthService().logout()` (via [_iniciarFirebaseEAuth]) logo
-  /// no cold start, e esta função nem chega a checar sessão — só entra
-  /// em [TelaInicialComPossivelDialogoPin] através da navegação explícita
-  /// feita por [LoginScreen] após um login real com `emailVerified ==
-  /// true` (ver [LoginScreen._fazerLogin]).
-  ///
-  /// No cold start NORMAL, a LoginScreen não aparece direto: primeiro
-  /// vem a [_SplashGate] (mesmo fundo escuro da splash nativa do
-  /// Android, ver `launch_background.xml`) rodando a splash cinematográfica
-  /// — troca para a LoginScreen de verdade assim que essa animação
-  /// termina de verdade E o núcleo do Firebase (rápido, só
-  /// `Firebase.initializeApp()`) estiver pronto, o que evita um usuário
-  /// rápido conseguir tocar em "Entrar" antes do Firebase estar pronto,
-  /// sem somar nenhum delay artificial por cima da animação.
+  /// No cold start NORMAL vem a [_SplashGate] (mesmo fundo escuro da
+  /// splash nativa do Android, ver `launch_background.xml`) rodando a
+  /// splash cinematográfica; ao terminar, ela mostra a Home (com sessão
+  /// persistida — coberta pelo bloqueio local, ver [BloqueioAppService])
+  /// ou a LoginScreen (sem sessão).
   Widget _telaInicial() {
     if (widget.abertoViaAlarmeRotina) return const AlarmeDisparadoScreen();
     if (widget.abertoViaCronometroAlarme) {
@@ -1117,7 +1040,9 @@ class _SecurityCheckAppState extends State<SecurityCheckApp> {
                   data: MediaQuery.of(context).copyWith(
                     textScaler: TextScaler.linear(fatorFonte),
                   ),
-                  child: child!,
+                  // Bloqueio local POR CIMA do Navigator (ver
+                  // BloqueioAppService): nenhuma navegação escapa dele.
+                  child: CamadaBloqueioApp(child: child!),
                 );
               },
               // CORREÇÃO DE BUG REAL (2026-08-11) — CAUSA RAIZ VERDADEIRA:
@@ -1292,21 +1217,18 @@ List<String> _frasesSplash(AppLocalizations l10n) => <String>[
       l10n.splashFrase6,
     ];
 
-/// Gate puramente visual exibido como a rota inicial do app (dentro do
-/// `home:` do MaterialApp — nunca via Navigator, então não interfere em
-/// nenhuma navegação por nome já existente) no cold start NORMAL.
-/// Mostra a splash cinematográfica de marca ([_ConteudoSplashAnimada])
-/// sobre o MESMO fundo preto da splash nativa, e troca para a
-/// [LoginScreen] assim que a animação termina de verdade (ver
-/// [_aguardarProntidao]), sem nenhum delay extra acumulado por cima.
+/// Rota inicial do app no cold start NORMAL. Mostra a splash
+/// cinematográfica de marca ([_ConteudoSplashAnimada]) sobre o MESMO fundo
+/// preto da splash nativa e, ao terminar a animação, troca (DENTRO desta
+/// mesma rota — nunca com `pushReplacement`, que substituiria a câmera do
+/// SOS se o Widget já tivesse empurrado uma por cima) para:
+/// - a Home, se houver sessão persistida — coberta pelo bloqueio local
+///   (ver [BloqueioAppService]);
+/// - a [LoginScreen], se não houver.
 ///
-/// NÃO espera o Firebase ([main]/[_iniciarFirebaseEAuth]) de propósito
-/// (pedido explícito do usuário, 2026-08-06 — MEDIDO no dispositivo
-/// físico: `Firebase.initializeApp()` sozinho pode levar 4s+, e esperar
-/// por ele quase dobrava o tempo da splash). A LoginScreen é só um
-/// formulário estático (não lê nada da sessão), e o Firebase termina de
-/// inicializar em segundo plano — ver comentário completo em
-/// [_iniciarFirebaseEAuth] sobre por que isso é seguro.
+/// O Firebase só é disparado depois da animação (ele compete pela UI
+/// thread e deixava a splash mais lenta) e é aguardado aqui para decidir
+/// entre as duas telas.
 class _SplashGate extends StatefulWidget {
   const _SplashGate();
 
@@ -1314,8 +1236,10 @@ class _SplashGate extends StatefulWidget {
   State<_SplashGate> createState() => _SplashGateState();
 }
 
+enum _DestinoSplash { splash, login, home, onboarding }
+
 class _SplashGateState extends State<_SplashGate> {
-  bool _pronto = false;
+  _DestinoSplash _destino = _DestinoSplash.splash;
 
   /// Sinalizado por [_ConteudoSplashAnimada] (via `onConcluida`) assim
   /// que a sequência real de animação (digitação + pausa + saída — ver
@@ -1365,26 +1289,54 @@ class _SplashGateState extends State<_SplashGate> {
     // adicional por cima: nenhuma alteração na digitação/pausa/saída.
     await _animacaoConcluidaCompleter.future;
 
-    // SÓ AGORA (animação já terminou, splash saindo de tela) dispara o
-    // Firebase — ver comentário completo em [main]: rodá-lo ANTES/EM
-    // PARALELO com a animação a deixava visivelmente mais lenta, mesmo
-    // sem nenhum `await` Dart esperando por ele (compete pela mesma UI
-    // thread nativa dos frames). Fire-and-forget: a LoginScreen (que vai
-    // aparecer no próximo frame) não precisa dele pronto para renderizar,
-    // só quando o usuário efetivamente tocar em "Entrar" — ver
-    // [_iniciarFirebaseEAuth] para a explicação completa de por que isso
-    // é seguro.
-    unawaited(_iniciarFirebaseEAuth(preservarSessaoExistente: false));
+    // SÓ AGORA (animação já terminou) dispara o Firebase — ver comentário
+    // completo em [main]: rodá-lo EM PARALELO com a animação a deixava
+    // visivelmente mais lenta (compete pela mesma UI thread nativa).
+    // Aguardado (com teto) para saber se existe sessão persistida.
+    try {
+      await _garantirFirebaseEAuth().timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('⚠️ [SplashGate] Firebase demorou/falhou ao inicializar: $e');
+    }
 
-    if (mounted) setState(() => _pronto = true);
+    // Conta por e-mail/senha que nunca confirmou o e-mail não entra direto
+    // — a LoginScreen mantém a barreira de `emailVerified`.
+    _DestinoSplash destino = _DestinoSplash.login;
+    if (BloqueioAppService.sessaoValida()) {
+      BloqueioAppService().bloquearSeHouverSessao();
+      destino = await OnboardingService().jaConcluido()
+          ? _DestinoSplash.home
+          : _DestinoSplash.onboarding;
+    }
+    if (!mounted) return;
+    setState(() => _destino = destino);
+    if (destino == _DestinoSplash.home) {
+      // Solicitação de localização que abriu o app: o modal abre por cima
+      // da Home (fica atrás do bloqueio até o desbloqueio).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        abrirSolicitacaoPendenteAposAutenticacao();
+      });
+    }
+  }
+
+  Widget _telaDoDestino() {
+    switch (_destino) {
+      case _DestinoSplash.home:
+        return const TelaInicialComPossivelDialogoPin(aguardandoConfirmacaoPin: false);
+      case _DestinoSplash.onboarding:
+        return const OnboardingScreen(aoConcluir: navegarParaFluxoPrincipal);
+      case _DestinoSplash.login:
+      case _DestinoSplash.splash:
+        return const LoginScreen();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: _duracaoCrossfadeParaLogin,
-      child: _pronto
-          ? const LoginScreen()
+      child: _destino != _DestinoSplash.splash
+          ? KeyedSubtree(key: ValueKey(_destino), child: _telaDoDestino())
           : (_indiceFrase == null
               // Placeholder preto (idêntico ao fundo da splash nativa
               // E da splash animada) só pelos poucos milissegundos da

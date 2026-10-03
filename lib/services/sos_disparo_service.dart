@@ -28,11 +28,10 @@ import 'sos_dispatch_native_service.dart';
 ///         2. App-para-App (Push FCM), via `dispararAlertaHibrido` no
 ///            backend.
 ///       O canal 2 só dispara quando há sessão do Firebase Auth
-///       disponível — a política de segurança "Opção A" (login
-///       obrigatório a cada cold start, ver `FirebaseAuthService`)
-///       desloga a sessão antes mesmo do botão físico poder ser
-///       processado quando o app está completamente frio. Nesse caso
-///       específico, o canal 1 (SMS) é o ÚNICO que dispara — decisão
+///       disponível (desde 2026-10-03 a sessão fica persistida — ver
+///       `FirebaseAuthService` —, então isso só falta se ninguém nunca
+///       entrou no aparelho). Nesse caso, o canal 1 (SMS) é o ÚNICO que
+///       dispara — decisão
 ///       explícita do produto: a entrega de P1 NUNCA pode depender de
 ///       autenticação na nuvem.
 ///   P2 — abre a câmera (UI, ver `CapturaDissuasaoService`) e, assim que

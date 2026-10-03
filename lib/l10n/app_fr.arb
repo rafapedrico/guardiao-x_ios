@@ -144,9 +144,6 @@
   "historicoCronometroPinIncorretoMotivo": "le code PIN a été saisi incorrectement 3 fois de suite en essayant de désarmer le minuteur de sécurité.",
   "historicoCronometroFechamentoForcadoMotivo": "l'application a été fermée de force alors que le minuteur de sécurité sonnait encore, sans confirmation du désarmement.",
   "segurancaTituloSecaoTempo": "Dans combien de temps j'arriverai",
-  "segurancaServidorVerificando": "Vérification du serveur...",
-  "segurancaServidorOnline": "Serveur en ligne",
-  "segurancaServidorOffline": "Serveur hors ligne",
   "segurancaDicaContextoLabel": "Indice de contexte",
   "segurancaDicaContextoHint": "Ex : Plaque d'immatriculation / Bus / Lieu",
   "horasLabel": "Heures",
@@ -895,5 +892,16 @@
   "sosWidgetTutorialTelaBloqueioPasso3": "Touchez « Gardien-X » et ajoutez le Bouton Panique.",
   "sosWidgetTutorialEntendi": "Compris",
   "faqPerguntaWidgetSos": "Comment ajouter le Bouton SOS à l'écran d'accueil de l'iPhone ?",
-  "faqRespostaWidgetSos": "Sur l'écran d'accueil : revenez à l'écran d'accueil et maintenez le doigt sur un espace vide jusqu'à ce que les icônes bougent, touchez « Modifier » → « Ajouter un widget » (ou le « + »), recherchez « Gardien-X » et ajoutez le « Bouton Panique ». Sur l'écran verrouillé : maintenez le doigt sur l'écran verrouillé → « Personnaliser » → « Écran verrouillé » → touchez la zone des widgets → « Gardien-X ». Un toucher sur le bouton envoie votre position et ouvre l'appareil photo. Vous pouvez vérifier qu'il est actif dans Paramètres → État des Autorisations."
+  "faqRespostaWidgetSos": "Sur l'écran d'accueil : revenez à l'écran d'accueil et maintenez le doigt sur un espace vide jusqu'à ce que les icônes bougent, touchez « Modifier » → « Ajouter un widget » (ou le « + »), recherchez « Gardien-X » et ajoutez le « Bouton Panique ». Sur l'écran verrouillé : maintenez le doigt sur l'écran verrouillé → « Personnaliser » → « Écran verrouillé » → touchez la zone des widgets → « Gardien-X ». Un toucher sur le bouton envoie votre position et ouvre l'appareil photo. Vous pouvez vérifier qu'il est actif dans Paramètres → État des Autorisations.",
+  "bloqueioTitulo": "Gardien-X verrouillé",
+  "bloqueioSubtitulo": "Confirmez que c'est vous pour continuer.",
+  "bloqueioMotivoBiometria": "Déverrouillez Gardien-X",
+  "bloqueioFalha": "Impossible de confirmer. Réessayez ou utilisez le code PIN.",
+  "bloqueioBotaoDesbloquear": "Déverrouiller",
+  "bloqueioBotaoUsarPin": "Utiliser le PIN Gardien-X",
+  "bloqueioBotaoSair": "Se déconnecter",
+  "bloqueioDesbloqueado": "App déverrouillée",
+  "sosSemLoginTitulo": "Activez le Bouton SOS",
+  "sosSemLoginTexto": "Pour que le Bouton SOS fonctionne, connectez-vous une fois à votre compte Gardien-X sur cet appareil. Ensuite, un toucher sur le bouton envoie votre position et ouvre l'appareil photo, sans demander de mot de passe.",
+  "sosSemLoginBotaoEntrar": "Se connecter maintenant"
 }

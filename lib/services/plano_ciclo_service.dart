@@ -148,9 +148,8 @@ class PlanoCicloService {
 
   String? get _uid => FirebaseAuthService().uidAtual;
 
-  /// `true` só com Firebase inicializado E sessão ativa. Sem sessão (ex:
-  /// SOS físico com o app frio, cold-start via lockscreen, ver
-  /// `FirebaseAuthService`/política "Opção A"), o SMS de emergência já é
+  /// `true` só com Firebase inicializado E sessão ativa. Sem sessão
+  /// (ninguém logado no aparelho), o SMS de emergência já é
   /// o ÚNICO canal disponível por outros motivos (sem nuvem, sem como
   /// resolver o `uid`) — não há ciclo de servidor para consultar aqui, e
   /// [podeUsarRecursosAvancados] trata esse caso como liberado por

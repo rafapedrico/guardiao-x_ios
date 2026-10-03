@@ -7,7 +7,6 @@ import '../../services/alarme_agendado_cloud_service.dart';
 import '../../services/database_helper.dart';
 import '../../services/wallpaper_service.dart';
 import '../../services/rotina_alarme_service.dart';
-import '../../services/api_service.dart';
 import '../../services/contatos_emergencia_service.dart';
 import '../../services/emergency_alert_service.dart';
 import '../../services/firebase_sync_service.dart';
@@ -252,17 +251,6 @@ Future<void> _alternarAtivo(AlarmeRotina alarme, bool ativo) async {
       );
     }
 
-    ApiService().salvarRotina(
-      alarmeId: alarme.id,
-      horario: '${alarme.hora.toString().padLeft(2, '0')}:'
-          '${alarme.minuto.toString().padLeft(2, '0')}:00',
-      toleranciaMinutos: alarme.minutosTolerancia,
-      etiqueta: alarme.etiqueta,
-      contextoPersonalizado: alarme.contextoPersonalizado,
-      diasSemana: alarme.diasSemana.map((d) => d.toString()).toList(),
-      ativo: ativo,
-    );
-
     await _carregarAlarmes();
   }
 
@@ -406,9 +394,6 @@ Future<void> _despausarAlarmeManual(AlarmeRotina alarme) async {
         );
       }
 
-      // 5. Sincroniza em segundo plano
-      _sincronizarRotinaComBackend(alarmeReativado);
-
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -430,22 +415,6 @@ Future<void> _despausarAlarmeManual(AlarmeRotina alarme) async {
 
   void abrirModalAdicionarAlarme() {
     _abrirModalAlarme();
-  }
-
-  Future<void> _sincronizarRotinaComBackend(AlarmeRotina alarme) async {
-    try {
-      await ApiService().salvarRotina(
-        alarmeId: alarme.id,
-        horario: '${alarme.hora.toString().padLeft(2, '0')}:${alarme.minuto.toString().padLeft(2, '0')}:00',
-        toleranciaMinutos: alarme.minutosTolerancia,
-        etiqueta: alarme.etiqueta,
-        contextoPersonalizado: alarme.contextoPersonalizado,
-        diasSemana: alarme.diasSemana.map((d) => d.toString()).toList(),
-        ativo: alarme.ativo,
-      );
-    } catch (e) {
-      print('⚠️ Backend offline ($e). Alarme mantido normalmente no SQLite.');
-    }
   }
 
   Future<void> _abrirModalAlarme({AlarmeRotina? alarmeExistente}) async {
@@ -750,8 +719,6 @@ Future<void> _despausarAlarmeManual(AlarmeRotina alarme) async {
                             } else {
                               await RotinaAlarmeService.cancelarAlarme(idSalvo);
                             }
-
-                            _sincronizarRotinaComBackend(alarme.copyWith(id: idSalvo));
 
                             if (ctx.mounted) Navigator.of(ctx).pop();
                             await _carregarAlarmes();

@@ -144,9 +144,6 @@
   "historicoCronometroPinIncorretoMotivo": "the PIN was entered incorrectly 3 times in a row while trying to disarm the security countdown timer.",
   "historicoCronometroFechamentoForcadoMotivo": "the app was force-closed while the security countdown timer was still ringing, without disarm confirmation.",
   "segurancaTituloSecaoTempo": "How long until I arrive",
-  "segurancaServidorVerificando": "Checking server...",
-  "segurancaServidorOnline": "Server Online",
-  "segurancaServidorOffline": "Server Offline",
   "segurancaDicaContextoLabel": "Context Hint",
   "segurancaDicaContextoHint": "E.g.: License plate / Bus / Location",
   "horasLabel": "Hours",
@@ -895,5 +892,16 @@
   "sosWidgetTutorialTelaBloqueioPasso3": "Tap \"Guardian-X\" and add the Panic Button.",
   "sosWidgetTutorialEntendi": "Got it",
   "faqPerguntaWidgetSos": "How do I add the SOS Button to my iPhone Home Screen?",
-  "faqRespostaWidgetSos": "On the Home Screen: go back to the Home Screen and touch and hold an empty area until the icons jiggle, tap \"Edit\" → \"Add Widget\" (or the \"+\"), search for \"Guardian-X\" and add the \"Panic Button\". On the Lock Screen: touch and hold the Lock Screen → \"Customize\" → \"Lock Screen\" → tap the widget area → \"Guardian-X\". One tap on the button sends your location and opens the camera. You can check that it's active in Settings → Permission Status."
+  "faqRespostaWidgetSos": "On the Home Screen: go back to the Home Screen and touch and hold an empty area until the icons jiggle, tap \"Edit\" → \"Add Widget\" (or the \"+\"), search for \"Guardian-X\" and add the \"Panic Button\". On the Lock Screen: touch and hold the Lock Screen → \"Customize\" → \"Lock Screen\" → tap the widget area → \"Guardian-X\". One tap on the button sends your location and opens the camera. You can check that it's active in Settings → Permission Status.",
+  "bloqueioTitulo": "Guardian-X locked",
+  "bloqueioSubtitulo": "Confirm it's you to continue.",
+  "bloqueioMotivoBiometria": "Unlock Guardian-X",
+  "bloqueioFalha": "Couldn't confirm. Try again or use your PIN.",
+  "bloqueioBotaoDesbloquear": "Unlock",
+  "bloqueioBotaoUsarPin": "Use Guardian-X PIN",
+  "bloqueioBotaoSair": "Sign out",
+  "bloqueioDesbloqueado": "App unlocked",
+  "sosSemLoginTitulo": "Activate the SOS Button",
+  "sosSemLoginTexto": "For the SOS Button to work, sign in to your Guardian-X account once on this device. After that, one tap on the button sends your location and opens the camera, without asking for a password.",
+  "sosSemLoginBotaoEntrar": "Sign in now"
 }

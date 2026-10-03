@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/device_admin_service.dart';
 import '../services/emergency_alert_service.dart';
 import '../services/sos_disparo_service.dart';
+import '../services/bloqueio_app_service.dart';
 import 'home_screen.dart';
 
 enum _EstadoCaptura {
@@ -35,7 +36,9 @@ class CameraCapturaScreen extends StatefulWidget {
   State<CameraCapturaScreen> createState() => _CameraCapturaScreenState();
 }
 
-class _CameraCapturaScreenState extends State<CameraCapturaScreen> {
+// Emergência: funciona sem desbloquear o app (ver BloqueioAppService).
+class _CameraCapturaScreenState extends State<CameraCapturaScreen>
+    with LiberaBloqueioEnquantoAberta<CameraCapturaScreen> {
   CameraController? _controller;
   _EstadoCaptura _estado = _EstadoCaptura.inicializandoCamera;
   bool _processandoFoto = false;

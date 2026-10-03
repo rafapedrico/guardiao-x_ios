@@ -27,9 +27,9 @@ import 'onboarding_screen.dart';
 /// ela, nunca vazando para fora.
 ///
 /// [PopScope] com `canPop: false`: a ÚNICA saída sem confirmar o e-mail é
-/// o botão "Sair" (encerra a sessão e volta ao Login) — mesma política de
-/// segurança "Opção A" do resto do app (nenhuma sessão sobrevive com
-/// e-mail não verificado, ver [FirebaseAuthService]).
+/// o botão "Sair" (encerra a sessão e volta ao Login): nenhuma sessão com
+/// e-mail não verificado entra no app (a splash em `main.dart` também
+/// manda essa conta para o Login).
 class VerificarEmailScreen extends StatefulWidget {
   const VerificarEmailScreen({
     super.key,

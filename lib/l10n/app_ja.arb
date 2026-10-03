@@ -144,9 +144,6 @@
   "historicoCronometroPinIncorretoMotivo": "セキュリティカウントダウンタイマーの解除を試みる際にPINが3回連続で間違って入力されました。",
   "historicoCronometroFechamentoForcadoMotivo": "セキュリティカウントダウンタイマーがまだ鳴っている間にアプリが強制終了され、解除の確認が行われませんでした。",
   "segurancaTituloSecaoTempo": "到着までの時間",
-  "segurancaServidorVerificando": "サーバーを確認中...",
-  "segurancaServidorOnline": "サーバーオンライン",
-  "segurancaServidorOffline": "サーバーオフライン",
   "segurancaDicaContextoLabel": "状況メモ",
   "segurancaDicaContextoHint": "例：車のナンバー / バス / 場所",
   "horasLabel": "時間",
@@ -895,5 +892,16 @@
   "sosWidgetTutorialTelaBloqueioPasso3": "「守護者-X」をタップして緊急ボタンを追加します。",
   "sosWidgetTutorialEntendi": "了解",
   "faqPerguntaWidgetSos": "iPhone のホーム画面に SOS ボタンを追加するには？",
-  "faqRespostaWidgetSos": "ホーム画面：ホーム画面に戻り、アイコンが揺れ始めるまで空いている場所を長押しし、「編集」→「ウィジェットを追加」（または「+」）をタップして「守護者-X」を検索し、「緊急ボタン」を追加します。ロック画面：ロック画面を長押し →「カスタマイズ」→「ロック画面」→ ウィジェットのエリアをタップ →「守護者-X」。ボタンをタップすると現在地を送信してカメラを起動します。有効になっているかは「設定」→「権限のステータス」で確認できます。"
+  "faqRespostaWidgetSos": "ホーム画面：ホーム画面に戻り、アイコンが揺れ始めるまで空いている場所を長押しし、「編集」→「ウィジェットを追加」（または「+」）をタップして「守護者-X」を検索し、「緊急ボタン」を追加します。ロック画面：ロック画面を長押し →「カスタマイズ」→「ロック画面」→ ウィジェットのエリアをタップ →「守護者-X」。ボタンをタップすると現在地を送信してカメラを起動します。有効になっているかは「設定」→「権限のステータス」で確認できます。",
+  "bloqueioTitulo": "守護者-X はロックされています",
+  "bloqueioSubtitulo": "続行するには本人確認を行ってください。",
+  "bloqueioMotivoBiometria": "守護者-X のロックを解除",
+  "bloqueioFalha": "確認できませんでした。もう一度試すか、PIN を使用してください。",
+  "bloqueioBotaoDesbloquear": "ロックを解除",
+  "bloqueioBotaoUsarPin": "守護者-X の PIN を使用",
+  "bloqueioBotaoSair": "ログアウト",
+  "bloqueioDesbloqueado": "アプリのロックを解除しました",
+  "sosSemLoginTitulo": "SOS ボタンを有効にする",
+  "sosSemLoginTexto": "SOS ボタンを使うには、この端末で一度守護者-Xのアカウントにログインしてください。以降はボタンをタップするだけで、パスワードなしで現在地を送信してカメラを起動します。",
+  "sosSemLoginBotaoEntrar": "今すぐログイン"
 }
