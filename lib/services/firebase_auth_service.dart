@@ -201,11 +201,11 @@ class FirebaseAuthService {
   /// revoga o PRÓPRIO uid autenticado do chamador. DELIBERADAMENTE não
   /// tem nenhuma relação com número de telefone — só o UID importa.
   ///
-  /// ARMADILHA EVITADA: a revogação também invalidaria o token recém-emitido
-  /// deste MESMO aparelho (emitido momentos antes, portanto "anterior" ao
-  /// timestamp de revogação) — por isso [garantirTokenPronto] (renovação
-  /// explícita) é chamado logo em seguida, garantindo que este aparelho
-  /// sempre saia com um token emitido DEPOIS da revogação. Best-effort
+  /// O corte é feito no servidor no instante do login DESTE aparelho
+  /// (`auth_time`), então a sessão atual continua válida (bug corrigido em
+  /// 2026-10-03: cortar em "agora" deslogava o próprio aparelho, e a
+  /// renovação abaixo não salvava, porque usa o mesmo refresh token).
+  /// [garantirTokenPronto] continua garantindo um ID token fresco. Best-effort
   /// (nunca lança): chamada uma vez por login bem-sucedido, ver
   /// `LoginScreen._finalizarLoginComSucesso`.
   Future<void> revogarSessoesEmOutrosDispositivosEAtualizarToken() async {

@@ -236,7 +236,12 @@ class FirebaseSyncService {
   /// [telefone] já deve vir normalizado em E.164 (ver [TelefoneUtils]) —
   /// a Cloud Function revalida de qualquer forma, nunca confia no
   /// cliente.
+  ///
+  /// Em [ResultadoSalvarTelefone.erro], o código/mensagem técnica fica em
+  /// [ultimoErroSalvarTelefone] — exibido na tela de completar perfil para
+  /// diagnóstico (mesma ideia dos detalhes técnicos do login).
   Future<ResultadoSalvarTelefone> salvarTelefonePerfil(String telefone) async {
+    ultimoErroSalvarTelefone = null;
     try {
       await FirebaseFunctions.instance
           .httpsCallable('atualizarTelefonePerfil')
@@ -248,12 +253,20 @@ class FirebaseSyncService {
         return ResultadoSalvarTelefone.telefoneEmUso;
       }
       debugPrint('⚠️ [FirebaseSyncService] Falha ao salvar telefone do perfil: ${e.code} ${e.message}');
+      ultimoErroSalvarTelefone = '${e.code}: ${e.message}';
+      return ResultadoSalvarTelefone.erro;
+    } on TimeoutException {
+      ultimoErroSalvarTelefone = 'timeout (${_timeoutFirestore.inSeconds}s)';
       return ResultadoSalvarTelefone.erro;
     } catch (e) {
       debugPrint('⚠️ [FirebaseSyncService] Falha ao salvar telefone do perfil: $e');
+      ultimoErroSalvarTelefone = '${e.runtimeType}: $e';
       return ResultadoSalvarTelefone.erro;
     }
   }
+
+  /// Código/mensagem técnica da última falha de [salvarTelefonePerfil].
+  String? ultimoErroSalvarTelefone;
 
   /// Grava/atualiza o token FCM atual do aparelho em
   /// `usuarios/{uid}.fcmToken` — é por ele que a Cloud Function resolve,

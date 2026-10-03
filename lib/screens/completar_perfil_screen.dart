@@ -98,9 +98,14 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
         });
         return;
       case ResultadoSalvarTelefone.erro:
+        // Mostra também o código técnico (ex: "unauthenticated: ..."),
+        // como o login já faz — permite diagnosticar sem acesso aos logs.
+        final detalhe = FirebaseSyncService().ultimoErroSalvarTelefone;
         setState(() {
           _salvando = false;
-          _erro = l10n.otpErroGenerico;
+          _erro = detalhe == null
+              ? l10n.otpErroGenerico
+              : '${l10n.otpErroGenerico}\n\n${l10n.erroLoginDetalhesTecnicos} $detalhe';
         });
         return;
     }
