@@ -43,15 +43,17 @@ Storage: um `firebase deploy` feito lá não consegue alterar o servidor.
   iOS sem SMS, aviso quando a assinatura não pode abrir, "Adicionar contato"
   rolável, remoção do "Servidor offline" e do servidor de desenvolvimento,
   `pubspec.lock` e `ios/Podfile.lock` versionados.
-- **Servidor separado** em `C:\dev\guardiao-x_servidor`, já com **Node 22** e
-  testes no emulador — **ainda não publicado**.
+- **Servidor separado** em `C:\dev\guardiao-x_servidor`, com **Node 22** e
+  testes no emulador — **publicado em 03/10 às 02:20** (primeiro deploy a
+  partir do repositório do servidor).
 
-### Deploys de servidor feitos (todos a partir da pasta iOS, antes da separação)
+### Deploys de servidor feitos
 
 | Quando (horário de Brasília) | O quê |
 |---|---|
 | 02/10 23:44 | Todas as 30 functions (bloco `apns`, `appAppleId`, primeira publicação de `revogarSessoesEmOutrosDispositivos` e `registrarAutorizacaoApple`) |
 | 03/10 00:12 | Só `revogarSessoesEmOutrosDispositivos` (correção) |
+| 03/10 02:20 | Todas as 30 functions em **Node 22**, a partir de `guardiao-x_servidor` (com autorização) — mesmo código, só o runtime mudou |
 
 Regras do Firestore (06/09) e do Storage (01/08) não foram republicadas.
 
@@ -68,24 +70,28 @@ Regras do Firestore (06/09) e do Storage (01/08) não foram republicadas.
 
 ## Pendências (em ordem)
 
-1. **Deploy do Node 22** a partir de `guardiao-x_servidor`, **com autorização
-   do Rafael**, antes de **30/10/2026** (depois disso o Node 20 não aceita mais
-   deploy).
-2. **Teste de push nos dois sentidos** — Android → iPhone e iPhone → Android,
+1. ~~Deploy do Node 22~~ — **feito em 03/10 às 02:20**, 30/30 functions em Node 22.
+2. **Índice que falta no Firestore (problema antigo, desde pelo menos 20/09):**
+   a function `monitorarExpiracaoMonitoramento` falha a cada 15 min porque
+   não existe o índice `permissoes_monitoramento (status, expiraEm)` — as
+   solicitações de localização sem resposta nunca expiram sozinhas. Correção:
+   incluir o índice no `firestore.indexes.json` do servidor e publicar só os
+   índices, **com autorização**.
+3. **Teste de push nos dois sentidos** — Android → iPhone e iPhone → Android,
    com o app aberto, em segundo plano e fechado. Conta do Rafael no iPhone e
    conta da Michele no Android. Não usar a mesma conta nos dois aparelhos (um
    login desconecta o outro).
-3. **Contas duplicadas no login com a Apple** quando a pessoa usa "Ocultar meu
+4. **Contas duplicadas no login com a Apple** quando a pessoa usa "Ocultar meu
    e-mail" (o Firebase trata o e-mail oculto como outra pessoa).
-4. **Remetentes de e-mail na Apple:** cadastrar em Apple Developer → Sign in
+5. **Remetentes de e-mail na Apple:** cadastrar em Apple Developer → Sign in
    with Apple for Email Communication os domínios/endereços que enviam e-mail
    (ex.: os e-mails do Firebase Auth), se for necessário falar com quem usa o
    e-mail oculto.
-5. **Assinatura Premium na App Store Connect:** aceitar o acordo de apps
+6. **Assinatura Premium na App Store Connect:** aceitar o acordo de apps
    pagos e criar o produto `assinatura_mensal`.
-6. **Revogar o `isPremium` de teste** das duas contas depois dos testes
+7. **Revogar o `isPremium` de teste** das duas contas depois dos testes
    (painel admin → Planos → Revogar Premium).
-7. **Commit do `firebase.json` na pasta do Android** ainda só local (sem push).
+8. **Commit do `firebase.json` na pasta do Android** ainda só local (sem push).
 
 ## Como gerar um build do TestFlight
 
