@@ -6,6 +6,12 @@ build/
 .idea/
 .vscode/
 *.lock
+# Exceções: em APP (não pacote) o Flutter recomenda versionar os locks,
+# para o CI não pegar versões novas de dependências sem a gente saber.
+# O ios/Podfile.lock só é gerado no macOS — o ios-build.yml publica o
+# gerado no CI como artifact ("Podfile.lock") para ser commitado.
+!/pubspec.lock
+!/ios/Podfile.lock
 
 # Android
 android/.gradle/

@@ -74,6 +74,21 @@ jobs:
       - name: Build iOS (release, no codesign)
         run: flutter build ios --release --no-codesign
 
+      # O ios/Podfile.lock só pode ser gerado no macOS (pod install, rodado
+      # pelo `flutter build ios` acima). Publicado como artifact para ser
+      # baixado e commitado (o .gitignore já não o ignora). Depois de
+      # commitado, o pod install do CI passa a respeitar as versões
+      # travadas nele. `always()`: sai mesmo se a compilação falhar depois
+      # do pod install.
+      - name: Upload Podfile.lock
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Podfile.lock
+          path: ios/Podfile.lock
+          if-no-files-found: warn
+          retention-days: 30
+
       # DIAGNÓSTICO (só roda se o passo acima falhar): `flutter build ios`
       # mostra só um resumo curado do erro (extraído de um .xcresult
       # temporário que o próprio Flutter apaga depois) — não dá pra ver de
