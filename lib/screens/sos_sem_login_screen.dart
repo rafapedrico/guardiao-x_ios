@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 
+import '../services/sessao_revogada_service.dart';
 import 'login_screen.dart';
 
 /// Aberta quando o Widget SOS (ou o botão físico) é tocado num aparelho
 /// onde ninguém nunca entrou na conta: sem sessão não há como enviar o
 /// alerta, então explica que é preciso entrar UMA vez para ativar o botão
-/// — em vez de cair na LoginScreen crua, sem contexto nenhum.
+/// — em vez de cair na LoginScreen crua, sem contexto nenhum. Se a sessão
+/// foi encerrada por login em outro aparelho (ver SessaoRevogadaService),
+/// explica esse motivo.
 class SosSemLoginScreen extends StatelessWidget {
   const SosSemLoginScreen({super.key});
 
@@ -47,10 +50,13 @@ class SosSemLoginScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    l10n.sosSemLoginTexto,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.45),
+                  FutureBuilder<bool>(
+                    future: SessaoRevogadaService.foiRevogada(),
+                    builder: (context, snapshot) => Text(
+                      snapshot.data == true ? l10n.sessaoEncerradaMensagemWidget : l10n.sosSemLoginTexto,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.45),
+                    ),
                   ),
                   const SizedBox(height: 28),
                   FilledButton(

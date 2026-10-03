@@ -5,7 +5,9 @@ import 'package:permission_handler/permission_handler.dart' show openAppSettings
 import 'package:security_check_app/l10n/app_localizations.dart';
 
 import '../services/onboarding_service.dart';
+import '../services/sessao_revogada_service.dart';
 import '../services/sos_widget_status_service.dart';
+import 'login_screen.dart';
 import '../widgets/permissao_status_card.dart';
 
 /// Tela "Status de Permissões", acessível a qualquer momento em
@@ -44,6 +46,10 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
   /// do WidgetCenter — ver [SosWidgetStatusService]). `null` = desconhecido.
   bool? _widgetSos;
 
+  /// Só iOS: a sessão deste iPhone foi encerrada por login em outro
+  /// aparelho ("uma conta, um aparelho ativo", ver SessaoRevogadaService).
+  bool _sessaoEncerrada = false;
+
   bool _carregando = true;
 
   @override
@@ -78,6 +84,10 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
     // didChangeAppLifecycleState): fica verde sozinho depois que o
     // usuário adiciona o widget e volta ao app.
     final widgetSos = await SosWidgetStatusService.widgetInstalado();
+    // Confere com o servidor a cada abertura/volta ao primeiro plano; se a
+    // sessão caiu, o serviço também abre o aviso.
+    final sessaoEncerrada =
+        Platform.isIOS && await SessaoRevogadaService().verificarAgora();
     if (!mounted) return;
     setState(() {
       _bateria = resultados[0];
@@ -86,6 +96,7 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
       _camera = resultados[3];
       _telaCheia = resultados[4];
       _widgetSos = widgetSos;
+      _sessaoEncerrada = sessaoEncerrada;
       _carregando = false;
     });
   }
@@ -142,6 +153,24 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
+                  if (Platform.isIOS)
+                    PermissaoStatusCard(
+                      icone: Icons.verified_user_rounded,
+                      titulo: l10n.statusContaTitulo,
+                      descricao: l10n.statusContaDescricao,
+                      essencial: true,
+                      status: _sessaoEncerrada
+                          ? StatusPermissaoOnboarding.pendente
+                          : StatusPermissaoOnboarding.concedida,
+                      textoStatusConcedida: l10n.statusContaAtiva,
+                      textoStatusPendente: l10n.statusContaEncerrada,
+                      corStatusPendente: Colors.red.shade600,
+                      textoBotaoConceder: l10n.sessaoEncerradaBotaoEntrar,
+                      aoConceder: () => Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
+                      ),
+                    ),
                   PermissaoStatusCard(
                     icone: Icons.notifications_active_rounded,
                     titulo: l10n.onboardingNotificacoesTitulo,

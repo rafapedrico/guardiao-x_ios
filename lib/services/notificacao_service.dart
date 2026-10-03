@@ -1235,6 +1235,32 @@ class NotificacaoService {
     }
   }
 
+  /// Id fixo: uma nova revogação substitui o aviso anterior em vez de
+  /// empilhar.
+  static const int idNotificacaoSessaoEncerrada = 990001;
+
+  /// Só iOS — a conta foi aberta em outro aparelho e a sessão deste foi
+  /// encerrada (ver `SessaoRevogadaService`). Tocar abre o app, que mostra
+  /// a tela explicando e o botão para entrar de novo (o payload não é
+  /// tratado em [_processarResposta]: a própria abertura já resolve).
+  static Future<void> exibirNotificacaoSessaoEncerrada() async {
+    try {
+      await inicializar();
+      final l10n = await L10nHeadlessService.obter();
+      await _plugin.show(
+        idNotificacaoSessaoEncerrada,
+        l10n.sessaoEncerradaTitulo,
+        l10n.sessaoEncerradaMensagem,
+        const NotificationDetails(
+          iOS: DarwinNotificationDetails(interruptionLevel: InterruptionLevel.timeSensitive),
+        ),
+        payload: 'sessao_encerrada',
+      );
+    } catch (e) {
+      debugPrint('⚠️ [NotificacaoService] Falha ao exibir aviso de sessão encerrada: $e');
+    }
+  }
+
   /// Exibe a notificação para os eventos de push da aba Monitoramento —
   /// solicitação de localização recebida, aprovada, recusada, bloqueada ou
   /// expirada (ver [FcmService._tratarPushMonitoramento] e

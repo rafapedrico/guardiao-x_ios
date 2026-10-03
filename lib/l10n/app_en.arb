@@ -903,5 +903,14 @@
   "bloqueioDesbloqueado": "App unlocked",
   "sosSemLoginTitulo": "Activate the SOS Button",
   "sosSemLoginTexto": "For the SOS Button to work, sign in to your Guardian-X account once on this device. After that, one tap on the button sends your location and opens the camera, without asking for a password.",
-  "sosSemLoginBotaoEntrar": "Sign in now"
+  "sosSemLoginBotaoEntrar": "Sign in now",
+  "sessaoEncerradaTitulo": "Account opened on another device",
+  "sessaoEncerradaMensagem": "Your account was opened on another device. This iPhone is no longer protected and the SOS button is turned off. Tap to sign in again.",
+  "sessaoEncerradaTexto": "Your account was opened on another device. This iPhone is no longer protected and the SOS button is turned off. Guardian-X protects one device per account: sign in again to protect this iPhone again (the other device will be signed out).",
+  "sessaoEncerradaBotaoEntrar": "Sign in again",
+  "sessaoEncerradaMensagemWidget": "Your account was opened on another device. This iPhone is no longer protected and the SOS button is turned off. Sign in again to turn the SOS button back on for this iPhone.",
+  "statusContaTitulo": "Protection on this iPhone",
+  "statusContaDescricao": "Guardian-X protects one device per account: the last one you signed in on receives the alerts and can use the SOS button.",
+  "statusContaAtiva": "Active on this iPhone",
+  "statusContaEncerrada": "Account opened on another device"
 }

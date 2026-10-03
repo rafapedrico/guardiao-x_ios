@@ -903,5 +903,14 @@
   "bloqueioDesbloqueado": "تم فتح قفل التطبيق",
   "sosSemLoginTitulo": "فعّل زر SOS",
   "sosSemLoginTexto": "لكي يعمل زر SOS، سجّل الدخول إلى حسابك في حارس-X مرة واحدة على هذا الجهاز. بعد ذلك، لمسة واحدة على الزر ترسل موقعك وتفتح الكاميرا دون طلب كلمة مرور.",
-  "sosSemLoginBotaoEntrar": "تسجيل الدخول الآن"
+  "sosSemLoginBotaoEntrar": "تسجيل الدخول الآن",
+  "sessaoEncerradaTitulo": "تم فتح الحساب على جهاز آخر",
+  "sessaoEncerradaMensagem": "تم فتح حسابك على جهاز آخر. لم يعد هذا الـ iPhone محميًا وتم إيقاف زر SOS. اضغط لتسجيل الدخول مرة أخرى.",
+  "sessaoEncerradaTexto": "تم فتح حسابك على جهاز آخر. لم يعد هذا الـ iPhone محميًا وتم إيقاف زر SOS. يحمي حارس-X جهازًا واحدًا لكل حساب: سجّل الدخول مرة أخرى لحماية هذا الـ iPhone من جديد (سيتم تسجيل خروج الجهاز الآخر).",
+  "sessaoEncerradaBotaoEntrar": "تسجيل الدخول مرة أخرى",
+  "sessaoEncerradaMensagemWidget": "تم فتح حسابك على جهاز آخر. لم يعد هذا الـ iPhone محميًا وتم إيقاف زر SOS. سجّل الدخول مرة أخرى لإعادة تفعيل زر SOS على هذا الـ iPhone.",
+  "statusContaTitulo": "حماية هذا الـ iPhone",
+  "statusContaDescricao": "يحمي حارس-X جهازًا واحدًا لكل حساب: آخر جهاز سجّلت الدخول عليه هو الذي يستقبل التنبيهات ويمكنه استخدام زر SOS.",
+  "statusContaAtiva": "مُفعّلة على هذا الـ iPhone",
+  "statusContaEncerrada": "تم فتح الحساب على جهاز آخر"
 }

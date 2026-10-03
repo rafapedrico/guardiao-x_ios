@@ -2,6 +2,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'bloqueio_app_service.dart';
+import 'sessao_revogada_service.dart';
 
 /// Serviço central de autenticação do "Guardião X" — Firebase Auth real
 /// (e-mail/senha), com barreira estrita de e-mail verificado: nenhuma
@@ -137,6 +138,9 @@ class FirebaseAuthService {
   Future<void> logout() async {
     // Sem sessão não há o que proteger com o bloqueio local.
     BloqueioAppService().aoEncerrarSessao();
+    // Saída pedida pelo próprio usuário — não é "conta aberta em outro
+    // aparelho" (ver SessaoRevogadaService).
+    SessaoRevogadaService().marcarSaidaVoluntaria();
     try {
       await _auth.signOut();
     } catch (e) {

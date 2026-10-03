@@ -903,5 +903,14 @@
   "bloqueioDesbloqueado": "App déverrouillée",
   "sosSemLoginTitulo": "Activez le Bouton SOS",
   "sosSemLoginTexto": "Pour que le Bouton SOS fonctionne, connectez-vous une fois à votre compte Gardien-X sur cet appareil. Ensuite, un toucher sur le bouton envoie votre position et ouvre l'appareil photo, sans demander de mot de passe.",
-  "sosSemLoginBotaoEntrar": "Se connecter maintenant"
+  "sosSemLoginBotaoEntrar": "Se connecter maintenant",
+  "sessaoEncerradaTitulo": "Compte ouvert sur un autre appareil",
+  "sessaoEncerradaMensagem": "Votre compte a été ouvert sur un autre appareil. Cet iPhone n'est plus protégé et le bouton SOS est désactivé. Touchez pour vous reconnecter.",
+  "sessaoEncerradaTexto": "Votre compte a été ouvert sur un autre appareil. Cet iPhone n'est plus protégé et le bouton SOS est désactivé. Gardien-X protège un appareil par compte : reconnectez-vous pour protéger à nouveau cet iPhone (l'autre appareil sera déconnecté).",
+  "sessaoEncerradaBotaoEntrar": "Se reconnecter",
+  "sessaoEncerradaMensagemWidget": "Votre compte a été ouvert sur un autre appareil. Cet iPhone n'est plus protégé et le bouton SOS est désactivé. Reconnectez-vous pour réactiver le bouton SOS sur cet iPhone.",
+  "statusContaTitulo": "Protection de cet iPhone",
+  "statusContaDescricao": "Gardien-X protège un appareil par compte : le dernier sur lequel vous vous êtes connecté reçoit les alertes et peut utiliser le bouton SOS.",
+  "statusContaAtiva": "Active sur cet iPhone",
+  "statusContaEncerrada": "Compte ouvert sur un autre appareil"
 }

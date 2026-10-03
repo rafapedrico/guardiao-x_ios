@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database_helper.dart';
 import 'firebase_auth_service.dart';
+import 'sessao_revogada_service.dart';
 
 /// Resultado da tentativa de exclusão de conta — ver
 /// [ExclusaoContaService.excluirContaCompleta].
@@ -46,15 +47,21 @@ class ExclusaoContaService {
       return ResultadoExclusaoConta.naoAutenticado;
     }
 
+    // A conta some do servidor ANTES do logout local abaixo: sem esta
+    // marca, o SDK podia deslogar sozinho no meio do caminho e o app
+    // mostraria por engano "conta aberta em outro aparelho".
+    SessaoRevogadaService().marcarSaidaVoluntaria();
     try {
       await FirebaseFunctions.instance
           .httpsCallable('excluirContaCompleta')
           .call<Map<String, dynamic>>();
     } on FirebaseFunctionsException catch (e) {
       debugPrint('⚠️ [ExclusaoContaService] Falha ao excluir conta (nuvem): ${e.code} ${e.message}');
+      SessaoRevogadaService().desmarcarSaidaVoluntaria();
       return ResultadoExclusaoConta.erroRede;
     } catch (e) {
       debugPrint('⚠️ [ExclusaoContaService] Falha ao excluir conta (nuvem): $e');
+      SessaoRevogadaService().desmarcarSaidaVoluntaria();
       return ResultadoExclusaoConta.erroRede;
     }
 

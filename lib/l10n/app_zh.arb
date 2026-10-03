@@ -903,5 +903,14 @@
   "bloqueioDesbloqueado": "应用已解锁",
   "sosSemLoginTitulo": "启用 SOS 按钮",
   "sosSemLoginTexto": "要使 SOS 按钮生效，请在此设备上登录一次您的守护者-X账户。之后，轻点按钮即可发送您的位置并打开相机，无需输入密码。",
-  "sosSemLoginBotaoEntrar": "立即登录"
+  "sosSemLoginBotaoEntrar": "立即登录",
+  "sessaoEncerradaTitulo": "账户已在其他设备上打开",
+  "sessaoEncerradaMensagem": "您的账户已在其他设备上打开。此 iPhone 不再受到保护，SOS 按钮已停用。轻点以重新登录。",
+  "sessaoEncerradaTexto": "您的账户已在其他设备上打开。此 iPhone 不再受到保护，SOS 按钮已停用。守护者-X每个账户只保护一台设备：重新登录即可再次保护此 iPhone（另一台设备将被退出登录）。",
+  "sessaoEncerradaBotaoEntrar": "重新登录",
+  "sessaoEncerradaMensagemWidget": "您的账户已在其他设备上打开。此 iPhone 不再受到保护，SOS 按钮已停用。重新登录即可在此 iPhone 上重新启用 SOS 按钮。",
+  "statusContaTitulo": "此 iPhone 的保护",
+  "statusContaDescricao": "守护者-X每个账户只保护一台设备：您最后登录的设备会接收警报并可使用 SOS 按钮。",
+  "statusContaAtiva": "在此 iPhone 上有效",
+  "statusContaEncerrada": "账户已在其他设备上打开"
 }

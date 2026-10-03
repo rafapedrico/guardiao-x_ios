@@ -1193,5 +1193,14 @@
   "bloqueioDesbloqueado": "App desbloqueado",
   "sosSemLoginTitulo": "Ative o Botão SOS",
   "sosSemLoginTexto": "Para o Botão SOS funcionar, entre na sua conta do Guardião-X uma vez neste aparelho. Depois disso, um toque no botão envia sua localização e abre a câmera, sem pedir senha.",
-  "sosSemLoginBotaoEntrar": "Entrar agora"
+  "sosSemLoginBotaoEntrar": "Entrar agora",
+  "sessaoEncerradaTitulo": "Conta aberta em outro aparelho",
+  "sessaoEncerradaMensagem": "Sua conta foi aberta em outro aparelho. Este iPhone não está mais protegido e o botão SOS está desativado. Toque para entrar de novo.",
+  "sessaoEncerradaTexto": "Sua conta foi aberta em outro aparelho. Este iPhone não está mais protegido e o botão SOS está desativado. O Guardião-X protege um aparelho por conta: entre de novo para voltar a proteger este iPhone (o outro aparelho será desconectado).",
+  "sessaoEncerradaBotaoEntrar": "Entrar de novo",
+  "sessaoEncerradaMensagemWidget": "Sua conta foi aberta em outro aparelho. Este iPhone não está mais protegido e o botão SOS está desativado. Entre de novo para reativar o botão SOS neste iPhone.",
+  "statusContaTitulo": "Proteção deste iPhone",
+  "statusContaDescricao": "O Guardião-X protege um aparelho por conta: o último em que você entrou recebe os alertas e pode usar o botão SOS.",
+  "statusContaAtiva": "Ativa neste iPhone",
+  "statusContaEncerrada": "Conta aberta em outro aparelho"
 }

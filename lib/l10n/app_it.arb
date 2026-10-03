@@ -903,5 +903,14 @@
   "bloqueioDesbloqueado": "App sbloccata",
   "sosSemLoginTitulo": "Attiva il Pulsante SOS",
   "sosSemLoginTexto": "Perché il Pulsante SOS funzioni, accedi una volta al tuo account Guardiano-X su questo dispositivo. Dopo, un tocco sul pulsante invia la tua posizione e apre la fotocamera, senza chiedere la password.",
-  "sosSemLoginBotaoEntrar": "Accedi ora"
+  "sosSemLoginBotaoEntrar": "Accedi ora",
+  "sessaoEncerradaTitulo": "Account aperto su un altro dispositivo",
+  "sessaoEncerradaMensagem": "Il tuo account è stato aperto su un altro dispositivo. Questo iPhone non è più protetto e il pulsante SOS è disattivato. Tocca per accedere di nuovo.",
+  "sessaoEncerradaTexto": "Il tuo account è stato aperto su un altro dispositivo. Questo iPhone non è più protetto e il pulsante SOS è disattivato. Guardiano-X protegge un dispositivo per account: accedi di nuovo per proteggere di nuovo questo iPhone (l'altro dispositivo verrà disconnesso).",
+  "sessaoEncerradaBotaoEntrar": "Accedi di nuovo",
+  "sessaoEncerradaMensagemWidget": "Il tuo account è stato aperto su un altro dispositivo. Questo iPhone non è più protetto e il pulsante SOS è disattivato. Accedi di nuovo per riattivare il pulsante SOS su questo iPhone.",
+  "statusContaTitulo": "Protezione di questo iPhone",
+  "statusContaDescricao": "Guardiano-X protegge un dispositivo per account: l'ultimo su cui hai effettuato l'accesso riceve gli allarmi e può usare il pulsante SOS.",
+  "statusContaAtiva": "Attiva su questo iPhone",
+  "statusContaEncerrada": "Account aperto su un altro dispositivo"
 }

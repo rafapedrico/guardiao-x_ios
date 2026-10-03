@@ -903,5 +903,14 @@
   "bloqueioDesbloqueado": "App entsperrt",
   "sosSemLoginTitulo": "SOS-Taste aktivieren",
   "sosSemLoginTexto": "Damit die SOS-Taste funktioniert, melden Sie sich einmal auf diesem Gerät bei Ihrem Wächter-X-Konto an. Danach sendet ein Tippen auf die Taste Ihren Standort und öffnet die Kamera, ohne nach einem Passwort zu fragen.",
-  "sosSemLoginBotaoEntrar": "Jetzt anmelden"
+  "sosSemLoginBotaoEntrar": "Jetzt anmelden",
+  "sessaoEncerradaTitulo": "Konto auf einem anderen Gerät geöffnet",
+  "sessaoEncerradaMensagem": "Ihr Konto wurde auf einem anderen Gerät geöffnet. Dieses iPhone ist nicht mehr geschützt und die SOS-Taste ist deaktiviert. Tippen Sie, um sich erneut anzumelden.",
+  "sessaoEncerradaTexto": "Ihr Konto wurde auf einem anderen Gerät geöffnet. Dieses iPhone ist nicht mehr geschützt und die SOS-Taste ist deaktiviert. Wächter-X schützt ein Gerät pro Konto: Melden Sie sich erneut an, um dieses iPhone wieder zu schützen (das andere Gerät wird abgemeldet).",
+  "sessaoEncerradaBotaoEntrar": "Erneut anmelden",
+  "sessaoEncerradaMensagemWidget": "Ihr Konto wurde auf einem anderen Gerät geöffnet. Dieses iPhone ist nicht mehr geschützt und die SOS-Taste ist deaktiviert. Melden Sie sich erneut an, um die SOS-Taste auf diesem iPhone wieder zu aktivieren.",
+  "statusContaTitulo": "Schutz auf diesem iPhone",
+  "statusContaDescricao": "Wächter-X schützt ein Gerät pro Konto: Das Gerät, auf dem Sie sich zuletzt angemeldet haben, erhält die Alarme und kann die SOS-Taste verwenden.",
+  "statusContaAtiva": "Aktiv auf diesem iPhone",
+  "statusContaEncerrada": "Konto auf einem anderen Gerät geöffnet"
 }

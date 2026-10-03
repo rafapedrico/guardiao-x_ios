@@ -903,5 +903,14 @@
   "bloqueioDesbloqueado": "アプリのロックを解除しました",
   "sosSemLoginTitulo": "SOS ボタンを有効にする",
   "sosSemLoginTexto": "SOS ボタンを使うには、この端末で一度守護者-Xのアカウントにログインしてください。以降はボタンをタップするだけで、パスワードなしで現在地を送信してカメラを起動します。",
-  "sosSemLoginBotaoEntrar": "今すぐログイン"
+  "sosSemLoginBotaoEntrar": "今すぐログイン",
+  "sessaoEncerradaTitulo": "アカウントが別の端末で開かれました",
+  "sessaoEncerradaMensagem": "あなたのアカウントが別の端末で開かれました。この iPhone は保護されなくなり、SOS ボタンは無効になっています。タップして再度ログインしてください。",
+  "sessaoEncerradaTexto": "あなたのアカウントが別の端末で開かれました。この iPhone は保護されなくなり、SOS ボタンは無効になっています。守護者-Xは1つのアカウントにつき1台の端末を保護します。再度ログインすると、この iPhone が再び保護されます（もう一方の端末はログアウトされます）。",
+  "sessaoEncerradaBotaoEntrar": "再度ログイン",
+  "sessaoEncerradaMensagemWidget": "あなたのアカウントが別の端末で開かれました。この iPhone は保護されなくなり、SOS ボタンは無効になっています。再度ログインすると、この iPhone の SOS ボタンが再び有効になります。",
+  "statusContaTitulo": "この iPhone の保護",
+  "statusContaDescricao": "守護者-Xは1つのアカウントにつき1台の端末を保護します。最後にログインした端末がアラートを受信し、SOS ボタンを使用できます。",
+  "statusContaAtiva": "この iPhone で有効",
+  "statusContaEncerrada": "アカウントが別の端末で開かれました"
 }

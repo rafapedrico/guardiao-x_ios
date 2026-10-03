@@ -38,6 +38,7 @@ import 'services/premium_purchase_service.dart';
 import 'services/relatorio_falha_entrega_service.dart';
 import 'services/retry_upload_service.dart';
 import 'services/rotina_alarme_service.dart';
+import 'services/sessao_revogada_service.dart';
 import 'services/sos_deep_link_service.dart';
 import 'services/sos_disparo_service.dart';
 import 'services/volume_sos_service.dart';
@@ -563,6 +564,11 @@ Future<void> _inicializarFirebaseEAuth() async {
   } else {
     debugPrint('☁️ [Firebase] Já inicializado (outra engine no mesmo processo) — reaproveitando.');
   }
+
+  // Só iOS: detecta a sessão encerrada por login em outro aparelho. Tem
+  // que começar a ouvir ANTES da primeira renovação de token abaixo, para
+  // enxergar "sessão restaurada → deslogada pelo SDK" já no cold start.
+  SessaoRevogadaService().iniciar();
 
   // CORREÇÃO (bug real diagnosticado em teste, 2026-08-10 — login
   // travando indefinidamente, sem erro nenhum, tanto e-mail/senha quanto
@@ -1310,6 +1316,11 @@ class _SplashGateState extends State<_SplashGate> {
     }
     if (!mounted) return;
     setState(() => _destino = destino);
+    if (destino == _DestinoSplash.login && await SessaoRevogadaService.foiRevogada()) {
+      // Só iOS: a última sessão foi encerrada por login em outro aparelho
+      // — explica isso em vez de mostrar só o formulário de login.
+      SessaoRevogadaService().exibirTela();
+    }
     if (destino == _DestinoSplash.home) {
       // Solicitação de localização que abriu o app: o modal abre por cima
       // da Home (fica atrás do bloqueio até o desbloqueio).
