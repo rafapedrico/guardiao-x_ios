@@ -912,5 +912,12 @@
   "statusContaTitulo": "Protection on this iPhone",
   "statusContaDescricao": "Guardian-X protects one device per account: the last one you signed in on receives the alerts and can use the SOS button.",
   "statusContaAtiva": "Active on this iPhone",
-  "statusContaEncerrada": "Account opened on another device"
+  "statusContaEncerrada": "Account opened on another device",
+  "diagnosticoTitulo": "Diagnostics",
+  "diagnosticoSubtitulo": "Latest app errors and warnings, to send to support",
+  "diagnosticoVazio": "No errors or warnings recorded.",
+  "diagnosticoCopiar": "Copy all",
+  "diagnosticoCopiado": "Diagnostics copied",
+  "diagnosticoLimpar": "Clear",
+  "diagnosticoExplicacao": "The last 200 errors and warnings recorded on this device (newest at the end). Tap \"Copy all\" and paste it into your conversation with support."
 }

@@ -912,5 +912,12 @@
   "statusContaTitulo": "Schutz auf diesem iPhone",
   "statusContaDescricao": "Wächter-X schützt ein Gerät pro Konto: Das Gerät, auf dem Sie sich zuletzt angemeldet haben, erhält die Alarme und kann die SOS-Taste verwenden.",
   "statusContaAtiva": "Aktiv auf diesem iPhone",
-  "statusContaEncerrada": "Konto auf einem anderen Gerät geöffnet"
+  "statusContaEncerrada": "Konto auf einem anderen Gerät geöffnet",
+  "diagnosticoTitulo": "Diagnose",
+  "diagnosticoSubtitulo": "Letzte Fehler und Warnungen der App, zum Senden an den Support",
+  "diagnosticoVazio": "Keine Fehler oder Warnungen aufgezeichnet.",
+  "diagnosticoCopiar": "Alles kopieren",
+  "diagnosticoCopiado": "Diagnose kopiert",
+  "diagnosticoLimpar": "Leeren",
+  "diagnosticoExplicacao": "Die letzten 200 auf diesem Gerät aufgezeichneten Fehler und Warnungen (neueste am Ende). Tippe auf „Alles kopieren“ und füge es in den Chat mit dem Support ein."
 }

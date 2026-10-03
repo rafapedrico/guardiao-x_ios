@@ -912,5 +912,12 @@
   "statusContaTitulo": "此 iPhone 的保护",
   "statusContaDescricao": "守护者-X每个账户只保护一台设备：您最后登录的设备会接收警报并可使用 SOS 按钮。",
   "statusContaAtiva": "在此 iPhone 上有效",
-  "statusContaEncerrada": "账户已在其他设备上打开"
+  "statusContaEncerrada": "账户已在其他设备上打开",
+  "diagnosticoTitulo": "诊断",
+  "diagnosticoSubtitulo": "应用最近的错误和警告，可发送给客服",
+  "diagnosticoVazio": "没有记录到错误或警告。",
+  "diagnosticoCopiar": "全部复制",
+  "diagnosticoCopiado": "诊断信息已复制",
+  "diagnosticoLimpar": "清除",
+  "diagnosticoExplicacao": "此设备上记录的最近 200 条错误和警告（最新的在最后）。点按“全部复制”，然后粘贴到与客服的对话中。"
 }

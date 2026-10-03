@@ -912,5 +912,12 @@
   "statusContaTitulo": "इस iPhone की सुरक्षा",
   "statusContaDescricao": "रक्षक-X हर खाते के लिए एक डिवाइस की सुरक्षा करता है: जिस डिवाइस पर आपने आखिरी बार लॉग इन किया, वही अलर्ट पाता है और SOS बटन का उपयोग कर सकता है।",
   "statusContaAtiva": "इस iPhone पर सक्रिय",
-  "statusContaEncerrada": "खाता किसी दूसरे डिवाइस पर खोला गया"
+  "statusContaEncerrada": "खाता किसी दूसरे डिवाइस पर खोला गया",
+  "diagnosticoTitulo": "निदान",
+  "diagnosticoSubtitulo": "सहायता को भेजने के लिए ऐप की हाल की त्रुटियाँ और चेतावनियाँ",
+  "diagnosticoVazio": "कोई त्रुटि या चेतावनी दर्ज नहीं है।",
+  "diagnosticoCopiar": "सब कॉपी करें",
+  "diagnosticoCopiado": "निदान कॉपी हो गया",
+  "diagnosticoLimpar": "साफ़ करें",
+  "diagnosticoExplicacao": "इस डिवाइस पर दर्ज पिछली 200 त्रुटियाँ और चेतावनियाँ (नवीनतम अंत में)। \"सब कॉपी करें\" पर टैप करें और सहायता के साथ बातचीत में पेस्ट करें।"
 }

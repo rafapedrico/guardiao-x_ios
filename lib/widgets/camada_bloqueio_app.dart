@@ -5,6 +5,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 
 import '../app_navigator.dart';
+import '../screens/diagnostico_screen.dart';
 import '../screens/login_screen.dart';
 import '../services/bloqueio_app_service.dart';
 import '../services/database_helper.dart';
@@ -42,15 +43,26 @@ class CamadaBloqueioApp extends StatelessWidget {
 /// Navigator próprio (fora do principal): o PIN abre como diálogo aqui
 /// dentro, por cima da tela de bloqueio — no Navigator principal ele
 /// ficaria escondido atrás desta camada.
+///
+/// `HeroControllerScope.none` é OBRIGATÓRIO (bug real do build 107): sem
+/// ele este Navigator herda o MESMO HeroController do MaterialApp e o
+/// "rouba" do Navigator principal; ao desbloquear, este Navigator é
+/// descartado e deixa o HeroController sem navigator, mas ainda observando
+/// o principal. Daí em diante, todo push no app (Configurações, PIN do
+/// Histórico, folha de contatos, diálogos da aba Segurança) quebrava em
+/// release com "Null check operator" dentro de `HeroController.didChangeTop`
+/// — a rota/diálogo simplesmente não aparecia.
 class _TelaBloqueio extends StatelessWidget {
   const _TelaBloqueio();
 
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      onGenerateRoute: (_) => PageRouteBuilder<void>(
-        pageBuilder: (_, __, ___) => const _ConteudoBloqueio(),
-        transitionDuration: Duration.zero,
+    return HeroControllerScope.none(
+      child: Navigator(
+        onGenerateRoute: (_) => PageRouteBuilder<void>(
+          pageBuilder: (_, __, ___) => const _ConteudoBloqueio(),
+          transitionDuration: Duration.zero,
+        ),
       ),
     );
   }
@@ -90,9 +102,50 @@ class _ConteudoBloqueioState extends State<_ConteudoBloqueio> with WidgetsBindin
     super.dispose();
   }
 
+  /// Só uma volta REAL do segundo plano (paused/hidden) reabre o Face ID
+  /// sozinho. O próprio prompt do Face ID/código do aparelho deixa o app
+  /// `inactive` e depois `resumed` — reagir a isso reabria o prompt logo
+  /// depois de o usuário cancelá-lo, em loop.
+  bool _foiParaSegundoPlano = false;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _agendarTentativaAutomatica();
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        _foiParaSegundoPlano = true;
+        break;
+      case AppLifecycleState.resumed:
+        if (_foiParaSegundoPlano) {
+          _foiParaSegundoPlano = false;
+          _agendarTentativaAutomatica();
+        }
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+
+  int _toquesNoCadeado = 0;
+  DateTime? _ultimoToqueNoCadeado;
+
+  /// 5 toques seguidos no cadeado abrem a tela Diagnóstico — por este
+  /// Navigator próprio, que funciona mesmo se o principal tiver falhado.
+  void _aoTocarNoCadeado() {
+    final agora = DateTime.now();
+    final ultimo = _ultimoToqueNoCadeado;
+    _toquesNoCadeado =
+        (ultimo != null && agora.difference(ultimo) < const Duration(seconds: 2))
+            ? _toquesNoCadeado + 1
+            : 1;
+    _ultimoToqueNoCadeado = agora;
+    if (_toquesNoCadeado >= 5) {
+      _toquesNoCadeado = 0;
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const DiagnosticoScreen()),
+      );
+    }
   }
 
   Future<void> _carregarOpcoes() async {
@@ -140,7 +193,10 @@ class _ConteudoBloqueioState extends State<_ConteudoBloqueio> with WidgetsBindin
       ok = await _localAuth.authenticate(
         localizedReason: l10n.bloqueioMotivoBiometria,
         biometricOnly: false,
-        persistAcrossBackgrounding: true,
+        // `false`: com `true` o plugin repete a autenticação sozinho a
+        // cada `sceneDidBecomeActive` — somado à nossa tentativa
+        // automática ao voltar do segundo plano, abria dois prompts.
+        persistAcrossBackgrounding: false,
       );
     } catch (e) {
       debugPrint('⚠️ [CamadaBloqueioApp] Falha na autenticação do aparelho: $e');
@@ -195,7 +251,10 @@ class _ConteudoBloqueioState extends State<_ConteudoBloqueio> with WidgetsBindin
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.lock_outline_rounded, color: _corAcento, size: 64),
+                    GestureDetector(
+                      onTap: _aoTocarNoCadeado,
+                      child: const Icon(Icons.lock_outline_rounded, color: _corAcento, size: 64),
+                    ),
                     const SizedBox(height: 20),
                     Text(
                       l10n.bloqueioTitulo,

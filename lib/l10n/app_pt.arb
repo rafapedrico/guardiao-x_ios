@@ -1202,5 +1202,12 @@
   "statusContaTitulo": "Proteção deste iPhone",
   "statusContaDescricao": "O Guardião-X protege um aparelho por conta: o último em que você entrou recebe os alertas e pode usar o botão SOS.",
   "statusContaAtiva": "Ativa neste iPhone",
-  "statusContaEncerrada": "Conta aberta em outro aparelho"
+  "statusContaEncerrada": "Conta aberta em outro aparelho",
+  "diagnosticoTitulo": "Diagnóstico",
+  "diagnosticoSubtitulo": "Últimos erros e avisos do app, para enviar ao suporte",
+  "diagnosticoVazio": "Nenhum erro ou aviso registrado.",
+  "diagnosticoCopiar": "Copiar tudo",
+  "diagnosticoCopiado": "Diagnóstico copiado",
+  "diagnosticoLimpar": "Limpar",
+  "diagnosticoExplicacao": "Os últimos 200 erros e avisos registrados neste aparelho (mais recentes no fim). Toque em \"Copiar tudo\" e cole na conversa com o suporte."
 }

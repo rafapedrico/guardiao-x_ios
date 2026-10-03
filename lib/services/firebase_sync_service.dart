@@ -214,6 +214,23 @@ class FirebaseSyncService {
     }
   }
 
+  /// Como [obterTelefoneAtual], mas distingue "sem telefone" (`false`) de
+  /// "não deu para saber" (`null`: sem sessão, sem rede, timeout) — usado
+  /// no cold start com sessão persistida (`_SplashGate` em main.dart),
+  /// onde mandar um usuário offline para a tela de completar perfil o
+  /// deixaria longe da Home e do SOS sem motivo real.
+  Future<bool?> possuiTelefoneNoPerfil() async {
+    if (!_firebaseDisponivel) return null;
+    try {
+      final snap = await _documentoUsuario.get().timeout(_timeoutFirestore);
+      final telefone = snap.data()?['telefone'] as String?;
+      return telefone != null && telefone.trim().isNotEmpty;
+    } catch (e) {
+      debugPrint('⚠️ [FirebaseSyncService] Falha ao conferir telefone do perfil: $e');
+      return null;
+    }
+  }
+
   /// Grava/atualiza o `telefone` em `usuarios/{uid}` — ÚNICO caminho
   /// permitido para esse campo (ver bloqueio em `firestore.rules`), usado
   /// por [CadastroScreen], `CompletarPerfilScreen` (primeiro login social

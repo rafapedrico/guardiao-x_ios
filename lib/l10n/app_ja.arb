@@ -912,5 +912,12 @@
   "statusContaTitulo": "この iPhone の保護",
   "statusContaDescricao": "守護者-Xは1つのアカウントにつき1台の端末を保護します。最後にログインした端末がアラートを受信し、SOS ボタンを使用できます。",
   "statusContaAtiva": "この iPhone で有効",
-  "statusContaEncerrada": "アカウントが別の端末で開かれました"
+  "statusContaEncerrada": "アカウントが別の端末で開かれました",
+  "diagnosticoTitulo": "診断",
+  "diagnosticoSubtitulo": "サポートに送るための、アプリの最新のエラーと警告",
+  "diagnosticoVazio": "記録されたエラーや警告はありません。",
+  "diagnosticoCopiar": "すべてコピー",
+  "diagnosticoCopiado": "診断をコピーしました",
+  "diagnosticoLimpar": "消去",
+  "diagnosticoExplicacao": "この端末で記録された最新200件のエラーと警告（新しいものが最後）。「すべてコピー」をタップして、サポートとの会話に貼り付けてください。"
 }

@@ -15,6 +15,7 @@ import 'firebase_options.dart';
 import 'screens/alarme_disparado_screen.dart';
 import 'screens/alerta_recebido_screen.dart';
 import 'screens/cronometro_disparado_screen.dart';
+import 'screens/completar_perfil_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -23,7 +24,9 @@ import 'services/alarme_service.dart';
 import 'services/background_location_heartbeat_service.dart';
 import 'services/bloqueio_app_service.dart';
 import 'services/captura_dissuasao_service.dart';
+import 'services/contatos_emergencia_service.dart';
 import 'services/database_helper.dart';
+import 'services/diagnostico_service.dart';
 import 'services/emergency_alert_service.dart';
 import 'services/encryption_service.dart';
 import 'services/fcm_service.dart';
@@ -101,6 +104,10 @@ Future<void>? _futuroFirebaseEAuth;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Primeiro de tudo: registra erros/avisos para a tela Diagnóstico (ver
+  // [DiagnosticoService]) — o usuário testa via TestFlight, sem console.
+  DiagnosticoService().instalar();
 
   // CORREÇÃO DE BUG REAL (2026-09-04 — pedido explícito do usuário: "o
   // despertador de rotina acende a tela e dá um estalo, mas o som só
@@ -645,6 +652,22 @@ Future<void> _inicializarFirebaseEAuth() async {
       await FirebaseAuthService().garantirTokenPronto();
       await FcmService().inicializar();
       debugPrint('📲 [main] Token FCM sincronizado a partir da sessão restaurada (cold start).');
+
+      // PARIDADE COM O LOGIN (ver `_finalizarLoginComSucesso` em
+      // login_screen.dart): desde o fim da Opção A o app abre direto com a
+      // sessão persistida, sem passar por lá — então os mesmos passos
+      // pós-login rodam aqui. Fora de propósito: a revogação de sessões
+      // em outros aparelhos, que é exclusiva de um login NOVO (repeti-la a
+      // cada abertura derrubaria o outro aparelho sem ninguém ter entrado).
+      unawaited(ContatosEmergenciaService.sincronizarAgora());
+      final usuario = FirebaseAuthService().usuarioAtual;
+      if (usuario != null &&
+          usuario.providerData.every((p) => p.providerId != 'password')) {
+        unawaited(FirebaseSyncService().sincronizarPerfilSocial(
+          nome: usuario.displayName,
+          email: usuario.email,
+        ));
+      }
     }
   } catch (e) {
     debugPrint('⚠️ [main] Falha ao sincronizar token FCM no cold start: $e');
@@ -1242,7 +1265,7 @@ class _SplashGate extends StatefulWidget {
   State<_SplashGate> createState() => _SplashGateState();
 }
 
-enum _DestinoSplash { splash, login, home, onboarding }
+enum _DestinoSplash { splash, login, home, onboarding, completarPerfil }
 
 class _SplashGateState extends State<_SplashGate> {
   _DestinoSplash _destino = _DestinoSplash.splash;
@@ -1310,9 +1333,16 @@ class _SplashGateState extends State<_SplashGate> {
     _DestinoSplash destino = _DestinoSplash.login;
     if (BloqueioAppService.sessaoValida()) {
       BloqueioAppService().bloquearSeHouverSessao();
-      destino = await OnboardingService().jaConcluido()
-          ? _DestinoSplash.home
-          : _DestinoSplash.onboarding;
+      // Mesma ordem do login social ([_finalizarLoginComSucesso] em
+      // login_screen.dart): telefone primeiro, depois Assistente/Home —
+      // cobre quem fechou o app no meio de "Completar perfil".
+      if (await _precisaCompletarPerfil()) {
+        destino = _DestinoSplash.completarPerfil;
+      } else {
+        destino = await OnboardingService().jaConcluido()
+            ? _DestinoSplash.home
+            : _DestinoSplash.onboarding;
+      }
     }
     if (!mounted) return;
     setState(() => _destino = destino);
@@ -1330,8 +1360,27 @@ class _SplashGateState extends State<_SplashGate> {
     }
   }
 
+  /// Conta só social (sem senha) que nunca gravou telefone. Na dúvida
+  /// (sem rede), segue para a Home — o perfil é cobrado na próxima
+  /// abertura, nunca às custas do acesso ao SOS.
+  Future<bool> _precisaCompletarPerfil() async {
+    final usuario = FirebaseAuthService().usuarioAtual;
+    if (usuario == null ||
+        usuario.providerData.any((p) => p.providerId == 'password')) {
+      return false;
+    }
+    try {
+      final config = await DatabaseHelper().getUserConfig();
+      final telefoneLocal = config?['telefone'] as String?;
+      if (telefoneLocal != null && telefoneLocal.trim().isNotEmpty) return false;
+    } catch (_) {}
+    return await FirebaseSyncService().possuiTelefoneNoPerfil() == false;
+  }
+
   Widget _telaDoDestino() {
     switch (_destino) {
+      case _DestinoSplash.completarPerfil:
+        return const CompletarPerfilScreen(aoConcluir: decidirProximaTelaAposAutenticacao);
       case _DestinoSplash.home:
         return const TelaInicialComPossivelDialogoPin(aguardandoConfirmacaoPin: false);
       case _DestinoSplash.onboarding:

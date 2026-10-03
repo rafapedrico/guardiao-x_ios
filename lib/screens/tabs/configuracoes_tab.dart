@@ -18,6 +18,7 @@ import '../../utils/telefone_utils.dart';
 import '../excluir_conta_screen.dart';
 import '../login_screen.dart';
 import '../permissoes_status_screen.dart';
+import '../diagnostico_screen.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 
@@ -1593,6 +1594,29 @@ Future<void> _selecionarSom(int? numero) async {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const PermissoesStatusScreen()),
+            );
+          },
+        ),
+        ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Colors.blueGrey.shade50,
+            child: Icon(Icons.bug_report_outlined, color: Colors.blueGrey.shade700),
+          ),
+          title: Text(
+            AppLocalizations.of(context)!.diagnosticoTitulo,
+            softWrap: true,
+            overflow: TextOverflow.clip,
+          ),
+          subtitle: Text(
+            AppLocalizations.of(context)!.diagnosticoSubtitulo,
+            softWrap: true,
+            overflow: TextOverflow.clip,
+            style: const TextStyle(fontSize: 12.5),
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const DiagnosticoScreen()),
             );
           },
         ),

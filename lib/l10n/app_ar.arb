@@ -912,5 +912,12 @@
   "statusContaTitulo": "حماية هذا الـ iPhone",
   "statusContaDescricao": "يحمي حارس-X جهازًا واحدًا لكل حساب: آخر جهاز سجّلت الدخول عليه هو الذي يستقبل التنبيهات ويمكنه استخدام زر SOS.",
   "statusContaAtiva": "مُفعّلة على هذا الـ iPhone",
-  "statusContaEncerrada": "تم فتح الحساب على جهاز آخر"
+  "statusContaEncerrada": "تم فتح الحساب على جهاز آخر",
+  "diagnosticoTitulo": "التشخيص",
+  "diagnosticoSubtitulo": "أحدث أخطاء التطبيق وتحذيراته لإرسالها إلى الدعم",
+  "diagnosticoVazio": "لا توجد أخطاء أو تحذيرات مسجلة.",
+  "diagnosticoCopiar": "نسخ الكل",
+  "diagnosticoCopiado": "تم نسخ التشخيص",
+  "diagnosticoLimpar": "مسح",
+  "diagnosticoExplicacao": "آخر 200 خطأ وتحذير مسجلة على هذا الجهاز (الأحدث في النهاية). اضغط على \"نسخ الكل\" والصقه في المحادثة مع الدعم."
 }
