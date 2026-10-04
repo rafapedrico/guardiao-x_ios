@@ -149,6 +149,17 @@ jobs:
           chmod 600 "$KEY_PATH"
           echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
+      # Cada runner é um Mac novo, sem chave privada: a assinatura automática
+      # cria um certificado Apple Development NOVO a cada archive, até
+      # estourar o limite da conta (archive de 04/10 falhou assim). Revoga
+      # só os de DESENVOLVIMENTO criados pela chave da API, mantendo o mais
+      # recente — nunca distribuição. Falha aqui não derruba o build.
+      - name: Limpar certificados Apple Development antigos do CI
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: node ios/scripts/revogar_certificados_dev.mjs
+
       - name: Archive (xcodebuild, assinatura automática)
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}

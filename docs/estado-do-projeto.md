@@ -114,6 +114,19 @@ Regras do Firestore (06/09) e do Storage (01/08) não foram republicadas.
 - Todo push na `main` roda o **iOS Build Validation** (análise, testes e
   compilação sem assinatura), que também publica o `ios/Podfile.lock` como
   artifact.
+- **Limite de certificados (resolvido em 04/10):** cada execução roda num Mac
+  novo, sem chave privada, e a assinatura automática cria um certificado
+  **Apple Development** novo a cada archive — em 04/10 a conta bateu no
+  limite e o archive falhou ("Your account has reached the maximum number of
+  certificates"). Cloud signing não resolve: a Apple só assina na nuvem no
+  *export*; o archive precisa da chave local (e archive sem assinatura perde
+  os entitlements). Solução: o passo *Limpar certificados Apple Development
+  antigos do CI* (`ios/scripts/revogar_certificados_dev.mjs`) roda antes do
+  archive e, pela App Store Connect API (mesma chave dos secrets), revoga só
+  certificados `DEVELOPMENT`/`IOS_DEVELOPMENT` criados pela chave ("Created
+  via API"), mantendo o mais recente — **nunca** distribuição. O log mostra
+  quantos foram revogados; uma falha ali vira aviso e não derruba o build.
+  Sem `.p12` e sem Mac.
 
 ## Onde ficam os segredos (só os nomes — nunca os valores)
 
