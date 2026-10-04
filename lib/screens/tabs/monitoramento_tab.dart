@@ -96,6 +96,30 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
   final Map<int, bool> _overrideBloqueio = {};
   final Map<int, bool> _overrideCompartilhamento = {};
 
+  // Teste de 2026-10-04: o switch "Permitir enviar minha localização"
+  // chegou ao servidor como permitir:true e, ~1 s depois, permitir:false
+  // (três vezes seguidas) — um segundo toque logo após a resposta, quando a
+  // lista piscava/se deslocava. Enquanto a escrita está em voo e por
+  // [_carenciaToqueSwitch] depois dela, novos toques no MESMO switch do
+  // MESMO contato são ignorados.
+  static const Duration _carenciaToqueSwitch = Duration(milliseconds: 1500);
+  final Map<int, DateTime> _travaCompartilhamentoAte = {};
+  final Map<int, DateTime> _travaBloqueioAte = {};
+
+  /// `true` (e trava o switch) se o toque pode seguir; `false` se ainda há
+  /// uma escrita em voo ou ela terminou há menos de [_carenciaToqueSwitch].
+  bool _tentarTravarSwitch(Map<int, DateTime> travas, int id) {
+    final ate = travas[id];
+    if (ate != null && DateTime.now().isBefore(ate)) return false;
+    // Em voo: trava "infinita" até [_liberarSwitch].
+    travas[id] = DateTime(9999);
+    return true;
+  }
+
+  void _liberarSwitch(Map<int, DateTime> travas, int id) {
+    travas[id] = DateTime.now().add(_carenciaToqueSwitch);
+  }
+
   // ==========================================================
   // TRAVA DO CICLO DO PLANO FREE (pedido explícito do usuário, 2026-09-04)
   // ==========================================================
@@ -142,7 +166,11 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
 
   Future<void> _carregarContatos() async {
     if (!mounted) return;
-    setState(() => _carregando = true);
+    // Spinner só na primeira carga: recarregar por trás (toda escrita do
+    // serviço notifica [versaoMonitoramento]) trocava a lista inteira pelo
+    // spinner e de volta, piscando os cards logo depois de um toque nos
+    // switches — e recriando seus StreamBuilders.
+    if (_contatos.isEmpty) setState(() => _carregando = true);
     final contatos = await _servico.listarContatos();
     if (!mounted) return;
     setState(() {
@@ -768,6 +796,8 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     Map<String, dynamic> contato,
     bool bloquear,
   ) async {
+    final travaAte = _travaBloqueioAte[contato['id'] as int];
+    if (travaAte != null && DateTime.now().isBefore(travaAte)) return;
     if (bloquear) {
       final l10n = AppLocalizations.of(context)!;
       final nome = contato['nome'] as String? ?? '';
@@ -793,6 +823,7 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
       if (!confirmou) return;
     }
     final id = contato['id'] as int;
+    if (!_tentarTravarSwitch(_travaBloqueioAte, id)) return;
     // Atualização OTIMISTA instantânea (pedido do usuário, 2026-09-07): o
     // Switch e o texto "Liberado"/"Bloqueado" mudam de cor no mesmo frame
     // do toque (ou da confirmação, no caso de bloquear), sem esperar a
@@ -808,10 +839,15 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final id = contato['id'] as int;
-    final resultado = await _servico.definirBloqueioSolicitante(
-      idContatoLocal: id,
-      bloquear: bloquear,
-    );
+    final String resultado;
+    try {
+      resultado = await _servico.definirBloqueioSolicitante(
+        idContatoLocal: id,
+        bloquear: bloquear,
+      );
+    } finally {
+      _liberarSwitch(_travaBloqueioAte, id);
+    }
     if (!mounted) return;
 
     if (resultado != 'sucesso') {
@@ -1337,15 +1373,21 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final id = contato['id'] as int;
+    if (!_tentarTravarSwitch(_travaCompartilhamentoAte, id)) return;
     // Atualização OTIMISTA instantânea (pedido do usuário, 2026-09-07): o
     // Switch e o rótulo "Aprovado"/"Bloqueado" mudam de cor no mesmo
     // frame do toque, sem esperar a viagem de ida e volta ao Firestore.
     // Revertida logo abaixo se a escrita falhar.
     if (mounted) setState(() => _overrideCompartilhamento[id] = permitir);
-    final resultado = await _servico.definirPermissaoCompartilhamento(
-      idContatoLocal: id,
-      permitir: permitir,
-    );
+    final String resultado;
+    try {
+      resultado = await _servico.definirPermissaoCompartilhamento(
+        idContatoLocal: id,
+        permitir: permitir,
+      );
+    } finally {
+      _liberarSwitch(_travaCompartilhamentoAte, id);
+    }
     if (!mounted) return;
     if (resultado == 'sucesso') return;
 
