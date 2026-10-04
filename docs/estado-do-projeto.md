@@ -92,6 +92,13 @@ Regras do Firestore (06/09) e do Storage (01/08) não foram republicadas.
 7. **Revogar o `isPremium` de teste** das duas contas depois dos testes
    (painel admin → Planos → Revogar Premium).
 8. **Commit do `firebase.json` na pasta do Android** ainda só local (sem push).
+10. **Localização contínua do Monitoramento (04/10):** app (Fase 1) no
+   TestFlight; functions `pedirLocalizacaoAtual` e `detectarLocalizacaoParada`
+   **publicadas** em 04/10 (só elas). **Falta publicar** a regra de
+   `monitoramento/estado` e os índices (commit a72e70c do servidor) — até lá
+   o estado não grava e o detector falha a cada 15 min por falta de índice.
+   Notas da revisão e roteiro do vídeo em `docs/app-review-localizacao-continua.md`
+   e `docs/roteiro-video-localizacao-continua.md`.
 9. **Posição atual no Monitoramento (04/10):** hoje a posição do contato só é
    atualizada no aceite, com cronômetro ou com alarme ativos. Proposta (sem
    nada aplicado no servidor) em
