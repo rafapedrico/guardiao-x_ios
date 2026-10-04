@@ -942,7 +942,7 @@
   "rcConvite": "Chi può vedere la tua posizione: {nomes}. Attiva la condivisione continua perché vedano la tua posizione attuale anche con Guardiano-X chiuso.",
   "rcBotaoAtivar": "Attiva la condivisione continua",
   "rcSwitch": "Condividi in modo continuo",
-  "rcPausado": "In pausa: la tua posizione viene aggiornata solo con l'app aperta.",
+  "rcPausado": "In pausa: la tua posizione non viene inviata in modo continuo. Chi hai approvato può ancora richiederla aprendo la mappa.",
   "rcLimitadoSemSempre": "Limitato: consenti la posizione \"Sempre\" perché funzioni con l'app chiusa.",
   "rcIndisponivelPlano": "In pausa per il Piano Free fino al {fim}.",
   "rcAtivoAgora": "Attivo: la tua posizione viene aggiornata anche con l'app chiusa.",
@@ -973,5 +973,8 @@
   "rcDiagTitulo": "Posizione",
   "rcDiagVazio": "Nessun evento di posizione registrato finora.",
   "rcDiagGravou": "Salvato",
-  "rcDiagNaoGravou": "Non salvato"
+  "rcDiagNaoGravou": "Non salvato",
+  "monitoramentoContatoAndroid": "Questo contatto usa Android: la posizione si aggiorna quando apri la mappa (non è continua).",
+  "onboardingLocalizacaoConteudoIos": "Con la posizione \"Sempre\", la tua posizione è inclusa negli avvisi di emergenza e resta disponibile per i contatti approvati in Monitoraggio, anche con l'app chiusa — essenziale in un vero SOS.",
+  "onboardingLocalizacaoStatusParcialIos": "Parziale (richiede \"Sempre\")"
 }

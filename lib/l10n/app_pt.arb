@@ -1284,7 +1284,7 @@
   },
   "rcBotaoAtivar": "Ativar compartilhamento contínuo",
   "rcSwitch": "Compartilhar continuamente",
-  "rcPausado": "Pausado: sua posição só é atualizada com o app aberto.",
+  "rcPausado": "Pausado: sua posição não é enviada continuamente. Quem você aprovou ainda pode pedir sua posição ao abrir o mapa.",
   "rcLimitadoSemSempre": "Limitado: permita a localização \"Sempre\" para funcionar com o app fechado.",
   "rcIndisponivelPlano": "Pausado pelo Plano Free até {fim}.",
   "@rcIndisponivelPlano": {
@@ -1336,5 +1336,8 @@
   "rcDiagTitulo": "Localização",
   "rcDiagVazio": "Nenhum evento de localização registrado ainda.",
   "rcDiagGravou": "Gravou",
-  "rcDiagNaoGravou": "Não gravou"
+  "rcDiagNaoGravou": "Não gravou",
+  "monitoramentoContatoAndroid": "Este contato usa Android: a posição é atualizada quando você abre o mapa (não é contínua).",
+  "onboardingLocalizacaoConteudoIos": "Com a localização \"Sempre\", sua posição vai nos alertas de emergência e fica disponível para os contatos que você aprovou no Monitoramento, mesmo com o app fechado — essencial num SOS real.",
+  "onboardingLocalizacaoStatusParcialIos": "Parcial (requer \"Sempre\")"
 }

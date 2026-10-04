@@ -203,7 +203,9 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
                   PermissaoStatusCard(
                     icone: Icons.my_location_rounded,
                     titulo: l10n.onboardingLocalizacaoTitulo,
-                    descricao: l10n.onboardingLocalizacaoConteudo,
+                    descricao: Platform.isIOS
+                        ? l10n.onboardingLocalizacaoConteudoIos
+                        : l10n.onboardingLocalizacaoConteudo,
                     essencial: true,
                     status: _localizacao,
                     aoConceder: _tocarLocalizacao,
@@ -211,20 +213,24 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
                         _localizacao != StatusPermissaoOnboarding.concedida
                             ? openAppSettings
                             : null,
-                    textoStatusParcial: l10n.onboardingLocalizacaoStatusParcial,
+                    textoStatusParcial: Platform.isIOS
+                        ? l10n.onboardingLocalizacaoStatusParcialIos
+                        : l10n.onboardingLocalizacaoStatusParcial,
                   ),
-                  PermissaoStatusCard(
-                    icone: Icons.battery_saver_rounded,
-                    titulo: l10n.permissaoBateriaTitulo,
-                    descricao: l10n.permissaoBateriaConteudo,
-                    essencial: false,
-                    status: _bateria,
-                    aoConceder: _tocarBateria,
-                    aoAbrirConfiguracoes:
-                        _bateria != StatusPermissaoOnboarding.concedida
-                            ? openAppSettings
-                            : null,
-                  ),
+                  // Só Android: no iOS não existe isenção de otimização de bateria nem botão físico de pânico.
+                  if (!Platform.isIOS)
+                    PermissaoStatusCard(
+                      icone: Icons.battery_saver_rounded,
+                      titulo: l10n.permissaoBateriaTitulo,
+                      descricao: l10n.permissaoBateriaConteudo,
+                      essencial: false,
+                      status: _bateria,
+                      aoConceder: _tocarBateria,
+                      aoAbrirConfiguracoes:
+                          _bateria != StatusPermissaoOnboarding.concedida
+                              ? openAppSettings
+                              : null,
+                    ),
                   PermissaoStatusCard(
                     icone: Icons.camera_alt_rounded,
                     titulo: l10n.onboardingCameraTitulo,
@@ -237,18 +243,20 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
                             ? openAppSettings
                             : null,
                   ),
-                  PermissaoStatusCard(
-                    icone: Icons.fullscreen_rounded,
-                    titulo: l10n.onboardingTelaCheiaTitulo,
-                    descricao: l10n.onboardingTelaCheiaConteudo,
-                    essencial: false,
-                    status: _telaCheia,
-                    aoConceder: _tocarTelaCheia,
-                    aoAbrirConfiguracoes:
-                        _telaCheia != StatusPermissaoOnboarding.concedida
-                            ? openAppSettings
-                            : null,
-                  ),
+                  // Só Android: no iOS não existe alerta em tela cheia por cima da tela bloqueada.
+                  if (!Platform.isIOS)
+                    PermissaoStatusCard(
+                      icone: Icons.fullscreen_rounded,
+                      titulo: l10n.onboardingTelaCheiaTitulo,
+                      descricao: l10n.onboardingTelaCheiaConteudo,
+                      essencial: false,
+                      status: _telaCheia,
+                      aoConceder: _tocarTelaCheia,
+                      aoAbrirConfiguracoes:
+                          _telaCheia != StatusPermissaoOnboarding.concedida
+                              ? openAppSettings
+                              : null,
+                    ),
                   if (Platform.isIOS)
                     PermissaoStatusCard(
                       icone: Icons.sos_rounded,

@@ -942,7 +942,7 @@
   "rcConvite": "Wer Ihren Standort sehen kann: {nomes}. Aktivieren Sie die fortlaufende Freigabe, damit sie Ihre aktuelle Position auch bei geschlossenem Wächter-X sehen.",
   "rcBotaoAtivar": "Fortlaufende Freigabe aktivieren",
   "rcSwitch": "Fortlaufend teilen",
-  "rcPausado": "Pausiert: Ihre Position wird nur bei geöffneter App aktualisiert.",
+  "rcPausado": "Pausiert: Ihre Position wird nicht fortlaufend gesendet. Freigegebene Personen können sie beim Öffnen der Karte weiterhin anfragen.",
   "rcLimitadoSemSempre": "Eingeschränkt: Erlauben Sie den Standortzugriff „Immer“, damit es bei geschlossener App funktioniert.",
   "rcIndisponivelPlano": "Durch den Free-Plan pausiert bis zum {fim}.",
   "rcAtivoAgora": "Aktiv: Ihre Position wird auch bei geschlossener App aktualisiert.",
@@ -973,5 +973,8 @@
   "rcDiagTitulo": "Standort",
   "rcDiagVazio": "Noch keine Standortereignisse aufgezeichnet.",
   "rcDiagGravou": "Gespeichert",
-  "rcDiagNaoGravou": "Nicht gespeichert"
+  "rcDiagNaoGravou": "Nicht gespeichert",
+  "monitoramentoContatoAndroid": "Dieser Kontakt nutzt Android: Die Position wird aktualisiert, wenn Sie die Karte öffnen (nicht fortlaufend).",
+  "onboardingLocalizacaoConteudoIos": "Mit dem Standortzugriff „Immer“ geht Ihre Position in Notfallalarme ein und bleibt für die in der Überwachung freigegebenen Kontakte verfügbar, auch bei geschlossener App — entscheidend bei einem echten SOS.",
+  "onboardingLocalizacaoStatusParcialIos": "Teilweise (erfordert „Immer“)"
 }

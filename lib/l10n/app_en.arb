@@ -942,7 +942,7 @@
   "rcConvite": "Who can see your location: {nomes}. Turn on continuous sharing so they see your current position even when Guardian-X is closed.",
   "rcBotaoAtivar": "Turn on continuous sharing",
   "rcSwitch": "Share continuously",
-  "rcPausado": "Paused: your position is only updated while the app is open.",
+  "rcPausado": "Paused: your position is not sent continuously. People you approved can still request it when they open the map.",
   "rcLimitadoSemSempre": "Limited: allow \"Always\" location access for it to work with the app closed.",
   "rcIndisponivelPlano": "Paused by the Free Plan until {fim}.",
   "rcAtivoAgora": "On: your position is updated even with the app closed.",
@@ -973,5 +973,8 @@
   "rcDiagTitulo": "Location",
   "rcDiagVazio": "No location events recorded yet.",
   "rcDiagGravou": "Saved",
-  "rcDiagNaoGravou": "Not saved"
+  "rcDiagNaoGravou": "Not saved",
+  "monitoramentoContatoAndroid": "This contact uses Android: the position is updated when you open the map (not continuously).",
+  "onboardingLocalizacaoConteudoIos": "With \"Always\" location, your position goes into emergency alerts and stays available to the contacts you approved in Monitoring, even with the app closed — essential in a real SOS.",
+  "onboardingLocalizacaoStatusParcialIos": "Partial (requires \"Always\")"
 }

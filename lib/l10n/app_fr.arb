@@ -942,7 +942,7 @@
   "rcConvite": "Qui peut voir votre position : {nomes}. Activez le partage continu pour qu'ils voient votre position actuelle même quand Gardien-X est fermé.",
   "rcBotaoAtivar": "Activer le partage continu",
   "rcSwitch": "Partager en continu",
-  "rcPausado": "En pause : votre position n'est mise à jour qu'avec l'app ouverte.",
+  "rcPausado": "En pause : votre position n'est pas envoyée en continu. Les personnes approuvées peuvent toujours la demander en ouvrant la carte.",
   "rcLimitadoSemSempre": "Limité : autorisez la localisation « Toujours » pour que cela fonctionne avec l'app fermée.",
   "rcIndisponivelPlano": "En pause par le Forfait Free jusqu'au {fim}.",
   "rcAtivoAgora": "Actif : votre position est mise à jour même avec l'app fermée.",
@@ -973,5 +973,8 @@
   "rcDiagTitulo": "Position",
   "rcDiagVazio": "Aucun événement de position enregistré pour l'instant.",
   "rcDiagGravou": "Enregistré",
-  "rcDiagNaoGravou": "Non enregistré"
+  "rcDiagNaoGravou": "Non enregistré",
+  "monitoramentoContatoAndroid": "Ce contact utilise Android : la position est mise à jour quand vous ouvrez la carte (pas en continu).",
+  "onboardingLocalizacaoConteudoIos": "Avec la localisation « Toujours », votre position est jointe aux alertes d'urgence et reste disponible pour les contacts approuvés dans Surveillance, même avec l'app fermée — essentiel lors d'un vrai SOS.",
+  "onboardingLocalizacaoStatusParcialIos": "Partiel (nécessite « Toujours »)"
 }

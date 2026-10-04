@@ -942,7 +942,7 @@
   "rcConvite": "可以查看您位置的人：{nomes}。开启持续共享后，即使守护者-X 已关闭，他们也能看到您的当前位置。",
   "rcBotaoAtivar": "开启持续共享",
   "rcSwitch": "持续共享",
-  "rcPausado": "已暂停：只有在应用打开时才会更新您的位置。",
+  "rcPausado": "已暂停：不会持续发送您的位置。您批准的人在打开地图时仍可请求您的位置。",
   "rcLimitadoSemSempre": "受限：请允许“始终”访问位置，才能在应用关闭时工作。",
   "rcIndisponivelPlano": "因免费版暂停至 {fim}。",
   "rcAtivoAgora": "已开启：即使应用关闭，您的位置也会更新。",
@@ -973,5 +973,8 @@
   "rcDiagTitulo": "位置",
   "rcDiagVazio": "尚无位置事件记录。",
   "rcDiagGravou": "已保存",
-  "rcDiagNaoGravou": "未保存"
+  "rcDiagNaoGravou": "未保存",
+  "monitoramentoContatoAndroid": "该联系人使用 Android：打开地图时才会更新位置（不是持续更新）。",
+  "onboardingLocalizacaoConteudoIos": "开启“始终”位置权限后，您的位置会包含在紧急警报中，并且即使应用关闭，也能提供给您在“监控”中批准的联系人——这在真正的 SOS 中至关重要。",
+  "onboardingLocalizacaoStatusParcialIos": "部分（需要“始终”）"
 }

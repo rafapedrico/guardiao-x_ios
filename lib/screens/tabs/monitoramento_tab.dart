@@ -1077,10 +1077,12 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
         final String? subtitulo = momento == null ? null : _textoIdadePosicao(l10n, momento);
         final bool desatualizada = dados != null && _posicaoDesatualizada(momento);
 
-        return Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Column(
+            // Horário e avisos na largura toda; "Ver no mapa" em linha
+            // própria (antes ficava espremido ao lado do aviso de 15 min).
+            Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (semLocalizacaoAinda)
@@ -1104,6 +1106,17 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
                       ),
                     ),
                   _LinhaEstadoAlvo(uidAlvo: uid, l10n: l10n),
+                  // Contato Android: o app dele não grava `plataforma` em
+                  // monitoramento/atual (só o nativo do iOS grava "ios") e
+                  // não tem rastreamento contínuo.
+                  if (dados != null && dados['plataforma'] != 'ios')
+                    Padding(
+                      padding: const EdgeInsets.only(left: 22, top: 2),
+                      child: Text(
+                        l10n.monitoramentoContatoAndroid,
+                        style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade700),
+                      ),
+                    ),
                   if (desatualizada)
                     Padding(
                       padding: const EdgeInsets.only(left: 22, top: 2),
@@ -1122,15 +1135,17 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
                       ),
                     ),
                 ],
-              ),
             ),
-            TextButton.icon(
-              onPressed: semLocalizacaoAinda
-                  ? () => _avisarLocalizacaoAindaNaoDisponivel(l10n)
-                  : (dados == null ? null : () => _abrirMapa(uid)),
-              icon: const Icon(Icons.map_outlined, size: 18),
-              label: Text(l10n.monitoramentoVerNoMapa),
-              style: TextButton.styleFrom(foregroundColor: _corDestaque),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: semLocalizacaoAinda
+                    ? () => _avisarLocalizacaoAindaNaoDisponivel(l10n)
+                    : (dados == null ? null : () => _abrirMapa(uid)),
+                icon: const Icon(Icons.map_outlined, size: 18),
+                label: Text(l10n.monitoramentoVerNoMapa),
+                style: TextButton.styleFrom(foregroundColor: _corDestaque),
+              ),
             ),
           ],
         );

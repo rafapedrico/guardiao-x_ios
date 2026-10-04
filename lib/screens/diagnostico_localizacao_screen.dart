@@ -63,7 +63,18 @@ class _DiagnosticoLocalizacaoScreenState extends State<DiagnosticoLocalizacaoScr
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final texto = [_resumoEstado(), ..._eventos.map(_linha)].join('\n\n');
+    final servico = RastreamentoContinuoService();
+    final resumo = servico.resumoDiagnostico();
+    final texto = [
+      ...resumo,
+      '',
+      '— app —',
+      ...servico.registro,
+      '',
+      '— nativo —',
+      _resumoEstado(),
+      ..._eventos.map(_linha),
+    ].join('\n');
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.rcDiagTitulo),
@@ -81,6 +92,19 @@ class _DiagnosticoLocalizacaoScreenState extends State<DiagnosticoLocalizacaoScr
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                for (final linha in resumo)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(linha, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  ),
+                const Divider(height: 24),
+                if (servico.registro.isNotEmpty) ...[
+                  SelectableText(
+                    servico.registro.join('\n'),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                  ),
+                  const Divider(height: 24),
+                ],
                 if (_estado != null)
                   Text(_resumoEstado(), style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),

@@ -31,7 +31,7 @@ import WidgetKit
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
   ) {
     if userInfo["tipo"] as? String == "pedido_localizacao" {
-      RastreamentoContinuo.shared.atenderPedido { ok in
+      RastreamentoContinuo.shared.atenderPedido(origemPush: userInfo["origem"] as? String) { ok in
         completionHandler(ok ? .newData : .failed)
       }
       return

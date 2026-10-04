@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart' show openAppSettings;
 import 'package:security_check_app/l10n/app_localizations.dart';
@@ -177,7 +179,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           PermissaoStatusCard(
                             icone: Icons.my_location_rounded,
                             titulo: l10n.onboardingLocalizacaoTitulo,
-                            descricao: l10n.onboardingLocalizacaoConteudo,
+                            descricao: Platform.isIOS
+                                ? l10n.onboardingLocalizacaoConteudoIos
+                                : l10n.onboardingLocalizacaoConteudo,
                             essencial: true,
                             status: _localizacao,
                             aoConceder: _tocarLocalizacao,
@@ -185,16 +189,20 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                 _localizacao != StatusPermissaoOnboarding.concedida
                                     ? openAppSettings
                                     : null,
-                            textoStatusParcial: l10n.onboardingLocalizacaoStatusParcial,
+                            textoStatusParcial: Platform.isIOS
+                                ? l10n.onboardingLocalizacaoStatusParcialIos
+                                : l10n.onboardingLocalizacaoStatusParcial,
                           ),
-                          PermissaoStatusCard(
-                            icone: Icons.battery_saver_rounded,
-                            titulo: l10n.permissaoBateriaTitulo,
-                            descricao: l10n.permissaoBateriaConteudo,
-                            essencial: false,
-                            status: _bateria,
-                            aoConceder: _tocarBateria,
-                          ),
+                          // Só Android: no iOS não existe isenção de otimização de bateria nem botão físico de pânico.
+                          if (!Platform.isIOS)
+                            PermissaoStatusCard(
+                              icone: Icons.battery_saver_rounded,
+                              titulo: l10n.permissaoBateriaTitulo,
+                              descricao: l10n.permissaoBateriaConteudo,
+                              essencial: false,
+                              status: _bateria,
+                              aoConceder: _tocarBateria,
+                            ),
                           PermissaoStatusCard(
                             icone: Icons.camera_alt_rounded,
                             titulo: l10n.onboardingCameraTitulo,
@@ -203,14 +211,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             status: _camera,
                             aoConceder: _tocarCamera,
                           ),
-                          PermissaoStatusCard(
-                            icone: Icons.fullscreen_rounded,
-                            titulo: l10n.onboardingTelaCheiaTitulo,
-                            descricao: l10n.onboardingTelaCheiaConteudo,
-                            essencial: false,
-                            status: _telaCheia,
-                            aoConceder: _tocarTelaCheia,
-                          ),
+                          // Só Android: no iOS não existe alerta em tela cheia por cima da tela bloqueada.
+                          if (!Platform.isIOS)
+                            PermissaoStatusCard(
+                              icone: Icons.fullscreen_rounded,
+                              titulo: l10n.onboardingTelaCheiaTitulo,
+                              descricao: l10n.onboardingTelaCheiaConteudo,
+                              essencial: false,
+                              status: _telaCheia,
+                              aoConceder: _tocarTelaCheia,
+                            ),
                         ],
                       ),
                     ),

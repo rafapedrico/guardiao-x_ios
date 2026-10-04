@@ -97,6 +97,35 @@ class RastreamentoContinuoService {
 
   bool _iniciado = false;
   String? _uid;
+
+  /// Registro do lado Dart (Diagnóstico → Localização): por que a seção do
+  /// Monitoramento está oculta ou o rastreamento desligado.
+  final List<String> registro = <String>[];
+  String? _erroConsulta;
+  int _aprovadosNoServidor = 0;
+
+  void _registrar(String texto) {
+    final agora = DateTime.now();
+    String dois(int n) => n.toString().padLeft(2, '0');
+    registro.insert(0, '${dois(agora.hour)}:${dois(agora.minute)}:${dois(agora.second)} $texto');
+    if (registro.length > 60) registro.removeLast();
+    debugPrint('📍 [Rastreamento] $texto');
+  }
+
+  /// Resumo do porquê (Diagnóstico → Localização).
+  List<String> resumoDiagnostico() {
+    final e = estado.value;
+    return [
+      'serviço iniciado: $_iniciado · Firebase: ${Firebase.apps.isNotEmpty} · sessão: ${_uid ?? "nenhuma"}',
+      'permissões "aprovado" em que sou o alvo: $_aprovadosNoServidor '
+          '(${monitorandoMe.value.map((c) => c.nome).join(", ")})'
+          '${_erroConsulta != null ? " · ERRO na consulta: $_erroConsulta" : ""}',
+      'seção no Monitoramento: ${monitorandoMe.value.isEmpty ? "OCULTA (ninguém aprovado)" : "visível"}',
+      'plano: ${_plano == null ? "não lido" : "isPremium=${_plano!.isPremium}, ativo=${_plano!.ativo}, dia ${_plano!.diaAtualCiclo}"}',
+      'consentimento: ${consentido.value} · pausado: ${pausado.value} · motivo (app): ${_motivoInativoDart() ?? "nenhum — pede ligado"}',
+      'nativo: ${e == null ? "sem resposta" : "ativo=${e.rastreamentoAtivo}, motivo=${e.motivoInativo ?? "—"}, permissão=${e.permissao}"}',
+    ];
+  }
   PlanoCicloStatus? _plano;
   StreamSubscription<PlanoCicloStatus?>? _assinaturaPlano;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _assinaturaPermissoes;
@@ -105,9 +134,16 @@ class RastreamentoContinuoService {
   String _chavePausa(String uid) => 'rastreamento_continuo_pausado_$uid';
 
   /// Chamado uma vez por sessão do engine (ver `iniciarServicosPosLoginOuDashboard`).
+  /// Idempotente; chamado depois do Firebase/sessão (ver `main.dart`) e de
+  /// novo pela Home — sem Firebase ainda, tenta de novo na próxima chamada.
   void iniciar() {
-    if (!suportado || _iniciado || Firebase.apps.isEmpty) return;
+    if (!suportado || _iniciado) return;
+    if (Firebase.apps.isEmpty) {
+      _registrar('iniciar adiado: Firebase ainda não inicializado');
+      return;
+    }
     _iniciado = true;
+    _registrar('serviço iniciado');
     // Assinatura pela vida inteira do processo (singleton).
     FirebaseAuth.instance.authStateChanges().listen(_aoMudarSessao);
   }
@@ -125,9 +161,18 @@ class RastreamentoContinuoService {
       // aparelho): para e limpa as cercas.
       if (_uid != null) await pararAntesDeSair('sessao_encerrada');
       _uid = null;
+      _registrar('sem sessão — rastreamento parado');
       return;
     }
     _uid = usuario.uid;
+    _registrar('sessão ${usuario.uid}');
+    // Contrato comum aos dois apps: `usuarios/{uid}.plataforma` ("ios" ou
+    // "android"; ausente = Android antigo).
+    unawaited(FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(usuario.uid)
+        .set({'plataforma': 'ios'}, SetOptions(merge: true))
+        .catchError((Object e) => _registrar('falha ao gravar plataforma: $e')));
     try {
       final prefs = await SharedPreferences.getInstance();
       consentido.value = prefs.getBool(_chaveConsentimento(usuario.uid)) ?? false;
@@ -136,6 +181,7 @@ class RastreamentoContinuoService {
 
     _assinaturaPlano = PlanoCicloService().statusStream().listen((status) {
       _plano = status;
+      _registrar('plano: isPremium=${status?.isPremium}, ativo=${status?.ativo}');
       unawaited(_sincronizar());
     });
     _assinaturaPermissoes = FirebaseFirestore.instance
@@ -144,10 +190,15 @@ class RastreamentoContinuoService {
         .where('status', isEqualTo: MonitoramentoService.statusAprovado)
         .snapshots()
         .listen((snap) async {
+      _erroConsulta = null;
+      _aprovadosNoServidor = snap.docs.length;
       monitorandoMe.value = await _resolverNomes(snap.docs);
+      _registrar('permissões aprovadas (sou o alvo): ${snap.docs.map((d) => d.id).join(", ")}'
+          '${snap.docs.isEmpty ? "nenhuma" : ""}; válidas: ${monitorandoMe.value.length}');
       unawaited(_sincronizar());
     }, onError: (Object e) {
-      debugPrint('⚠️ [Rastreamento] Falha ao ouvir quem me monitora: $e');
+      _erroConsulta = '$e';
+      _registrar('ERRO ao consultar quem me monitora: $e');
     });
     unawaited(_sincronizar());
   }
@@ -193,10 +244,13 @@ class RastreamentoContinuoService {
         'cicloInicioMs': _plano?.cycleStartDate.millisecondsSinceEpoch,
         'tituloEncerramento': l10n.marcaGuardiaoX,
         'textoEncerramento': l10n.rcEncerradoTexto,
+        'temMonitorAprovado': monitorandoMe.value.isNotEmpty,
       });
       if (resposta != null) estado.value = EstadoRastreamento.doMapa(resposta);
+      _registrar('configurar: pede ${motivo == null ? "LIGADO" : "desligado ($motivo)"} → nativo '
+          'ativo=${estado.value?.rastreamentoAtivo}, motivo=${estado.value?.motivoInativo ?? "—"}');
     } catch (e) {
-      debugPrint('⚠️ [Rastreamento] Falha ao configurar o nativo: $e');
+      _registrar('ERRO ao configurar o nativo: $e');
     }
   }
 

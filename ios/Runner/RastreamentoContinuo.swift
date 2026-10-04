@@ -43,6 +43,10 @@ struct ConfigRastreamento: Codable {
   var motivoInativo: String?
   var tituloEncerramento: String
   var textoEncerramento: String
+  /// Há ao menos uma permissão "aprovado" em que este usuário é o alvo —
+  /// libera responder ao pedido sob demanda mesmo com o contínuo desligado.
+  /// Opcional: configurações gravadas por builds anteriores não têm o campo.
+  var temMonitorAprovado: Bool?
 }
 
 // MARK: - Documento de posição (formato ÚNICO, usado também pelo Dart via canal)
@@ -187,14 +191,40 @@ final class RastreamentoContinuo: NSObject, CLLocationManagerDelegate {
     registrar(origem: "encerramento", gravou: false, motivo: "app encerrado com rastreamento ativo — aviso local agendado")
   }
 
-  /// Pedido sob demanda (push silencioso `pedido_localizacao`).
-  func atenderPedido(conclusao: @escaping (Bool) -> Void) {
-    guard monitoresAtivos else {
-      registrar(origem: "pedido", gravou: false, motivo: "rastreamento contínuo inativo — pedido ignorado")
+  /// Pedido sob demanda (push silencioso `pedido_localizacao`, vindo de
+  /// quem monitora — `pedirLocalizacaoAtual` — ou do teste do detector de
+  /// localização parada). Responde MESMO com o rastreamento contínuo
+  /// desligado, desde que haja "Sempre", um monitor aprovado, sessão desta
+  /// conta e o Plano Free nos dias ativos.
+  func atenderPedido(origemPush: String?, conclusao: @escaping (Bool) -> Void) {
+    registrar(origem: "pedido", gravou: false,
+              motivo: "pedido recebido (\(origemPush ?? "?")) — app \(estadoDoApp())")
+    if let motivo = motivoParaNaoAtenderPedido() {
+      registrar(origem: "pedido", gravou: false, motivo: "pedido não atendido: \(motivo)")
       conclusao(false)
       return
     }
     lerPosicaoAvulsa(origem: "pedido", conclusao: conclusao)
+  }
+
+  private func motivoParaNaoAtenderPedido() -> String? {
+    guard let config = config else { return "app ainda não configurou o rastreamento neste aparelho" }
+    if config.temMonitorAprovado != true { return "nenhum monitor aprovado" }
+    if gerente.authorizationStatus != .authorizedAlways { return "sem permissão \"Sempre\"" }
+    if let ate = planoBloqueadoAte() { return "Plano Free bloqueado até \(ate)" }
+    garantirFirebase()
+    guard let uid = Auth.auth().currentUser?.uid else { return "sem sessão" }
+    if uid != config.uid { return "sessão de outra conta" }
+    return nil
+  }
+
+  private func estadoDoApp() -> String {
+    switch UIApplication.shared.applicationState {
+    case .active: return "em primeiro plano"
+    case .inactive: return "inativo"
+    case .background: return "em segundo plano"
+    @unknown default: return "?"
+    }
   }
 
   /// Gravação pedida pelo Dart (aceite de solicitação, cronômetro, SOS) —
@@ -255,18 +285,18 @@ final class RastreamentoContinuo: NSObject, CLLocationManagerDelegate {
     if gerente.authorizationStatus != .authorizedAlways { return "sem_permissao_sempre" }
     if planoBloqueadoAte() != nil { return "plano_free" }
     garantirFirebase()
-    if let uid = Auth.auth().currentUser?.uid {
-      if uid != config.uid { return "sessao_diferente" }
-    } else {
-      return "sem_sessao"
-    }
+    // Só uma sessão de OUTRA conta desliga. Sem sessão legível agora (ex.:
+    // relançado em segundo plano com o iPhone bloqueado e o Keychain ainda
+    // indisponível) é transitório: as cercas continuam e a gravação confere
+    // a sessão de novo (comToken). Sair da conta é avisado pelo Dart (parar).
+    if let uid = Auth.auth().currentUser?.uid, uid != config.uid { return "sessao_diferente" }
     return nil
   }
 
   private func aplicar() {
     if let motivo = motivoInativo() {
-      if motivo == "sessao_diferente" || motivo == "sem_sessao" {
-        // Sessão revogada/encerrada sem o Dart ter avisado: desliga de vez.
+      if motivo == "sessao_diferente" {
+        // Outra conta entrou neste aparelho sem o Dart ter avisado: desliga de vez.
         if var atual = config, atual.ativo {
           atual.ativo = false
           atual.motivoInativo = motivo
@@ -919,7 +949,8 @@ final class RastreamentoPlugin: NSObject, FlutterPlugin {
         cicloInicioMs: (args["cicloInicioMs"] as? NSNumber)?.doubleValue,
         motivoInativo: args["motivoInativo"] as? String,
         tituloEncerramento: args["tituloEncerramento"] as? String ?? "Guardião-X",
-        textoEncerramento: args["textoEncerramento"] as? String ?? ""))
+        textoEncerramento: args["textoEncerramento"] as? String ?? "",
+        temMonitorAprovado: args["temMonitorAprovado"] as? Bool ?? false))
       resultado(rastreamento.estado())
     case "parar":
       rastreamento.parar(motivo: args["motivo"] as? String ?? "parado", desativar: true) {

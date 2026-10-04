@@ -942,7 +942,7 @@
   "rcConvite": "あなたの位置情報を見られる人：{nomes}。継続共有をオンにすると、守護者-X を閉じていても現在地を見られるようになります。",
   "rcBotaoAtivar": "継続共有をオンにする",
   "rcSwitch": "継続的に共有",
-  "rcPausado": "一時停止中：アプリを開いているときだけ位置情報が更新されます。",
+  "rcPausado": "一時停止中：位置情報は継続的には送信されません。承認した人は地図を開いたときに位置をリクエストできます。",
   "rcLimitadoSemSempre": "制限あり：アプリを閉じていても動作するよう、位置情報を「常に」許可してください。",
   "rcIndisponivelPlano": "Free プランにより {fim} まで一時停止中です。",
   "rcAtivoAgora": "オン：アプリを閉じていても位置情報が更新されます。",
@@ -973,5 +973,8 @@
   "rcDiagTitulo": "位置情報",
   "rcDiagVazio": "位置情報のイベントはまだ記録されていません。",
   "rcDiagGravou": "保存済み",
-  "rcDiagNaoGravou": "未保存"
+  "rcDiagNaoGravou": "未保存",
+  "monitoramentoContatoAndroid": "この連絡先は Android を使用しています：位置情報は地図を開いたときに更新されます（継続的ではありません）。",
+  "onboardingLocalizacaoConteudoIos": "位置情報を「常に」にすると、アプリを閉じていても緊急アラートに位置が含まれ、監視で承認した連絡先が確認できます — 本当の SOS では不可欠です。",
+  "onboardingLocalizacaoStatusParcialIos": "一部（「常に」が必要）"
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -621,6 +622,10 @@ Future<void> _inicializarFirebaseEAuth() async {
     debugPrint('⚠️ [main] Falha ao sincronizar token FCM no cold start: $e');
   }
 
+  // Rastreamento contínuo (iOS): sobe assim que Firebase e sessão estão
+  // prontos — não depende da Home nem da cadeia de serviços pós-login.
+  RastreamentoContinuoService().iniciar();
+
 
 }
 
@@ -643,83 +648,100 @@ Future<void> iniciarServicosPosLoginOuDashboard() async {
 
   debugPrint('🚀 [main] Login/Dashboard alcançado — iniciando serviços nativos em segundo plano.');
 
+  // CORREÇÃO (teste de campo, build 113): cada etapa agora é ISOLADA. Antes,
+  // tudo vinha numa sequência de `await`s e `AlarmeService.inicializar()`
+  // (android_alarm_manager_plus, plugin SÓ Android) lançava
+  // MissingPluginException no iOS — a função parava ali e NADA depois
+  // dela subia no iPhone: rastreamento contínuo, sincronização do ciclo do
+  // plano, avisos do botão SOS no Plano Free, compras Premium, fila de
+  // reenvio de fotos. Os serviços leves (sem espera) sobem primeiro.
+  void etapa(String nome, void Function() acao) {
+    try {
+      acao();
+    } catch (e) {
+      debugPrint('⚠️ [main] Serviço "$nome" não iniciou: $e');
+    }
+  }
+
+  Future<void> etapaAssincrona(String nome, Future<void> Function() acao) async {
+    try {
+      await acao();
+    } catch (e) {
+      debugPrint('⚠️ [main] Serviço "$nome" não iniciou: $e');
+    }
+  }
+
   // Registra o handler de background do FCM e pede a permissão de
   // notificação — token sync (que precisa de `uid`) continua separado,
   // em `FcmService().inicializar()`, chamado direto por login_screen.dart.
-  FcmService().registrarInfraestrutura();
-
-  // Heartbeat de localização (a cada 5 min, só quando faltar ≤2h para
-  // algum alarme de rotina ativo).
-  BackgroundLocationHeartbeatService().iniciar();
-
-  await DatabaseHelper().resetarSessaoAuditoria();
-  await AlarmeService.inicializar();
-  await NotificacaoService.inicializar();
-  await VolumeSosService().iniciarMonitoramento();
+  etapa('FCM', () => unawaited(FcmService().registrarInfraestrutura()));
 
   // Ciclo recorrente de 30 dias do Plano Free (10 dias ativos + 20 dias
-  // bloqueados, ver PlanoCicloService) — dispara a sincronização/renovação
-  // server-side uma vez por sessão. Não `await`ado de propósito: nunca
-  // deve atrasar o boot dos demais serviços, mesma filosofia de
-  // RetryUploadService().iniciar() logo abaixo; os pontos de bloqueio
-  // sempre fazem sua PRÓPRIA leitura fresca do Firestore quando
-  // necessário, nunca dependem deste disparo já ter terminado.
-  PlanoCicloService().iniciar();
+  // bloqueados, ver PlanoCicloService) — sincronização/renovação
+  // server-side uma vez por sessão, sem esperar.
+  etapa('PlanoCiclo', PlanoCicloService().iniciar);
 
   // Avisos locais de que o botão SOS para nos dias bloqueados do Plano
   // Free (véspera e início do bloqueio) — ver SosPlanoAvisoService.
-  SosPlanoAvisoService().iniciar();
+  etapa('SosPlanoAviso', SosPlanoAvisoService().iniciar);
 
   // Rastreamento contínuo da aba Monitoramento (iOS, nativo): liga só com
   // alguém aprovado para me ver, consentimento e "Sempre" — ver
   // RastreamentoContinuoService.
-  RastreamentoContinuoService().iniciar();
+  etapa('RastreamentoContinuo', RastreamentoContinuoService().iniciar);
 
-  // REGRA DE NEGÓCIO (Alarme de Rotina, pedido explícito do usuário,
-  // 2026-09-04): fora dos 10 dias ativos do mês (e sem Premium), nenhum
-  // alarme de rotina deve continuar agendado — ver documentação completa
-  // em [RotinaAlarmeService.desativarAlarmesSePlanoBloqueado]. Checagem
-  // própria e independente da sincronização acima (não depende dela ter
-  // terminado), fire-and-forget pelo mesmo motivo: nunca atrasar o boot.
-  unawaited(RotinaAlarmeService.desativarAlarmesSePlanoBloqueado());
+  // Fluxo real de compra do Plano Premium — assina o purchaseStream do
+  // plugin `in_app_purchase` UMA única vez por sessão do engine (o
+  // resultado de uma compra pode chegar minutos depois).
+  etapa('PremiumPurchase', PremiumPurchaseService().iniciar);
 
-  // Fluxo real de compra do Plano Premium (Google Play Billing, ver
-  // PremiumPurchaseService) — assina o purchaseStream do plugin
-  // `in_app_purchase` UMA única vez por sessão do engine. Precisa
-  // acontecer aqui (boot), nunca só quando a tela de planos abre: o
-  // resultado de uma compra pode chegar minutos depois (ex: usuário
-  // trocou de forma de pagamento no meio do fluxo) e o app precisa estar
-  // ouvindo o stream o tempo todo, não só enquanto aquela tela existir.
-  PremiumPurchaseService().iniciar();
+  // REGRA DE NEGÓCIO (Alarme de Rotina, 2026-09-04): fora dos 10 dias
+  // ativos do mês (e sem Premium), nenhum alarme de rotina deve continuar
+  // agendado — ver [RotinaAlarmeService.desativarAlarmesSePlanoBloqueado].
+  etapa('RotinaAlarmePlano', () => unawaited(
+      RotinaAlarmeService.desativarAlarmesSePlanoBloqueado().catchError((Object e) {
+    debugPrint('⚠️ [main] Checagem dos alarmes de rotina pelo plano falhou: $e');
+  })));
 
-  // Resiliência offline do P2 do SOS (ver RetryUploadService): reagenda
-  // o alarme periódico de retry (precisa do AndroidAlarmManager já
-  // inicializado por AlarmeService.inicializar() acima) e tenta drenar a
-  // fila imediatamente — cobre o caso comum de o app ser reaberto depois
-  // que a conectividade voltou.
-  RetryUploadService().iniciar();
+  // Heartbeat de localização (a cada 5 min, só quando faltar ≤2h para
+  // algum alarme de rotina ativo).
+  etapa('Heartbeat', BackgroundLocationHeartbeatService().iniciar);
+
+  await etapaAssincrona('Auditoria', DatabaseHelper().resetarSessaoAuditoria);
+  // android_alarm_manager_plus e o Foreground Service do botão físico só
+  // existem no Android.
+  if (Platform.isAndroid) {
+    await etapaAssincrona('AlarmManager', AlarmeService.inicializar);
+  }
+  await etapaAssincrona('Notificacoes', NotificacaoService.inicializar);
+  if (Platform.isAndroid) {
+    await etapaAssincrona('VolumeSos', VolumeSosService().iniciarMonitoramento);
+  }
+
+  // Resiliência offline do P2 do SOS (ver RetryUploadService): reagenda o
+  // retry periódico e tenta drenar a fila imediatamente.
+  etapa('RetryUpload', RetryUploadService().iniciar);
 
   // Varredura de fallback do relatório de falha de 48h (ver
-  // RelatorioFalhaEntregaService) — cobre o caso do nudge silencioso do
-  // Push nunca ter chegado (app encerrado pelo SO antes da entrega, sem
-  // Google Play Services, etc.). Não `await`ado de propósito, mesma
-  // filosofia dos demais disparos "fire-and-forget" deste bloco — nunca
-  // deve atrasar o boot dos demais serviços, e é 100% silenciosa (nunca
-  // exibe notificação/UI, só grava eventos no cofre local).
-  RelatorioFalhaEntregaService().sincronizarPendentes();
+  // RelatorioFalhaEntregaService) — silenciosa, sem esperar.
+  etapa('RelatorioFalha', () => unawaited(
+      RelatorioFalhaEntregaService().sincronizarPendentes().catchError((Object e) {
+    debugPrint('⚠️ [main] Varredura do relatório de falha não concluída: $e');
+  })));
 
-  VolumeSosService().aoDispararSos.listen((_) {
-    _dispararFluxoCompletoDeSos(origem: 'sos_fisico');
-  });
+  if (Platform.isAndroid) {
+    etapa('VolumeSosEventos', () => VolumeSosService().aoDispararSos.listen((_) {
+          _dispararFluxoCompletoDeSos(origem: 'sos_fisico');
+        }));
 
-  const EventChannel('com.example.security_check_app/rotina_alarme_events')
-      .receiveBroadcastStream()
-      .listen((_) {
-    _exibirPinDeRotinaAoAbrirPorAlarme();
-  }, onError: (e) {
-    debugPrint('⚠️ [main] Erro no EventChannel de alarme de rotina: $e');
-  });
-
+    const EventChannel('com.example.security_check_app/rotina_alarme_events')
+        .receiveBroadcastStream()
+        .listen((_) {
+      _exibirPinDeRotinaAoAbrirPorAlarme();
+    }, onError: (e) {
+      debugPrint('⚠️ [main] Erro no EventChannel de alarme de rotina: $e');
+    });
+  }
 }
 
 /// Dispara P1 (localização imediata, deduplicada entre engines — ver
