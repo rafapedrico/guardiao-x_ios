@@ -976,5 +976,15 @@
   "rcDiagNaoGravou": "Nicht gespeichert",
   "monitoramentoContatoAndroid": "Dieser Kontakt nutzt Android: Die Position wird aktualisiert, wenn Sie die Karte öffnen (nicht fortlaufend).",
   "onboardingLocalizacaoConteudoIos": "Mit dem Standortzugriff „Immer“ geht Ihre Position in Notfallalarme ein und bleibt für die in der Überwachung freigegebenen Kontakte verfügbar, auch bei geschlossener App — entscheidend bei einem echten SOS.",
-  "onboardingLocalizacaoStatusParcialIos": "Teilweise (erfordert „Immer“)"
+  "onboardingLocalizacaoStatusParcialIos": "Teilweise (erfordert „Immer“)",
+  "monitoramentoPararCompartilharConteudo": "Teilen deines Standorts mit {nome} beenden?",
+  "monitoramentoPararCompartilharBotao": "Beenden",
+  "monitoramentoContatoNaoCompartilha": "Dieser Kontakt teilt seinen Standort nicht mit dir",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "rcMotivoSemMonitores": "kein Kontakt darf deinen Standort sehen",
+  "rcMotivoSemConsentimento": "fortlaufendes Teilen noch nicht aktiviert",
+  "rcMotivoPausado": "von dir pausiert",
+  "rcMotivoSemSempre": "Standort \"Immer\" nicht erlaubt",
+  "rcMotivoPlanoFree": "Free-Plan an diesen Tagen gesperrt",
+  "rcMotivoSessaoDiferente": "Sitzung eines anderen Kontos auf diesem Gerät"
 }

@@ -976,5 +976,15 @@
   "rcDiagNaoGravou": "Не записано",
   "monitoramentoContatoAndroid": "Этот контакт использует Android: позиция обновляется, когда вы открываете карту (не постоянно).",
   "onboardingLocalizacaoConteudoIos": "С доступом к геопозиции «Всегда» ваша позиция попадает в экстренные оповещения и доступна одобренным во «Мониторинге» контактам даже при закрытом приложении — это важно при реальном SOS.",
-  "onboardingLocalizacaoStatusParcialIos": "Частично (нужно «Всегда»)"
+  "onboardingLocalizacaoStatusParcialIos": "Частично (нужно «Всегда»)",
+  "monitoramentoPararCompartilharConteudo": "Прекратить делиться местоположением с {nome}?",
+  "monitoramentoPararCompartilharBotao": "Прекратить",
+  "monitoramentoContatoNaoCompartilha": "Этот контакт не делится с вами своим местоположением",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "rcMotivoSemMonitores": "ни одному контакту не разрешено видеть ваше местоположение",
+  "rcMotivoSemConsentimento": "непрерывная передача ещё не включена",
+  "rcMotivoPausado": "приостановлено вами",
+  "rcMotivoSemSempre": "доступ к геопозиции «Всегда» не разрешён",
+  "rcMotivoPlanoFree": "тариф Free заблокирован в эти дни",
+  "rcMotivoSessaoDiferente": "сеанс другой учётной записи на этом устройстве"
 }

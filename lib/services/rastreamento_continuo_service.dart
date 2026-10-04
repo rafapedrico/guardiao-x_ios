@@ -222,6 +222,11 @@ class RastreamentoContinuoService {
     return lista;
   }
 
+  /// Por que o rastreamento está desligado (`null` = nada a explicar):
+  /// primeiro o motivo do app (quem me monitora, consentimento, pausa),
+  /// depois o do nativo (permissão "Sempre", Plano Free, sessão).
+  String? get motivoInativo => _motivoInativoDart() ?? estado.value?.motivoInativo;
+
   /// Motivo para o Dart pedir "desligado" (`null` = pedir ligado).
   String? _motivoInativoDart() {
     if (monitorandoMe.value.isEmpty) return 'sem_monitores';

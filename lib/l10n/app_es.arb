@@ -976,5 +976,15 @@
   "rcDiagNaoGravou": "No guardado",
   "monitoramentoContatoAndroid": "Este contacto usa Android: la posición se actualiza cuando abres el mapa (no es continua).",
   "onboardingLocalizacaoConteudoIos": "Con la ubicación \"Siempre\", tu posición va en las alertas de emergencia y queda disponible para los contactos que aprobaste en Monitoreo, incluso con la app cerrada — esencial en un SOS real.",
-  "onboardingLocalizacaoStatusParcialIos": "Parcial (requiere \"Siempre\")"
+  "onboardingLocalizacaoStatusParcialIos": "Parcial (requiere \"Siempre\")",
+  "monitoramentoPararCompartilharConteudo": "¿Dejar de compartir tu ubicación con {nome}?",
+  "monitoramentoPararCompartilharBotao": "Dejar",
+  "monitoramentoContatoNaoCompartilha": "Este contacto no está compartiendo su ubicación contigo",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "rcMotivoSemMonitores": "ningún contacto autorizado a ver tu ubicación",
+  "rcMotivoSemConsentimento": "uso compartido continuo aún no activado",
+  "rcMotivoPausado": "pausado por ti",
+  "rcMotivoSemSempre": "ubicación \"Siempre\" no permitida",
+  "rcMotivoPlanoFree": "Plan Free bloqueado estos días",
+  "rcMotivoSessaoDiferente": "sesión de otra cuenta en este dispositivo"
 }

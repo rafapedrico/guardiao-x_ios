@@ -463,12 +463,23 @@ class FirebaseSyncService {
     // (fcmToken). Best-effort e independente da escrita acima —
     // uma falha aqui nunca deve impedir o heartbeat usado pelo alarme de
     // pânico.
+    //
+    // Merge: sem ele, este `set` apagava os campos que o outro caminho grava
+    // no mesmo documento (`plataforma`, `rastreamentoContinuo`, `origem`,
+    // `precisao`). Este trecho nunca roda no iOS (o nativo grava acima e
+    // retorna), por isso `plataforma` é a real e não um "ios" fixo.
     try {
-      await _documentoUsuario.collection('monitoramento').doc('atual').set({
-        'latitude': latitude,
-        'longitude': longitude,
-        'atualizadoEm': agora,
-      }).timeout(_timeoutFirestore);
+      await _documentoUsuario.collection('monitoramento').doc('atual').set(
+        {
+          'latitude': latitude,
+          'longitude': longitude,
+          'atualizadoEm': agora,
+          'origem': origem,
+          'plataforma': Platform.isIOS ? 'ios' : Platform.operatingSystem,
+          if (precisao != null) 'precisao': precisao,
+        },
+        SetOptions(merge: true),
+      ).timeout(_timeoutFirestore);
     } catch (e) {
       debugPrint(
           '⚠️ [FirebaseSyncService] Falha ao espelhar localização para a aba Monitoramento: $e');

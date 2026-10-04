@@ -976,5 +976,15 @@
   "rcDiagNaoGravou": "未保存",
   "monitoramentoContatoAndroid": "该联系人使用 Android：打开地图时才会更新位置（不是持续更新）。",
   "onboardingLocalizacaoConteudoIos": "开启“始终”位置权限后，您的位置会包含在紧急警报中，并且即使应用关闭，也能提供给您在“监控”中批准的联系人——这在真正的 SOS 中至关重要。",
-  "onboardingLocalizacaoStatusParcialIos": "部分（需要“始终”）"
+  "onboardingLocalizacaoStatusParcialIos": "部分（需要“始终”）",
+  "monitoramentoPararCompartilharConteudo": "停止与 {nome} 共享你的位置？",
+  "monitoramentoPararCompartilharBotao": "停止",
+  "monitoramentoContatoNaoCompartilha": "该联系人没有与你共享位置",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "rcMotivoSemMonitores": "没有联系人被允许查看你的位置",
+  "rcMotivoSemConsentimento": "尚未开启持续共享",
+  "rcMotivoPausado": "已被你暂停",
+  "rcMotivoSemSempre": "未允许“始终”定位",
+  "rcMotivoPlanoFree": "免费方案在这些天被锁定",
+  "rcMotivoSessaoDiferente": "此设备上是其他账号的会话"
 }

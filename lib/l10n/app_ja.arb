@@ -976,5 +976,15 @@
   "rcDiagNaoGravou": "未保存",
   "monitoramentoContatoAndroid": "この連絡先は Android を使用しています：位置情報は地図を開いたときに更新されます（継続的ではありません）。",
   "onboardingLocalizacaoConteudoIos": "位置情報を「常に」にすると、アプリを閉じていても緊急アラートに位置が含まれ、監視で承認した連絡先が確認できます — 本当の SOS では不可欠です。",
-  "onboardingLocalizacaoStatusParcialIos": "一部（「常に」が必要）"
+  "onboardingLocalizacaoStatusParcialIos": "一部（「常に」が必要）",
+  "monitoramentoPararCompartilharConteudo": "{nome} との位置情報の共有を停止しますか？",
+  "monitoramentoPararCompartilharBotao": "停止",
+  "monitoramentoContatoNaoCompartilha": "この連絡先はあなたと位置情報を共有していません",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "rcMotivoSemMonitores": "位置情報の閲覧を許可された連絡先がいません",
+  "rcMotivoSemConsentimento": "継続共有がまだオンになっていません",
+  "rcMotivoPausado": "あなたが一時停止中",
+  "rcMotivoSemSempre": "位置情報「常に」が許可されていません",
+  "rcMotivoPlanoFree": "フリープランはこの期間ロック中",
+  "rcMotivoSessaoDiferente": "この端末では別アカウントのセッションです"
 }

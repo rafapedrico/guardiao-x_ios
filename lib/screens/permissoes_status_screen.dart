@@ -281,7 +281,7 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
                       aoTocarBotaoAviso: () => iniciarCompraPremiumComAviso(context),
                     ),
                   if (Platform.isIOS && _rastreamento != null)
-                    _CartaoRastreamentoContinuo(estado: _rastreamento!),
+                    const _CartaoRastreamentoContinuo(),
                 ],
               ),
             ),
@@ -289,30 +289,55 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
   }
 }
 
-/// Card "Rastreamento contínuo" (aba Monitoramento): se está ativo e cada
-/// requisito do iOS para funcionar com o app fechado, com atalho para os
-/// Ajustes.
+/// Card "Rastreamento contínuo" (aba Monitoramento): se está ativo — e, se
+/// não, por quê — e cada requisito do iOS para funcionar com o app fechado,
+/// com atalho para os Ajustes. Escuta o serviço: muda sozinho quando uma
+/// permissão de compartilhamento é concedida/revogada, sem reabrir a tela.
 class _CartaoRastreamentoContinuo extends StatelessWidget {
-  const _CartaoRastreamentoContinuo({required this.estado});
-
-  final EstadoRastreamento estado;
+  const _CartaoRastreamentoContinuo();
 
   @override
   Widget build(BuildContext context) {
+    final servico = RastreamentoContinuoService();
+    return AnimatedBuilder(
+      animation: Listenable.merge(
+          [servico.estado, servico.monitorandoMe, servico.consentido, servico.pausado]),
+      builder: (context, _) {
+        final estado = servico.estado.value;
+        if (estado == null) return const SizedBox.shrink();
+        return _conteudo(context, servico, estado);
+      },
+    );
+  }
+
+  static String? _textoMotivo(AppLocalizations l10n, String? motivo) => switch (motivo) {
+        'sem_monitores' => l10n.rcMotivoSemMonitores,
+        'sem_consentimento' => l10n.rcMotivoSemConsentimento,
+        'pausado' => l10n.rcMotivoPausado,
+        'sem_permissao_sempre' => l10n.rcMotivoSemSempre,
+        'plano_free' => l10n.rcMotivoPlanoFree,
+        'sessao_diferente' => l10n.rcMotivoSessaoDiferente,
+        _ => null,
+      };
+
+  Widget _conteudo(
+      BuildContext context, RastreamentoContinuoService servico, EstadoRastreamento estado) {
     final l10n = AppLocalizations.of(context)!;
-    final consentido = RastreamentoContinuoService().consentido.value;
-    final String status;
+    final consentido = servico.consentido.value;
+    String status;
     final Color cor;
     if (estado.rastreamentoAtivo) {
       status = l10n.rcStatusAtivo;
       cor = Colors.green.shade600;
-    } else if (consentido && !RastreamentoContinuoService().pausado.value) {
+    } else if (consentido && !servico.pausado.value && servico.monitorandoMe.value.isNotEmpty) {
       status = l10n.rcStatusLimitado;
       cor = Colors.orange.shade700;
     } else {
       status = l10n.rcStatusInativo;
       cor = Colors.grey.shade600;
     }
+    final motivo = estado.rastreamentoAtivo ? null : _textoMotivo(l10n, servico.motivoInativo);
+    if (motivo != null) status = l10n.rcStatusComMotivo(status, motivo);
     final itens = <(String, bool)>[
       (l10n.rcItemSempre, estado.sempre),
       (l10n.rcItemMovimento, estado.movimento == 'permitido'),
@@ -340,12 +365,19 @@ class _CartaoRastreamentoContinuo extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  l10n.rcStatusTitulo,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.rcStatusTitulo,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(status,
+                        style: TextStyle(color: cor, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                  ],
                 ),
               ),
-              Text(status, style: TextStyle(color: cor, fontWeight: FontWeight.w700, fontSize: 12.5)),
             ],
           ),
           const SizedBox(height: 10),

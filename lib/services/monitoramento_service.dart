@@ -12,6 +12,9 @@ import 'firebase_sync_service.dart';
 import 'location_service.dart';
 import 'plano_ciclo_service.dart';
 
+/// Resultado de [MonitoramentoService.pedirLocalizacaoAtual].
+enum ResultadoPedidoPosicao { posicaoNova, semResposta, semPermissao }
+
 /// Serviço central da aba Monitoramento: gerencia a lista LOCAL de
 /// contatos (SQLite, tabela `monitoramento_contatos`, TOTALMENTE
 /// independente dos contatos de emergência do alarme/pânico) e a
@@ -702,7 +705,8 @@ class MonitoramentoService {
           .doc(uidAlvo)
           .collection('monitoramento')
           .doc('atual')
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 8));
       return snap.data();
     } catch (e) {
       debugPrint(
@@ -712,25 +716,46 @@ class MonitoramentoService {
   }
 
   /// Pede ao aparelho de [uidAlvo] a posição ATUAL (callable
-  /// `pedirLocalizacaoAtual`, que manda um push silencioso) e espera até
-  /// [espera] por uma posição gravada depois do pedido. Devolve `true` se
-  /// chegou posição nova; `false` em qualquer outro caso (sem resposta,
-  /// limite de 1 pedido/min, alvo sem rastreamento, function indisponível)
-  /// — o mapa abre com a última posição conhecida e o horário.
-  Future<bool> pedirLocalizacaoAtual(
+  /// `pedirLocalizacaoAtual`, que manda um push silencioso) e espera por uma
+  /// posição gravada depois do pedido — tudo dentro de [limite] (callable +
+  /// espera), mesmo que a callable nunca responda.
+  ///
+  /// - [ResultadoPedidoPosicao.posicaoNova]: chegou posição nova.
+  /// - [ResultadoPedidoPosicao.semPermissao]: `permission-denied` — o contato
+  ///   não está compartilhando a localização comigo; não adianta esperar.
+  /// - [ResultadoPedidoPosicao.semResposta]: qualquer outro caso (sem
+  ///   resposta, limite de 1 pedido/min, alvo sem rastreamento, function
+  ///   indisponível) — o mapa abre com a última posição e o horário.
+  Future<ResultadoPedidoPosicao> pedirLocalizacaoAtual(
     String uidAlvo, {
-    Duration espera = const Duration(seconds: 20),
+    Duration limite = const Duration(seconds: 30),
   }) async {
-    if (!_firebaseDisponivel || uidAlvo == _meuUid) return false;
+    if (!_firebaseDisponivel || uidAlvo == _meuUid) {
+      return ResultadoPedidoPosicao.semResposta;
+    }
     final pedidoEm = DateTime.now();
+    final prazo = pedidoEm.add(limite);
+    Duration restante() {
+      final r = prazo.difference(DateTime.now());
+      return r.isNegative ? Duration.zero : r;
+    }
+
     try {
+      final limiteCallable = restante() < const Duration(seconds: 10)
+          ? restante()
+          : const Duration(seconds: 10);
       await FirebaseFunctions.instance
           .httpsCallable('pedirLocalizacaoAtual')
           .call<Map<String, dynamic>>({'uidAlvo': uidAlvo})
-          .timeout(const Duration(seconds: 10));
+          .timeout(limiteCallable);
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('⚠️ [MonitoramentoService] Pedido de posição atual recusado: ${e.code} ${e.message}');
+      return e.code == 'permission-denied'
+          ? ResultadoPedidoPosicao.semPermissao
+          : ResultadoPedidoPosicao.semResposta;
     } catch (e) {
       debugPrint('⚠️ [MonitoramentoService] Pedido de posição atual não enviado: $e');
-      return false;
+      return ResultadoPedidoPosicao.semResposta;
     }
     try {
       await FirebaseFirestore.instance
@@ -744,10 +769,14 @@ class MonitoramentoService {
             return momento is Timestamp &&
                 momento.toDate().isAfter(pedidoEm.subtract(const Duration(seconds: 2)));
           })
-          .timeout(espera);
-      return true;
+          .timeout(restante());
+      return ResultadoPedidoPosicao.posicaoNova;
+    } on FirebaseException catch (e) {
+      return e.code == 'permission-denied'
+          ? ResultadoPedidoPosicao.semPermissao
+          : ResultadoPedidoPosicao.semResposta;
     } catch (_) {
-      return false;
+      return ResultadoPedidoPosicao.semResposta;
     }
   }
 

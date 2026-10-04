@@ -550,9 +550,20 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     if (!mounted) return;
 
     // Pede a posição ATUAL ao aparelho do contato (push silencioso) e espera
-    // até ~20 s; sem resposta, segue com a última conhecida + horário.
-    await _pedirPosicaoAtualComAviso(uidAlvo);
+    // até 30 s (ou até o usuário tocar "Cancelar"); sem resposta, segue com
+    // a última conhecida + horário.
+    final resultado = await _pedirPosicaoAtualComAviso(uidAlvo);
     if (!mounted) return;
+    if (resultado == ResultadoPedidoPosicao.semPermissao) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.monitoramentoContatoNaoCompartilha),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
 
     final dados = await _servico.buscarUltimaLocalizacao(uidAlvo);
     final latitude = (dados?['latitude'] as num?)?.toDouble();
@@ -572,14 +583,20 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     }
   }
 
-  Future<void> _pedirPosicaoAtualComAviso(String uidAlvo) async {
+  /// Diálogo "Pedindo a posição atual…" com "Cancelar". Termina no que vier
+  /// primeiro: a resposta do serviço, o toque em Cancelar (= seguir com a
+  /// última posição) ou o teto de [_limitePedidoPosicao] — nunca fica
+  /// girando para sempre, mesmo que a callable não responda.
+  static const Duration _limitePedidoPosicao = Duration(seconds: 30);
+
+  Future<ResultadoPedidoPosicao> _pedirPosicaoAtualComAviso(String uidAlvo) async {
     final l10n = AppLocalizations.of(context)!;
     final navegador = Navigator.of(context, rootNavigator: true);
     var aberto = true;
-    unawaited(showDialog<void>(
+    final dialogoFechado = showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => PopScope(
+      builder: (contextoDialogo) => PopScope(
         canPop: false,
         child: AlertDialog(
           content: Row(
@@ -593,11 +610,21 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
               Expanded(child: Text(l10n.rcPedindoPosicao)),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(contextoDialogo).pop(),
+              child: Text(l10n.cancelar),
+            ),
+          ],
         ),
       ),
-    ).whenComplete(() => aberto = false));
+    ).whenComplete(() => aberto = false);
     try {
-      await _servico.pedirLocalizacaoAtual(uidAlvo);
+      return await Future.any<ResultadoPedidoPosicao>([
+        _servico.pedirLocalizacaoAtual(uidAlvo, limite: _limitePedidoPosicao),
+        dialogoFechado.then((_) => ResultadoPedidoPosicao.semResposta),
+      ]).timeout(_limitePedidoPosicao,
+          onTimeout: () => ResultadoPedidoPosicao.semResposta);
     } finally {
       if (aberto && navegador.mounted) navegador.pop();
     }
@@ -1373,6 +1400,33 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final id = contato['id'] as int;
+    final travaAte = _travaCompartilhamentoAte[id];
+    if (travaAte != null && DateTime.now().isBefore(travaAte)) return;
+    // Desligar pede confirmação (teste da build 114: um toque a mais
+    // revogou o compartilhamento recém-concedido sem ninguém perceber).
+    // Ligar continua imediato.
+    if (!permitir) {
+      final nome = contato['nome'] as String? ?? '';
+      final confirmou = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              content: Text(l10n.monitoramentoPararCompartilharConteudo(nome)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(l10n.cancelar),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(l10n.monitoramentoPararCompartilharBotao),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+      if (!confirmou || !mounted) return;
+    }
     if (!_tentarTravarSwitch(_travaCompartilhamentoAte, id)) return;
     // Atualização OTIMISTA instantânea (pedido do usuário, 2026-09-07): o
     // Switch e o rótulo "Aprovado"/"Bloqueado" mudam de cor no mesmo

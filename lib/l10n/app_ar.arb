@@ -976,5 +976,15 @@
   "rcDiagNaoGravou": "لم يُحفظ",
   "monitoramentoContatoAndroid": "تستخدم جهة الاتصال هذه Android: يتم تحديث الموقع عند فتح الخريطة (ليس بشكل مستمر).",
   "onboardingLocalizacaoConteudoIos": "مع إذن الموقع \"دائمًا\"، يُرسَل موقعك في تنبيهات الطوارئ ويبقى متاحًا لجهات الاتصال التي وافقت عليها في المراقبة حتى والتطبيق مغلق — وهذا ضروري في حالة SOS حقيقية.",
-  "onboardingLocalizacaoStatusParcialIos": "جزئي (يتطلب \"دائمًا\")"
+  "onboardingLocalizacaoStatusParcialIos": "جزئي (يتطلب \"دائمًا\")",
+  "monitoramentoPararCompartilharConteudo": "إيقاف مشاركة موقعك مع {nome}؟",
+  "monitoramentoPararCompartilharBotao": "إيقاف",
+  "monitoramentoContatoNaoCompartilha": "جهة الاتصال هذه لا تشارك موقعها معك",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "rcMotivoSemMonitores": "لا توجد جهة اتصال مصرح لها برؤية موقعك",
+  "rcMotivoSemConsentimento": "المشاركة المستمرة لم تُفعّل بعد",
+  "rcMotivoPausado": "متوقف مؤقتًا بواسطتك",
+  "rcMotivoSemSempre": "الموقع \"دائمًا\" غير مسموح",
+  "rcMotivoPlanoFree": "الخطة المجانية محظورة في هذه الأيام",
+  "rcMotivoSessaoDiferente": "جلسة حساب آخر على هذا الجهاز"
 }

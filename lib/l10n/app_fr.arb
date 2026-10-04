@@ -976,5 +976,15 @@
   "rcDiagNaoGravou": "Non enregistré",
   "monitoramentoContatoAndroid": "Ce contact utilise Android : la position est mise à jour quand vous ouvrez la carte (pas en continu).",
   "onboardingLocalizacaoConteudoIos": "Avec la localisation « Toujours », votre position est jointe aux alertes d'urgence et reste disponible pour les contacts approuvés dans Surveillance, même avec l'app fermée — essentiel lors d'un vrai SOS.",
-  "onboardingLocalizacaoStatusParcialIos": "Partiel (nécessite « Toujours »)"
+  "onboardingLocalizacaoStatusParcialIos": "Partiel (nécessite « Toujours »)",
+  "monitoramentoPararCompartilharConteudo": "Arrêter de partager votre position avec {nome} ?",
+  "monitoramentoPararCompartilharBotao": "Arrêter",
+  "monitoramentoContatoNaoCompartilha": "Ce contact ne partage pas sa position avec vous",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "rcMotivoSemMonitores": "aucun contact autorisé à voir votre position",
+  "rcMotivoSemConsentimento": "partage continu pas encore activé",
+  "rcMotivoPausado": "mis en pause par vous",
+  "rcMotivoSemSempre": "position « Toujours » non autorisée",
+  "rcMotivoPlanoFree": "Forfait Free bloqué ces jours-ci",
+  "rcMotivoSessaoDiferente": "session d'un autre compte sur cet appareil"
 }

@@ -976,5 +976,15 @@
   "rcDiagNaoGravou": "नहीं सहेजा गया",
   "monitoramentoContatoAndroid": "यह संपर्क Android इस्तेमाल करता है: मानचित्र खोलने पर स्थिति अपडेट होती है (लगातार नहीं)।",
   "onboardingLocalizacaoConteudoIos": "स्थान \"हमेशा\" होने पर, ऐप बंद होने पर भी आपकी स्थिति आपातकालीन अलर्ट में जाती है और मॉनिटरिंग में स्वीकृत संपर्कों के लिए उपलब्ध रहती है — असली SOS में यह ज़रूरी है।",
-  "onboardingLocalizacaoStatusParcialIos": "आंशिक (\"हमेशा\" ज़रूरी)"
+  "onboardingLocalizacaoStatusParcialIos": "आंशिक (\"हमेशा\" ज़रूरी)",
+  "monitoramentoPararCompartilharConteudo": "{nome} के साथ अपना स्थान साझा करना बंद करें?",
+  "monitoramentoPararCompartilharBotao": "बंद करें",
+  "monitoramentoContatoNaoCompartilha": "यह संपर्क आपके साथ अपना स्थान साझा नहीं कर रहा है",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "rcMotivoSemMonitores": "किसी भी संपर्क को आपका स्थान देखने की अनुमति नहीं है",
+  "rcMotivoSemConsentimento": "लगातार साझा करना अभी चालू नहीं है",
+  "rcMotivoPausado": "आपने रोका है",
+  "rcMotivoSemSempre": "\"हमेशा\" स्थान की अनुमति नहीं",
+  "rcMotivoPlanoFree": "फ़्री प्लान इन दिनों ब्लॉक है",
+  "rcMotivoSessaoDiferente": "इस डिवाइस पर किसी दूसरे खाते का सत्र"
 }

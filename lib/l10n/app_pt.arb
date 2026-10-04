@@ -1339,5 +1339,32 @@
   "rcDiagNaoGravou": "Não gravou",
   "monitoramentoContatoAndroid": "Este contato usa Android: a posição é atualizada quando você abre o mapa (não é contínua).",
   "onboardingLocalizacaoConteudoIos": "Com a localização \"Sempre\", sua posição vai nos alertas de emergência e fica disponível para os contatos que você aprovou no Monitoramento, mesmo com o app fechado — essencial num SOS real.",
-  "onboardingLocalizacaoStatusParcialIos": "Parcial (requer \"Sempre\")"
+  "onboardingLocalizacaoStatusParcialIos": "Parcial (requer \"Sempre\")",
+  "monitoramentoPararCompartilharConteudo": "Parar de compartilhar sua localização com {nome}?",
+  "@monitoramentoPararCompartilharConteudo": {
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "monitoramentoPararCompartilharBotao": "Parar",
+  "monitoramentoContatoNaoCompartilha": "Este contato não está compartilhando a localização com você",
+  "rcStatusComMotivo": "{status} — {motivo}",
+  "@rcStatusComMotivo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "motivo": {
+        "type": "String"
+      }
+    }
+  },
+  "rcMotivoSemMonitores": "nenhum contato autorizado a ver sua localização",
+  "rcMotivoSemConsentimento": "compartilhamento contínuo ainda não ativado",
+  "rcMotivoPausado": "pausado por você",
+  "rcMotivoSemSempre": "localização \"Sempre\" não permitida",
+  "rcMotivoPlanoFree": "Plano Free bloqueado nestes dias",
+  "rcMotivoSessaoDiferente": "sessão de outra conta neste aparelho"
 }
