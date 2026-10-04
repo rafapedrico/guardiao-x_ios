@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "सब कॉपी करें",
   "diagnosticoCopiado": "निदान कॉपी हो गया",
   "diagnosticoLimpar": "साफ़ करें",
-  "diagnosticoExplicacao": "इस डिवाइस पर दर्ज पिछली 200 त्रुटियाँ और चेतावनियाँ (नवीनतम अंत में)। \"सब कॉपी करें\" पर टैप करें और सहायता के साथ बातचीत में पेस्ट करें।"
+  "diagnosticoExplicacao": "इस डिवाइस पर दर्ज पिछली 200 त्रुटियाँ और चेतावनियाँ (नवीनतम अंत में)। \"सब कॉपी करें\" पर टैप करें और सहायता के साथ बातचीत में पेस्ट करें।",
+  "sosWidgetEnviandoLocalizacao": "स्थान भेजा जा रहा है…",
+  "sosWidgetLocalizacaoEnviada": "स्थान भेज दिया गया, कैमरे की प्रतीक्षा है",
+  "sosWidgetFalhaEnvio": "स्थान भेजने में विफल। फिर से कोशिश की जा रही है…",
+  "sosWidgetCameraIndisponivel": "कैमरा उपलब्ध नहीं — अलर्ट आपके संपर्कों को पहले ही भेज दिया गया है",
+  "monitoramentoAtualizadoHaHoras": "{horas} घंटे पहले अपडेट किया गया",
+  "monitoramentoPosicaoDesatualizada": "15 मिनट से पुराना स्थान — पुराना हो सकता है",
+  "monitoramentoUltimaPosicaoTitulo": "अंतिम ज्ञात स्थान",
+  "monitoramentoUltimaPosicaoRegistradaEm": "{dataHora} को दर्ज किया गया।",
+  "monitoramentoPosicaoDesatualizadaAviso": "यह स्थान 15 मिनट से अधिक पुराना है और हो सकता है कि यह न दिखाए कि व्यक्ति अभी कहाँ है। यह केवल तब अपडेट होता है जब व्यक्ति कोई अनुरोध स्वीकार करता है या उसका टाइमर या कोई अलार्म सक्रिय होता है।",
+  "monitoramentoUltimaPosicaoSemHorario": "अंतिम स्थान का समय अज्ञात है।",
+  "monitoramentoAbrirMapa": "मानचित्र खोलें"
 }

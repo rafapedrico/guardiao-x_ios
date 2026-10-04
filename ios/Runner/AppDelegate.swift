@@ -16,6 +16,10 @@ import WidgetKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SOSWidgetStatus") {
       SOSWidgetStatusPlugin.register(with: registrar)
     }
+    // Toque no Widget SOS capturado no SceneDelegate (ver SceneDelegate.swift).
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SOSWidgetLink") {
+      SOSWidgetLinkPlugin.register(with: registrar)
+    }
   }
 }
 

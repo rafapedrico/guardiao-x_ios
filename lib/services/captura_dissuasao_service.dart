@@ -26,7 +26,17 @@ class CapturaDissuasaoService {
   /// `main.dart::_dispararSequenciaUnificadaDeSos` para decidir se a
   /// tela preta do cold-start via botão físico ([_TelaPretaAguardandoSos])
   /// precisa de um fallback de saída — ver documentação completa lá.
-  Future<bool> abrirCapturaSePermitido({String? origemUnificada}) async {
+  ///
+  /// [planoJaVerificado]: o chamador já leu a janela do Plano Free (Widget
+  /// SOS, que compartilha uma única leitura com o envio da localização).
+  /// [aoResolverAbertura]/[limiteAbertura]: repassados à
+  /// [CameraCapturaScreen] (tela preta do Widget SOS).
+  Future<bool> abrirCapturaSePermitido({
+    String? origemUnificada,
+    bool planoJaVerificado = false,
+    ValueChanged<bool>? aoResolverAbertura,
+    Duration? limiteAbertura,
+  }) async {
     try {
       // 1. Verifica se o Plano Free está dentro da janela de 10 dias
       // ativos (ou se é Premium) — ver PlanoCicloService. REESPECIFICAÇÃO
@@ -36,7 +46,8 @@ class CapturaDissuasaoService {
       // ativos" — agora usa a MESMA trava única de SMS/Push (ver
       // `EmergencyAlertService._enviarSms`/`FirebaseSyncService`), sem
       // nenhum teto numérico adicional.
-      final bool permitido = await PlanoCicloService().podeUsarRecursosAvancados();
+      final bool permitido =
+          planoJaVerificado || await PlanoCicloService().podeUsarRecursosAvancados();
       debugPrint('📷 [CapturaDissuasaoService] podeUsarRecursosAvancados() retornou: $permitido');
       if (!permitido) {
         debugPrint(
@@ -80,7 +91,11 @@ class CapturaDissuasaoService {
       debugPrint('📷 [CapturaDissuasaoService] Navegando para CameraCapturaScreen...');
       navigatorState.push(
         MaterialPageRoute(
-          builder: (_) => CameraCapturaScreen(origemUnificada: origemUnificada),
+          builder: (_) => CameraCapturaScreen(
+            origemUnificada: origemUnificada,
+            aoResolverAbertura: aoResolverAbertura,
+            limiteAbertura: limiteAbertura,
+          ),
           fullscreenDialog: true,
         ),
       );

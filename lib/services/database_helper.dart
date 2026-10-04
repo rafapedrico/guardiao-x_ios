@@ -1267,6 +1267,24 @@ Future<int> definirAlarmePausado(int id, dynamic statusPausa) async {
     );
   }
 
+  /// Apaga o que foi resolvido na NUVEM para os contatos de monitoramento
+  /// (uid e status em cache), mantendo nome e telefone. [somenteUid]
+  /// restringe às linhas cujo uid resolvido é esse. Usado quando o cache
+  /// pertence a outra conta (ver MonitoramentoService.listarContatos).
+  Future<int> limparResolucaoContatosMonitoramento({String? somenteUid}) async {
+    final db = await database;
+    return await db.update(
+      'monitoramento_contatos',
+      {
+        'uid_contato': null,
+        'status_ver_localizacao': 'nao_solicitado',
+        'status_compartilhamento': 'inexistente',
+      },
+      where: somenteUid == null ? null : 'uid_contato = ?',
+      whereArgs: somenteUid == null ? null : [somenteUid],
+    );
+  }
+
   /// Atualiza o cache local do status do Bloco A ("ver localização dele"):
   /// 'nao_solicitado' | 'pendente' | 'aprovado' | 'negado' | 'expirado'.
   Future<int> atualizarStatusVerLocalizacao(int id, String status) async {

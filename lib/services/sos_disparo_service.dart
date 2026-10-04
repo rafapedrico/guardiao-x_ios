@@ -172,6 +172,79 @@ class SosDisparoService {
     });
   }
 
+  /// P1 do Widget SOS do iOS ([SosWidgetFluxoService]): mesmo envio do
+  /// [executarP1LocalizacaoImediata], mas sem esperar o GPS e com retorno
+  /// de progresso para a tela preta.
+  ///   - O Push sai NA HORA com a última posição conhecida do sistema (sem
+  ///     cache, sai sem coordenadas e a Cloud Function usa a última
+  ///     posição sincronizada da conta).
+  ///   - Em paralelo, uma leitura precisa do GPS atualiza a posição da
+  ///     conta ([FirebaseSyncService.atualizarLocalizacaoAtual]) — é a
+  ///     posição que o Push da foto (P2) leva aos contatos, e a que a aba
+  ///     Monitoramento mostra.
+  ///   - [aoConfirmar] quando o servidor confirma o alerta; [aoFalhar] a
+  ///     cada demora/erro (o envio continua tentando sozinho).
+  ///
+  /// A janela do Plano Free já foi checada pelo chamador.
+  Future<void> executarP1DoWidget({
+    required String origem,
+    required VoidCallback aoConfirmar,
+    required VoidCallback aoFalhar,
+  }) async {
+    if (!await _reivindicarDisparoUnico()) {
+      // Outro disparo de SOS começou há poucos segundos e já está enviando.
+      debugPrint('🔁 [SosDisparoService] P1 do widget ($origem) já em andamento por outro disparo.');
+      aoConfirmar();
+      return;
+    }
+
+    // Histórico local (e SMS no Android — no iOS o canal SMS não existe).
+    unawaited(_emergencyAlertService.dispararSosComDuplaLocalizacao().catchError((Object e) {
+      debugPrint('⚠️ [SosDisparoService] Falha ao registrar o SOS do widget no histórico: $e');
+    }));
+
+    final String? uid = await FirebaseAuthService().aguardarUidPronto();
+    if (uid == null) {
+      debugPrint('📵 [SosDisparoService] P1 do widget sem sessão — nada a enviar.');
+      aoFalhar();
+      return;
+    }
+
+    Position? ultimaConhecida;
+    try {
+      ultimaConhecida = await Geolocator.getLastKnownPosition();
+    } catch (_) {}
+    unawaited(_atualizarPosicaoPrecisaDaConta());
+
+    final confirmado = await FirebaseSyncService().enviarAlertaSosComConfirmacao(
+      latitude: ultimaConhecida?.latitude,
+      longitude: ultimaConhecida?.longitude,
+      origem: origem,
+      aoDemorarOuFalhar: aoFalhar,
+    );
+    if (confirmado) {
+      aoConfirmar();
+    } else {
+      aoFalhar();
+    }
+  }
+
+  Future<void> _atualizarPosicaoPrecisaDaConta() async {
+    try {
+      final posicao = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 20),
+      );
+      await FirebaseSyncService().atualizarLocalizacaoAtual(
+        latitude: posicao.latitude,
+        longitude: posicao.longitude,
+      );
+      debugPrint('📍 [SosDisparoService] Posição precisa do SOS enviada à conta.');
+    } catch (e) {
+      debugPrint('⚠️ [SosDisparoService] Sem posição precisa para o SOS do widget: $e');
+    }
+  }
+
   Future<void> _dispararLocalizacaoViaNuvem({required String origem}) async {
     final String? uid = await FirebaseAuthService().aguardarUidPronto();
     if (uid == null) {

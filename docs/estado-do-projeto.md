@@ -92,6 +92,10 @@ Regras do Firestore (06/09) e do Storage (01/08) não foram republicadas.
 7. **Revogar o `isPremium` de teste** das duas contas depois dos testes
    (painel admin → Planos → Revogar Premium).
 8. **Commit do `firebase.json` na pasta do Android** ainda só local (sem push).
+9. **Posição atual no Monitoramento (04/10):** hoje a posição do contato só é
+   atualizada no aceite, com cronômetro ou com alarme ativos. Proposta (sem
+   nada aplicado no servidor) em
+   `docs/proposta-localizacao-sob-demanda-monitoramento.md`.
 
 ## Como gerar um build do TestFlight
 

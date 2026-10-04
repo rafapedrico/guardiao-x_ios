@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:intl/intl.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,6 +14,27 @@ import '../../widgets/monitoramento_decisao_dialog.dart';
 import '../../widgets/plano_bloqueado_dialog.dart';
 
 const Color _corDestaque = Color(0xFF4C7040);
+
+/// A partir desta idade, a posição de um contato é sinalizada como
+/// possivelmente desatualizada (card e confirmação antes do mapa).
+const Duration _idadePosicaoDesatualizada = Duration(minutes: 15);
+
+/// Momento da última posição gravada em `usuarios/{uid}/monitoramento/atual`.
+DateTime? _momentoDaPosicao(Map<String, dynamic>? dados) {
+  final atualizadoEm = dados?['atualizadoEm'];
+  return atualizadoEm is Timestamp ? atualizadoEm.toDate() : null;
+}
+
+/// "Atualizado há X min" (ou "há X h" a partir de 1 hora).
+String _textoIdadePosicao(AppLocalizations l10n, DateTime momento) {
+  final idade = DateTime.now().difference(momento);
+  final minutos = idade.isNegative ? 0 : idade.inMinutes;
+  if (minutos < 60) return l10n.monitoramentoAtualizadoHaMinutos(minutos);
+  return l10n.monitoramentoAtualizadoHaHoras(minutos ~/ 60);
+}
+
+bool _posicaoDesatualizada(DateTime? momento) =>
+    momento == null || DateTime.now().difference(momento) > _idadePosicaoDesatualizada;
 
 /// Aba Monitoramento: permite ao usuário controlar, contato a contato, o
 /// compartilhamento bilateral de localização GPS em tempo real com
@@ -498,6 +520,11 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     final latitude = (dados?['latitude'] as num?)?.toDouble();
     final longitude = (dados?['longitude'] as num?)?.toDouble();
     if (latitude == null || longitude == null) return;
+    if (!mounted) return;
+
+    // Antes do mapa: de quando é a posição (e o aviso se passar de 15 min)
+    // — o mapa em si não mostra o horário.
+    if (!await _confirmarAberturaDoMapa(_momentoDaPosicao(dados))) return;
 
     final uri = Uri.parse('https://maps.google.com/?q=$latitude,$longitude');
     try {
@@ -505,6 +532,62 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     } catch (_) {
       // Best-effort — se não houver app de mapas disponível, ignora.
     }
+  }
+
+  Future<bool> _confirmarAberturaDoMapa(DateTime? momento) async {
+    final l10n = AppLocalizations.of(context)!;
+    final desatualizada = _posicaoDesatualizada(momento);
+    final locale = Localizations.localeOf(context).toString();
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (contextoDialogo) => AlertDialog(
+        title: Text(l10n.monitoramentoUltimaPosicaoTitulo),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (momento != null) ...[
+              Text(l10n.monitoramentoUltimaPosicaoRegistradaEm(
+                  DateFormat.yMd(locale).add_Hm().format(momento))),
+              const SizedBox(height: 4),
+              Text(
+                _textoIdadePosicao(l10n, momento),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ] else
+              Text(l10n.monitoramentoUltimaPosicaoSemHorario),
+            if (desatualizada) ...[
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.monitoramentoPosicaoDesatualizadaAviso,
+                      style: TextStyle(color: Colors.orange.shade900),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(contextoDialogo).pop(false),
+            child: Text(l10n.cancelar),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(contextoDialogo).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: _corDestaque),
+            child: Text(l10n.monitoramentoAbrirMapa),
+          ),
+        ],
+      ),
+    );
+    return confirmou ?? false;
   }
 
   // ==========================================================
@@ -877,9 +960,19 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _servico.statusPermissaoStream(permissaoId),
       builder: (context, snapshot) {
-        final status = snapshot.data?.data()?['status'] as String? ??
-            (contato['status_ver_localizacao'] as String? ??
-                MonitoramentoService.statusVerNaoSolicitado);
+        // O cache local só vale enquanto o servidor não respondeu: um
+        // documento de permissão que o servidor diz não existir NÃO está
+        // aprovado, diga o cache o que disser (ver
+        // MonitoramentoService._garantirCacheDaContaAtual).
+        final documento = snapshot.data;
+        final inexistenteNoServidor = documento != null &&
+            !documento.exists &&
+            !documento.metadata.isFromCache;
+        final status = inexistenteNoServidor
+            ? MonitoramentoService.statusVerNaoSolicitado
+            : (documento?.data()?['status'] as String? ??
+                (contato['status_ver_localizacao'] as String? ??
+                    MonitoramentoService.statusVerNaoSolicitado));
 
         switch (status) {
           case MonitoramentoService.statusPendente:
@@ -938,12 +1031,9 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
         // explicitamente que a primeira localização ainda está a caminho.
         final semLocalizacaoAinda = !aindaCarregando && dados == null;
 
-        final atualizadoEm = dados?['atualizadoEm'];
-        String? subtitulo;
-        if (atualizadoEm is Timestamp) {
-          final minutos = DateTime.now().difference(atualizadoEm.toDate()).inMinutes;
-          subtitulo = l10n.monitoramentoAtualizadoHaMinutos(minutos < 0 ? 0 : minutos);
-        }
+        final momento = _momentoDaPosicao(dados);
+        final String? subtitulo = momento == null ? null : _textoIdadePosicao(l10n, momento);
+        final bool desatualizada = dados != null && _posicaoDesatualizada(momento);
 
         return Row(
           children: [
@@ -964,7 +1054,28 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
                       padding: const EdgeInsets.only(left: 22, top: 2),
                       child: Text(
                         subtitulo,
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: desatualizada ? Colors.orange.shade900 : Colors.grey.shade600,
+                          fontWeight: desatualizada ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  if (desatualizada)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 22, top: 2),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.warning_amber_rounded, size: 13, color: Colors.orange.shade800),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              l10n.monitoramentoPosicaoDesatualizada,
+                              style: TextStyle(fontSize: 11, color: Colors.orange.shade900),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],

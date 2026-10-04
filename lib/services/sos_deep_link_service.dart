@@ -1,68 +1,87 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
-import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
-/// Ponte entre o Widget de Home Screen do iOS ("Botão de Pânico Virtual")
-/// e o fluxo unificado de SOS ([SosDisparoService], acionado a partir de
-/// `main.dart`).
+/// Ponte entre o Widget SOS do iOS ("Botão de Pânico Virtual",
+/// `ios/SOSWidget/`) e o fluxo do SOS ([SosWidgetFluxoService]).
 ///
-/// SUBSTITUTO DE PRODUTO PARA O `volume_sos` NO iOS (decisão de produto já
-/// registrada em `docs/migracao-ios-relatorio-2026-09-12.md`, seção 5,
-/// item 4): a Apple não permite que nenhum app escute o botão físico de
-/// Volume+ em segundo plano/com o app fechado — sem rota de código
-/// possível, só um substituto de produto (o relatório já sugeria um
-/// Atalho/Botão de Ação). Este serviço cobre essa necessidade via um
-/// Widget 1x1 estático na tela de início do iPhone (WidgetKit nativo, ver
-/// `ios/SOSWidget/`) cujo único gesto é abrir o app através do URL Scheme
-/// `guardiaox://sos` (`.widgetURL(...)` no SwiftUI) — o toque no widget É
-/// o gatilho; a Apple não permite lógica alguma rodando dentro do próprio
-/// widget além de exibir a UI estática.
+/// SUBSTITUTO DE PRODUTO PARA O `volume_sos` NO iOS (ver
+/// `docs/migracao-ios-relatorio-2026-09-12.md`, seção 5, item 4): a Apple
+/// não deixa nenhum app escutar o botão de volume em segundo plano. O
+/// toque no widget abre o app por `guardiaox://sos`.
 ///
-/// Cobre os DOIS cenários de lançamento de um URL Scheme custom no iOS:
-///   - App fechado/morto: [linkInicial] resolve o link que causou o cold
-///     start (consumido uma única vez, o mais cedo possível em `main()`).
-///   - App já rodando (foreground ou suspenso em segundo plano):
-///     [aoReceberLink] emite cada novo link recebido enquanto o processo
-///     já está vivo.
-///
-/// Mantido como singleton para nunca abrir duas assinaturas concorrentes
-/// de [aoReceberLink] (mesmo padrão de [VolumeSosService]/[NotificacaoService]).
+/// A URL é capturada NATIVAMENTE no `SceneDelegate.swift` (nos dois pontos
+/// do ciclo UIScene: abertura a frio e app já rodando) e chega aqui por
+/// canal próprio — nada de `app_links` nem do deep linking do Flutter (que
+/// empilhava a splash/login por cima do SOS; ver o comentário no
+/// SceneDelegate). Cada toque é um evento com id único, entregue ao Dart
+/// exatamente uma vez:
+///   - [consumirAberturaInicial]: chamado pelo `main()` antes do `runApp`,
+///     diz se o app foi aberto pelo widget (o primeiro quadro já é a tela
+///     preta do SOS);
+///   - [aoTocarNoWidget]: cada toque recebido depois disso (app em
+///     primeiro/segundo plano). O lado nativo guarda os toques num buffer
+///     até este stream ser ouvido.
 class SosDeepLinkService {
   SosDeepLinkService._internal();
   static final SosDeepLinkService _instance = SosDeepLinkService._internal();
   factory SosDeepLinkService() => _instance;
 
-  final AppLinks _appLinks = AppLinks();
+  static const MethodChannel _canal = MethodChannel('guardiaox/sos_widget_link');
+  static const EventChannel _canalEventos =
+      EventChannel('guardiaox/sos_widget_link/eventos');
 
-  /// Host esperado no URL Scheme `guardiaox://sos` — comparado via
-  /// `uri.host`, nunca via `uri.toString()` cru, para tolerar variações
-  /// (barra final, maiúsculas) sem risco de falso negativo.
-  static const String _hostSos = 'sos';
+  /// Teto de espera da consulta inicial — bem acima da espera máxima do
+  /// lado nativo (1 s), para a resposta nunca chegar depois de desistirmos.
+  static const Duration _tetoConsultaInicial = Duration(seconds: 3);
 
-  /// `true` quando [uri] representa o gatilho de SOS do widget
-  /// (`guardiaox://sos`) — comparação por scheme + host, não pela string
-  /// completa.
-  bool ehLinkDeSos(Uri uri) {
-    return uri.scheme.toLowerCase() == 'guardiaox' &&
-        uri.host.toLowerCase() == _hostSos;
+  final StreamController<String> _toques = StreamController<String>.broadcast();
+  final Set<String> _idsJaEntregues = <String>{};
+  StreamSubscription<dynamic>? _assinaturaNativa;
+  int _contadorTardio = 0;
+
+  /// `true` quando o app foi aberto (a frio) por um toque no widget. O
+  /// toque é consumido aqui: não reaparece em [aoTocarNoWidget]. Nunca
+  /// lança exceção.
+  ///
+  /// Se a resposta nativa chegar depois do teto (não deveria), o toque não
+  /// se perde: vira um evento em [aoTocarNoWidget].
+  Future<bool> consumirAberturaInicial() {
+    if (!Platform.isIOS) return Future<bool>.value(false);
+    final resultado = Completer<bool>();
+    _canal.invokeMethod<bool>('consumirAberturaInicial').then((veioDoWidget) {
+      if (!resultado.isCompleted) {
+        resultado.complete(veioDoWidget ?? false);
+      } else if (veioDoWidget == true) {
+        debugPrint('⚠️ [SosDeepLinkService] Abertura pelo widget respondida tarde — tratada como toque.');
+        _toques.add('tardio_${_contadorTardio++}');
+      }
+    }, onError: (Object e) {
+      debugPrint('⚠️ [SosDeepLinkService] Falha ao consultar a abertura pelo widget: $e');
+      if (!resultado.isCompleted) resultado.complete(false);
+    });
+    Timer(_tetoConsultaInicial, () {
+      if (!resultado.isCompleted) resultado.complete(false);
+    });
+    return resultado.future;
   }
 
-  /// Resolve o link (se houver) que causou o COLD START do app — `null`
-  /// em qualquer abertura normal (ícone, notificação, etc.) ou se a
-  /// própria checagem falhar. Nunca lança exceção: um `app_links`
-  /// indisponível por qualquer motivo não pode impedir o boot do app.
-  Future<Uri?> linkInicial() async {
-    try {
-      return await _appLinks.getInitialLink();
-    } catch (e) {
-      debugPrint('⚠️ [SosDeepLinkService] Falha ao ler o link inicial: $e');
-      return null;
+  /// Cada toque no widget recebido com o app já rodando. Começar a ouvir
+  /// libera o buffer nativo — por isso só depois de
+  /// [consumirAberturaInicial] (ver `main()`).
+  Stream<String> get aoTocarNoWidget {
+    if (Platform.isIOS) {
+      _assinaturaNativa ??= _canalEventos.receiveBroadcastStream().listen((evento) {
+        final id = evento.toString();
+        // Defesa extra: o nativo já entrega cada id uma única vez.
+        if (!_idsJaEntregues.add(id)) return;
+        _toques.add(id);
+      }, onError: (Object e) {
+        debugPrint('⚠️ [SosDeepLinkService] Erro no canal de toques do widget: $e');
+      });
     }
+    return _toques.stream;
   }
-
-  /// Emite cada link recebido enquanto o app já está com o processo vivo
-  /// (foreground ou background) — nunca repete o [linkInicial] já
-  /// consumido no cold start (garantia do próprio `app_links`).
-  Stream<Uri> get aoReceberLink => _appLinks.uriLinkStream;
 }

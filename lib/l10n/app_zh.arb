@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "全部复制",
   "diagnosticoCopiado": "诊断信息已复制",
   "diagnosticoLimpar": "清除",
-  "diagnosticoExplicacao": "此设备上记录的最近 200 条错误和警告（最新的在最后）。点按“全部复制”，然后粘贴到与客服的对话中。"
+  "diagnosticoExplicacao": "此设备上记录的最近 200 条错误和警告（最新的在最后）。点按“全部复制”，然后粘贴到与客服的对话中。",
+  "sosWidgetEnviandoLocalizacao": "正在发送位置…",
+  "sosWidgetLocalizacaoEnviada": "位置已发送，正在等待相机",
+  "sosWidgetFalhaEnvio": "位置发送失败。正在重试…",
+  "sosWidgetCameraIndisponivel": "相机不可用——警报已发送给您的联系人",
+  "monitoramentoAtualizadoHaHoras": "{horas}小时前更新",
+  "monitoramentoPosicaoDesatualizada": "位置已超过 15 分钟——可能已过时",
+  "monitoramentoUltimaPosicaoTitulo": "最后已知位置",
+  "monitoramentoUltimaPosicaoRegistradaEm": "记录于 {dataHora}。",
+  "monitoramentoPosicaoDesatualizadaAviso": "此位置已超过 15 分钟，可能无法显示对方现在的位置。只有当对方接受请求，或计时器或闹钟处于启用状态时才会更新。",
+  "monitoramentoUltimaPosicaoSemHorario": "最后位置的时间未知。",
+  "monitoramentoAbrirMapa": "打开地图"
 }

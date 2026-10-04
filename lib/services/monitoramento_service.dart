@@ -150,8 +150,49 @@ class MonitoramentoService {
   // CONTATOS LOCAIS (SQLite) — gerenciamento independente
   // ==========================================================
 
-  Future<List<Map<String, dynamic>>> listarContatos() =>
-      DatabaseHelper().listarContatosMonitoramento();
+  Future<List<Map<String, dynamic>>> listarContatos() async {
+    await _garantirCacheDaContaAtual();
+    return DatabaseHelper().listarContatosMonitoramento();
+  }
+
+  static const String _chaveContaDonaDoCache = 'monitoramento_cache_uid_dono';
+
+  /// CORREÇÃO (feedback do build 109 — "Ver localização mostra a MINHA
+  /// posição, e não a do contato"): a tabela local de contatos guarda o uid
+  /// resolvido de cada contato e o status "aprovado" em cache, mas NÃO é
+  /// apagada ao sair da conta. Entrando com OUTRA conta no mesmo aparelho,
+  /// as linhas da conta anterior continuavam valendo — e se o contato
+  /// cadastrado era justamente a conta que agora está logada, o card usava
+  /// o MEU uid como alvo: o documento de permissão `eu__eu` não existe, o
+  /// card caía no "aprovado" do cache e lia `usuarios/{meuUid}/monitoramento/atual`
+  /// (o dono sempre pode ler o próprio) → a minha própria posição no mapa.
+  ///
+  /// Agora o cache tem dono: se a conta mudou, tudo o que foi resolvido na
+  /// nuvem é descartado (nome/telefone ficam; o uid é resolvido de novo na
+  /// próxima solicitação). Sem dono registrado (instalações anteriores a
+  /// esta correção), só as linhas que apontam para a própria conta.
+  Future<void> _garantirCacheDaContaAtual() async {
+    final meuUid = _meuUid;
+    if (meuUid == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dono = prefs.getString(_chaveContaDonaDoCache);
+      if (dono == meuUid) {
+        await DatabaseHelper().limparResolucaoContatosMonitoramento(somenteUid: meuUid);
+        return;
+      }
+      final apagadas = await DatabaseHelper()
+          .limparResolucaoContatosMonitoramento(somenteUid: dono == null ? meuUid : null);
+      await prefs.setString(_chaveContaDonaDoCache, meuUid);
+      if (apagadas > 0) {
+        debugPrint('🧹 [MonitoramentoService] Cache de $apagadas contato(s) de monitoramento '
+            'era de outra conta — descartado.');
+        _notificarAlteracao();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [MonitoramentoService] Falha ao conferir o dono do cache local: $e');
+    }
+  }
 
   /// Adiciona um novo contato à lista local. [telefone] é normalizado
   /// para E.164 (mesmo critério de `CadastroScreen`/`smsGateway.js`) antes
@@ -639,6 +680,12 @@ class MonitoramentoService {
   /// devolve `null` silenciosamente. Usada pelo botão "Ver no mapa".
   Future<Map<String, dynamic>?> buscarUltimaLocalizacao(String uidAlvo) async {
     if (!_firebaseDisponivel) return null;
+    // Nunca a própria posição como se fosse a de um contato (ver
+    // [_garantirCacheDaContaAtual]).
+    if (uidAlvo == _meuUid) {
+      debugPrint('⚠️ [MonitoramentoService] Contato aponta para a própria conta — ignorado.');
+      return null;
+    }
     // BLOQUEIO BIDIRECIONAL de localização do ciclo do Plano Free (ver
     // PlanoCicloService) — lado "visualizar": além de [_abrirMapa] já
     // checar isso antes de abrir o mapa (exibindo o modal de upsell),

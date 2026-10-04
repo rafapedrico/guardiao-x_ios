@@ -533,6 +533,69 @@ class FirebaseSyncService {
     }
   }
 
+  /// Variante de [dispararAlertaSosFisico] para o Widget SOS do iOS, que
+  /// precisa SABER quando o alerta chegou ao servidor (a tela preta troca
+  /// "Enviando localização…" por "Localização enviada…") e nunca desistir.
+  ///
+  /// O documento tem id fixo desde a primeira tentativa: o Firestore guarda
+  /// a escrita pendente e a reenvia sozinho quando a rede volta, então
+  /// esperar a MESMA escrita não gera alertas duplicados (um `add` novo a
+  /// cada tentativa geraria — e cada documento novo é um Push novo aos
+  /// contatos). Se o envio demorar mais que [_timeoutFirestore] ou falhar,
+  /// [aoDemorarOuFalhar] é chamado e a espera continua; num erro de
+  /// verdade, confere no servidor se o documento já existe antes de
+  /// regravar (as regras proíbem atualizar um alerta já criado).
+  ///
+  /// A janela de 10 dias ativos do Plano Free é checada pelo CHAMADOR
+  /// (uma única leitura compartilhada com a abertura da câmera). Retorna
+  /// `true` quando o servidor confirmou; `false` só sem sessão ou depois de
+  /// [tentativasMaximas] erros seguidos.
+  Future<bool> enviarAlertaSosComConfirmacao({
+    double? latitude,
+    double? longitude,
+    required String origem,
+    required VoidCallback aoDemorarOuFalhar,
+    int tentativasMaximas = 40,
+  }) async {
+    if (!_firebaseDisponivel) return false;
+    final referencia = _documentoUsuario.collection('alertas').doc();
+    final dados = <String, dynamic>{
+      'tipo': 'sos_fisico',
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      'origem': origem,
+      'criadoEm': FieldValue.serverTimestamp(),
+      'processado': false,
+    };
+
+    for (var tentativa = 1; tentativa <= tentativasMaximas; tentativa++) {
+      final escrita = referencia.set(dados);
+      try {
+        await escrita.timeout(_timeoutFirestore, onTimeout: () {
+          debugPrint('⏳ [FirebaseSyncService] Alerta do Widget SOS ainda sem confirmação '
+              '— o Firestore segue tentando.');
+          aoDemorarOuFalhar();
+          return escrita;
+        });
+        debugPrint('☁️ [FirebaseSyncService] Alerta de SOS ($origem) confirmado pelo servidor '
+            '(tentativa $tentativa).');
+        return true;
+      } catch (e) {
+        debugPrint('⚠️ [FirebaseSyncService] Falha ao enviar alerta de SOS ($origem), '
+            'tentativa $tentativa: $e');
+        aoDemorarOuFalhar();
+        try {
+          final existente = await referencia
+              .get(const GetOptions(source: Source.server))
+              .timeout(_timeoutFirestore);
+          if (existente.exists) return true;
+        } catch (_) {}
+        await Future<void>.delayed(const Duration(seconds: 3));
+      }
+    }
+    return false;
+  }
+
   /// Dispara o P2 da sequência unificada de SOS — a foto já foi enviada
   /// ao Firebase Storage por [SosDisparoService] antes desta chamada,
   /// [fotoUrl] é o link (com token de acesso) que a Cloud Function

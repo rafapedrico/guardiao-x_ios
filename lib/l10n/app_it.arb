@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "Copia tutto",
   "diagnosticoCopiado": "Diagnostica copiata",
   "diagnosticoLimpar": "Cancella",
-  "diagnosticoExplicacao": "Gli ultimi 200 errori e avvisi registrati su questo dispositivo (i più recenti alla fine). Tocca \"Copia tutto\" e incollalo nella conversazione con il supporto."
+  "diagnosticoExplicacao": "Gli ultimi 200 errori e avvisi registrati su questo dispositivo (i più recenti alla fine). Tocca \"Copia tutto\" e incollalo nella conversazione con il supporto.",
+  "sosWidgetEnviandoLocalizacao": "Invio della posizione…",
+  "sosWidgetLocalizacaoEnviada": "Posizione inviata, in attesa della fotocamera",
+  "sosWidgetFalhaEnvio": "Invio della posizione non riuscito. Nuovo tentativo…",
+  "sosWidgetCameraIndisponivel": "Fotocamera non disponibile — avviso già inviato ai tuoi contatti",
+  "monitoramentoAtualizadoHaHoras": "Aggiornato {horas} h fa",
+  "monitoramentoPosicaoDesatualizada": "Posizione di oltre 15 min fa — potrebbe non essere aggiornata",
+  "monitoramentoUltimaPosicaoTitulo": "Ultima posizione nota",
+  "monitoramentoUltimaPosicaoRegistradaEm": "Registrata il {dataHora}.",
+  "monitoramentoPosicaoDesatualizadaAviso": "Questa posizione ha più di 15 minuti e potrebbe non mostrare dove si trova ora la persona. Viene aggiornata solo quando la persona accetta una richiesta o ha il timer o una sveglia attivi.",
+  "monitoramentoUltimaPosicaoSemHorario": "Ora dell'ultima posizione sconosciuta.",
+  "monitoramentoAbrirMapa": "Apri mappa"
 }

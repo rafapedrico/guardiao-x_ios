@@ -1209,5 +1209,30 @@
   "diagnosticoCopiar": "Copiar tudo",
   "diagnosticoCopiado": "Diagnóstico copiado",
   "diagnosticoLimpar": "Limpar",
-  "diagnosticoExplicacao": "Os últimos 200 erros e avisos registrados neste aparelho (mais recentes no fim). Toque em \"Copiar tudo\" e cole na conversa com o suporte."
+  "diagnosticoExplicacao": "Os últimos 200 erros e avisos registrados neste aparelho (mais recentes no fim). Toque em \"Copiar tudo\" e cole na conversa com o suporte.",
+  "sosWidgetEnviandoLocalizacao": "Enviando localização…",
+  "sosWidgetLocalizacaoEnviada": "Localização enviada, aguardando liberação da câmera",
+  "sosWidgetFalhaEnvio": "Falha ao enviar a localização. Tentando novamente…",
+  "sosWidgetCameraIndisponivel": "Câmera indisponível — alerta já enviado aos seus contatos",
+  "monitoramentoAtualizadoHaHoras": "Atualizado há {horas} h",
+  "@monitoramentoAtualizadoHaHoras": {
+    "placeholders": {
+      "horas": {
+        "type": "int"
+      }
+    }
+  },
+  "monitoramentoPosicaoDesatualizada": "Posição com mais de 15 min — pode estar desatualizada",
+  "monitoramentoUltimaPosicaoTitulo": "Última posição conhecida",
+  "monitoramentoUltimaPosicaoRegistradaEm": "Registrada em {dataHora}.",
+  "@monitoramentoUltimaPosicaoRegistradaEm": {
+    "placeholders": {
+      "dataHora": {
+        "type": "String"
+      }
+    }
+  },
+  "monitoramentoPosicaoDesatualizadaAviso": "Esta posição tem mais de 15 minutos e pode não mostrar onde a pessoa está agora. Ela só é atualizada quando a pessoa aceita uma solicitação ou está com o cronômetro ou um alarme ativo.",
+  "monitoramentoUltimaPosicaoSemHorario": "Horário da última posição desconhecido.",
+  "monitoramentoAbrirMapa": "Abrir mapa"
 }

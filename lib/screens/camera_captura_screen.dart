@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:camera/camera.dart';
@@ -20,7 +21,16 @@ enum _EstadoCaptura {
 }
 
 class CameraCapturaScreen extends StatefulWidget {
-  const CameraCapturaScreen({super.key, this.origemUnificada});
+  const CameraCapturaScreen({
+    super.key,
+    this.origemUnificada,
+    this.aoResolverAbertura,
+    this.limiteAbertura,
+  });
+
+  /// Quantas telas de captura estão montadas agora — o Widget SOS não abre
+  /// uma segunda câmera por cima de uma que já está na tela.
+  static int instanciasAbertas = 0;
 
   /// Quando informado, esta captura faz parte da sequência UNIFICADA de
   /// SOS (P1->P4, ver [SosDisparoService]) — a foto (P2) é enviada pelo
@@ -31,6 +41,15 @@ class CameraCapturaScreen extends StatefulWidget {
   /// desta unificação), mantém o comportamento histórico inalterado: SMS
   /// de texto + `SystemNavigator.pop()` no swipe.
   final String? origemUnificada;
+
+  /// Chamado UMA vez: `true` quando o preview da câmera já está na tela,
+  /// `false` quando a câmera não vai abrir (permissão negada, erro, ou
+  /// [limiteAbertura] estourado — nesse caso a tela segue direto para a
+  /// tela vermelha). Usado pela tela preta do Widget SOS.
+  final ValueChanged<bool>? aoResolverAbertura;
+
+  /// Tempo máximo para a câmera abrir antes de desistir dela.
+  final Duration? limiteAbertura;
 
   @override
   State<CameraCapturaScreen> createState() => _CameraCapturaScreenState();
@@ -43,6 +62,17 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
   _EstadoCaptura _estado = _EstadoCaptura.inicializandoCamera;
   bool _processandoFoto = false;
   final FocusNode _focusNode = FocusNode();
+  Timer? _timerLimiteAbertura;
+  bool _aberturaResolvida = false;
+  bool _envioIniciado = false;
+
+  /// Avisa [CameraCapturaScreen.aoResolverAbertura] uma única vez.
+  void _resolverAbertura(bool abriu) {
+    if (_aberturaResolvida) return;
+    _aberturaResolvida = true;
+    _timerLimiteAbertura?.cancel();
+    widget.aoResolverAbertura?.call(abriu);
+  }
 
   // Pequena pausa cosmética só para a UI não "piscar" direto para a tela
   // de dissuasão quando o envio (upload/SMS/push) foi extremamente
@@ -64,6 +94,15 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
     debugPrint(
         '🟩🟩🟩 [CameraCapturaScreen] >>> initState() ENTROU <<< timestamp=${DateTime.now().toIso8601String()}');
 
+    CameraCapturaScreen.instanciasAbertas++;
+    final limite = widget.limiteAbertura;
+    if (limite != null) {
+      _timerLimiteAbertura = Timer(limite, () {
+        if (!mounted || _estado != _EstadoCaptura.inicializandoCamera) return;
+        debugPrint('⚠️ [CameraCapturaScreen] Câmera não abriu em ${limite.inSeconds}s — seguindo sem foto.');
+        _avancarSemFoto();
+      });
+    }
     _forcarShowWhenLocked();
     _inicializarCamera();
   }
@@ -78,6 +117,9 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
 
   @override
   void dispose() {
+    CameraCapturaScreen.instanciasAbertas--;
+    _timerLimiteAbertura?.cancel();
+    _resolverAbertura(false);
     _focusNode.dispose();
     _descartarCameraSuavemente();
     super.dispose();
@@ -196,7 +238,9 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
         rethrow;
       }
 
-      if (!mounted) {
+      // Desistiu da câmera enquanto ela inicializava ([limiteAbertura]):
+      // a tela já seguiu sem foto.
+      if (!mounted || _estado != _EstadoCaptura.inicializandoCamera) {
         await controller.dispose();
         return;
       }
@@ -214,6 +258,8 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _focusNode.requestFocus();
+          // Preview já desenhado: a tela preta do Widget SOS pode sair.
+          _resolverAbertura(true);
         });
       }
     } catch (e) {
@@ -224,6 +270,7 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
 
   void _avancarSemFoto() {
     if (!mounted) return;
+    _resolverAbertura(false);
     setState(() => _estado = _EstadoCaptura.processandoEnvio);
     _processarEnvioEEnviarSmsResgate(null);
   }
@@ -259,6 +306,10 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
   }
 
   Future<void> _processarEnvioEEnviarSmsResgate(XFile? foto) async {
+    // Uma vez só: o limite de abertura pode seguir sem foto enquanto a
+    // inicialização ainda termina (e falha) por conta própria.
+    if (_envioIniciado) return;
+    _envioIniciado = true;
     final String? origemUnificada = widget.origemUnificada;
 
     if (origemUnificada != null) {

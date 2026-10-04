@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "نسخ الكل",
   "diagnosticoCopiado": "تم نسخ التشخيص",
   "diagnosticoLimpar": "مسح",
-  "diagnosticoExplicacao": "آخر 200 خطأ وتحذير مسجلة على هذا الجهاز (الأحدث في النهاية). اضغط على \"نسخ الكل\" والصقه في المحادثة مع الدعم."
+  "diagnosticoExplicacao": "آخر 200 خطأ وتحذير مسجلة على هذا الجهاز (الأحدث في النهاية). اضغط على \"نسخ الكل\" والصقه في المحادثة مع الدعم.",
+  "sosWidgetEnviandoLocalizacao": "جارٍ إرسال الموقع…",
+  "sosWidgetLocalizacaoEnviada": "تم إرسال الموقع، في انتظار تشغيل الكاميرا",
+  "sosWidgetFalhaEnvio": "فشل إرسال الموقع. جارٍ إعادة المحاولة…",
+  "sosWidgetCameraIndisponivel": "الكاميرا غير متاحة — تم إرسال التنبيه بالفعل إلى جهات اتصالك",
+  "monitoramentoAtualizadoHaHoras": "تم التحديث منذ {horas} ساعة",
+  "monitoramentoPosicaoDesatualizada": "الموقع أقدم من 15 دقيقة — قد يكون غير محدّث",
+  "monitoramentoUltimaPosicaoTitulo": "آخر موقع معروف",
+  "monitoramentoUltimaPosicaoRegistradaEm": "سُجّل في {dataHora}.",
+  "monitoramentoPosicaoDesatualizadaAviso": "هذا الموقع أقدم من 15 دقيقة وقد لا يُظهر مكان الشخص الآن. لا يتم تحديثه إلا عندما يقبل الشخص طلبًا أو يكون المؤقت أو أحد المنبهات نشطًا.",
+  "monitoramentoUltimaPosicaoSemHorario": "وقت آخر موقع غير معروف.",
+  "monitoramentoAbrirMapa": "فتح الخريطة"
 }

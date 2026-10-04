@@ -93,8 +93,15 @@
 	     equivalente possível no iOS (ver
 	     docs/migracao-ios-relatorio-2026-09-12.md, seção 5, item 4). O
 	     widget abre o app via `guardiaox://sos` (`.widgetURL(...)` no
-	     SwiftUI); o lado Dart resolve esse link via `app_links` — ver
+	     SwiftUI); a URL é capturada nativamente no SceneDelegate.swift e
+	     entregue ao Dart por canal próprio — ver
 	     lib/services/sos_deep_link_service.dart. -->
+	<!-- Deep linking do Flutter DESLIGADO: ligado (padrão), o engine
+	     empurrava `guardiaox://sos` como rota e o onGenerateRoute do app
+	     empilhava a splash/login por cima do SOS. O app não usa rotas por
+	     URL; outros esquemas (login do Google) continuam indo aos plugins. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

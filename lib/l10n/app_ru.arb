@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "Копировать всё",
   "diagnosticoCopiado": "Диагностика скопирована",
   "diagnosticoLimpar": "Очистить",
-  "diagnosticoExplicacao": "Последние 200 ошибок и предупреждений на этом устройстве (новые — в конце). Нажмите «Копировать всё» и вставьте текст в чат с поддержкой."
+  "diagnosticoExplicacao": "Последние 200 ошибок и предупреждений на этом устройстве (новые — в конце). Нажмите «Копировать всё» и вставьте текст в чат с поддержкой.",
+  "sosWidgetEnviandoLocalizacao": "Отправка местоположения…",
+  "sosWidgetLocalizacaoEnviada": "Местоположение отправлено, ожидание камеры",
+  "sosWidgetFalhaEnvio": "Не удалось отправить местоположение. Повторная попытка…",
+  "sosWidgetCameraIndisponivel": "Камера недоступна — оповещение уже отправлено вашим контактам",
+  "monitoramentoAtualizadoHaHoras": "Обновлено {horas} ч назад",
+  "monitoramentoPosicaoDesatualizada": "Позиция старше 15 мин — может быть неактуальной",
+  "monitoramentoUltimaPosicaoTitulo": "Последнее известное местоположение",
+  "monitoramentoUltimaPosicaoRegistradaEm": "Записано {dataHora}.",
+  "monitoramentoPosicaoDesatualizadaAviso": "Этой позиции больше 15 минут, и она может не показывать, где человек находится сейчас. Она обновляется, только когда человек принимает запрос или у него активен таймер или будильник.",
+  "monitoramentoUltimaPosicaoSemHorario": "Время последней позиции неизвестно.",
+  "monitoramentoAbrirMapa": "Открыть карту"
 }

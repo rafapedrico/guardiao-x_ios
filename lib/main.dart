@@ -19,7 +19,6 @@ import 'screens/completar_perfil_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/onboarding_screen.dart';
-import 'screens/sos_sem_login_screen.dart';
 import 'services/alarme_service.dart';
 import 'services/background_location_heartbeat_service.dart';
 import 'services/bloqueio_app_service.dart';
@@ -44,11 +43,13 @@ import 'services/rotina_alarme_service.dart';
 import 'services/sessao_revogada_service.dart';
 import 'services/sos_deep_link_service.dart';
 import 'services/sos_disparo_service.dart';
+import 'services/sos_widget_fluxo_service.dart';
 import 'services/volume_sos_service.dart';
 import 'services/wallpaper_service.dart';
 import 'widgets/camada_bloqueio_app.dart';
 import 'widgets/pin_dialog.dart';
 import 'widgets/plano_bloqueado_dialog.dart';
+import 'widgets/tela_sos_widget.dart';
 
 const String _rotaInicialSosFisico = '/sos_fisico_lockscreen';
 const String _rotaInicialRotinaAlarme = '/rotina_alarme_confirmacao';
@@ -62,9 +63,12 @@ const String _rotaInicialCronometroAlarme = '/cronometro_alarme_confirmacao';
 // leituras de disco `await`adas ANTES do runApp() — medido ~7s de cold
 // start em debug. Meta: ZERO `await` antes do runApp()).
 //
-// ETAPA 1 (main, abaixo): só ensureInitialized() + 2 checagens 100%
+// ETAPA 1 (main, abaixo): só ensureInitialized() + checagens 100%
 // SÍNCRONAS de rota (sem I/O, não são `await` — decidem qual widget é
-// o primeiro frame) + runApp() imediato.
+// o primeiro frame) + runApp() imediato. ÚNICA exceção (iOS, build 110):
+// uma consulta nativa de poucos milissegundos — "o app foi aberto pelo
+// Widget SOS?" — aguardada ANTES do runApp() para o primeiro quadro já
+// ser a tela preta do SOS, nunca a splash/login/bloqueio.
 //
 // ETAPA 2 (_garantirFirebaseEAuth): disparada (sem `await`) logo após o
 // runApp() — SÓ Firebase core + FirebaseAuth (com a sessão persistida
@@ -102,7 +106,7 @@ bool _servicosPosLoginJaIniciados = false;
 /// inicializar duas vezes nem correr uma contra a outra.
 Future<void>? _futuroFirebaseEAuth;
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Primeiro de tudo: registra erros/avisos para a tela Diagnóstico (ver
@@ -204,34 +208,32 @@ void main() {
 
   // SUBSTITUTO iOS DO GATILHO FÍSICO DE SOS (Volume+ em segundo plano,
   // sem equivalente possível na Apple — ver
-  // docs/migracao-ios-relatorio-2026-09-12.md, seção 5, item 4): o
-  // Widget de Home Screen (`ios/SOSWidget/`) abre o app via
-  // `guardiaox://sos`. Checado o quanto antes (mesma tier dos dois
-  // `unawaited` acima, ANTES até do runApp() abaixo) para resolver o
-  // mais cedo possível — ver [_verificarDeepLinkSosNoColdStartEDisparar].
-  // Fire-and-forget: nunca atrasa o primeiro frame.
-  unawaited(_verificarDeepLinkSosNoColdStartEDisparar());
+  // docs/migracao-ios-relatorio-2026-09-12.md, seção 5, item 4): o Widget
+  // SOS (`ios/SOSWidget/`) abre o app via `guardiaox://sos`, capturado no
+  // SceneDelegate nativo (ver [SosDeepLinkService]).
+  //
+  // Cold start pelo widget: perguntado ANTES do runApp() (única espera
+  // antes do primeiro quadro, poucos ms) para a tela inicial já ser a tela
+  // preta do SOS — nunca splash, login, bloqueio ou Home. O fluxo começa
+  // aqui mesmo: a tela preta já está pedida quando o runApp() desenha.
+  final bool coldStartViaWidgetSos =
+      await SosDeepLinkService().consumirAberturaInicial();
+  if (coldStartViaWidgetSos) {
+    debugPrint('🆘 [main] Cold start via Widget SOS (iOS).');
+    SosWidgetFluxoService().iniciar(garantirFirebaseEAuth: _garantirFirebaseEAuth);
+    unawaited(_garantirFirebaseEAuth()
+        .then((_) => BloqueioAppService().bloquearSeHouverSessao()));
+  }
 
-  // Cobre o SEGUNDO cenário do mesmo Widget: app já rodando
-  // (foreground/background, processo vivo) quando o toque acontece —
-  // [SosDeepLinkService.aoReceberLink] nunca repete o link do cold start
-  // acima (garantia do próprio `app_links`). Assinatura única, válida a
-  // vida inteira do processo, DELIBERADAMENTE fora de
-  // [iniciarServicosPosLoginOuDashboard] — o SOS deve funcionar mesmo
-  // antes de qualquer login, mesmo espírito do botão físico no Android.
-  SosDeepLinkService().aoReceberLink.listen((uri) {
-    if (SosDeepLinkService().ehLinkDeSos(uri)) {
-      debugPrint('🆘 [main] SOS via Widget (iOS) — app já em execução.');
-      // Libera o bloqueio NA HORA (síncrono, antes de qualquer `await`):
-      // o app pode estar voltando do segundo plano e já ter se bloqueado
-      // no `resumed` — o SOS nunca espera desbloqueio.
-      final encerrarLiberacao = BloqueioAppService().liberarParaEmergencia();
-      unawaited(_garantirFirebaseEAuth().then(
-        (_) => _iniciarSosDoWidget(encerrarLiberacao: encerrarLiberacao),
-      ));
-    }
-  }, onError: (e) {
-    debugPrint('⚠️ [main] Erro no stream de deep link do Widget de SOS: $e');
+  // Toques com o app já rodando (primeiro/segundo plano, com ou sem
+  // bloqueio pendente). Ouvido só DEPOIS da consulta acima: começar a
+  // ouvir entrega ao Dart os toques guardados no buffer nativo, e o da
+  // abertura a frio já foi consumido — nunca duplica nem perde. Assinatura
+  // única, fora de [iniciarServicosPosLoginOuDashboard]: o SOS funciona
+  // antes de qualquer login.
+  SosDeepLinkService().aoTocarNoWidget.listen((_) {
+    debugPrint('🆘 [main] SOS via Widget (iOS) — app já em execução.');
+    SosWidgetFluxoService().iniciar(garantirFirebaseEAuth: _garantirFirebaseEAuth);
   });
 
   // Dispara (chama, SEM `await`) a inicialização de Firebase+Auth — isso
@@ -277,6 +279,7 @@ void main() {
     abertoViaAlarmeRotina: coldStartViaRotinaAlarme,
     abertoViaCronometroAlarme: coldStartViaCronometroAlarme,
     abertoViaSosFisico: coldStartViaSosFisico,
+    abertoViaWidgetSos: coldStartViaWidgetSos,
   ));
 
   // A partir daqui, tudo roda EM PARALELO com o primeiro frame já na
@@ -461,63 +464,6 @@ Future<void> _inicializarNotificacoesEAbrirAlertaPendente() async {
       }
     });
   }
-}
-
-/// Resolve o link (se houver) que causou ESTE cold start e, sendo o
-/// gatilho de SOS do Widget de Home Screen do iOS
-/// (`guardiaox://sos`, ver [SosDeepLinkService]), dispara a MESMA
-/// sequência unificada do SOS físico ([_dispararSequenciaUnificadaDeSos]).
-///
-/// O app nasce pelo caminho normal (`_SplashGate`) — no iOS um URL Scheme
-/// só pode ser lido de forma ASSÍNCRONA — e a câmera é empurrada por cima
-/// quando o link resolve (poucos milissegundos). Desde o fim da Opção A
-/// não existe mais corrida com logout: a sessão nunca é derrubada no cold
-/// start, e o bloqueio local é liberado enquanto o SOS estiver na tela
-/// ([BloqueioAppService.liberarParaEmergencia]).
-Future<void> _verificarDeepLinkSosNoColdStartEDisparar() async {
-  final Uri? link = await SosDeepLinkService().linkInicial();
-  if (link == null || !SosDeepLinkService().ehLinkDeSos(link)) return;
-
-  debugPrint('🆘 [main] Cold start via Widget de SOS (iOS): $link');
-  final encerrarLiberacao = BloqueioAppService().liberarParaEmergencia();
-
-  await _garantirFirebaseEAuth();
-  // O app continua bloqueado por baixo — depois do SOS, voltar ao resto
-  // do app passa pelo desbloqueio.
-  BloqueioAppService().bloquearSeHouverSessao();
-
-  // Aguarda o primeiro frame antes de navegar (o `appNavigatorKey` só
-  // existe depois do runApp()).
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    _iniciarSosDoWidget(encerrarLiberacao: encerrarLiberacao);
-  });
-}
-
-/// SOS pedido pelo Widget (cold ou warm start). Sem sessão (ninguém nunca
-/// entrou neste aparelho) não há como enviar alerta: abre a tela que
-/// explica que é preciso entrar uma vez para ativar o botão — nunca a
-/// LoginScreen crua. Com sessão, dispara a sequência completa (Push com
-/// localização → câmera → foto → tela vermelha), sem desbloqueio.
-void _iniciarSosDoWidget({required VoidCallback encerrarLiberacao}) {
-  if (!BloqueioAppService.sessaoValida()) {
-    encerrarLiberacao();
-    debugPrint('🆘 [main] SOS via Widget sem sessão — explicando como ativar.');
-    appNavigatorKey.currentState?.push(
-      MaterialPageRoute(builder: (_) => const SosSemLoginScreen()),
-    );
-    return;
-  }
-  // A câmera/tela vermelha tem sua própria liberação enquanto estiver
-  // aberta ([LiberaBloqueioEnquantoAberta]); esta aqui cobre só o
-  // intervalo até ela abrir (checagem do plano, P1).
-  _dispararSequenciaUnificadaDeSos(origem: 'sos_widget_ios').then((abriuCamera) {
-    if (!abriuCamera) {
-      debugPrint(
-          '🚨 [main] SOS via Widget (iOS): câmera não abriu (P1 já disparado em paralelo).');
-    }
-  }).catchError((e) {
-    debugPrint('⚠️ [main] Falha no SOS via Widget: $e');
-  }).whenComplete(encerrarLiberacao);
 }
 
 /// ETAPA 2: o MÍNIMO de Firebase — `Firebase.initializeApp()`, App Check,
@@ -883,11 +829,18 @@ class SecurityCheckApp extends StatefulWidget {
   final bool abertoViaCronometroAlarme;
   final bool abertoViaSosFisico;
 
+  /// Aberto a frio pelo Widget SOS do iOS: a tela preta do SOS
+  /// ([CamadaTelaSosWidget]) já cobre tudo, e a rota de baixo é a
+  /// [_SplashGate] sem animação (Home bloqueada ou login, decidida em
+  /// silêncio para quando o SOS sair da tela).
+  final bool abertoViaWidgetSos;
+
   const SecurityCheckApp({
     super.key,
     this.abertoViaAlarmeRotina = false,
     this.abertoViaCronometroAlarme = false,
     this.abertoViaSosFisico = false,
+    this.abertoViaWidgetSos = false,
   });
 
   @override
@@ -1041,6 +994,7 @@ class _SecurityCheckAppState extends State<SecurityCheckApp> {
       return const CronometroDisparadoScreen();
     }
     if (widget.abertoViaSosFisico) return const _TelaPretaAguardandoSos();
+    if (widget.abertoViaWidgetSos) return const _SplashGate(semAnimacao: true);
     return const _SplashGate();
   }
 
@@ -1070,8 +1024,12 @@ class _SecurityCheckAppState extends State<SecurityCheckApp> {
                     textScaler: TextScaler.linear(fatorFonte),
                   ),
                   // Bloqueio local POR CIMA do Navigator (ver
-                  // BloqueioAppService): nenhuma navegação escapa dele.
-                  child: CamadaBloqueioApp(child: child!),
+                  // BloqueioAppService): nenhuma navegação escapa dele. A
+                  // tela preta do Widget SOS fica por cima de TUDO,
+                  // inclusive do bloqueio (ver SosWidgetFluxoService).
+                  child: CamadaTelaSosWidget(
+                    child: CamadaBloqueioApp(child: child!),
+                  ),
                 );
               },
               // CORREÇÃO DE BUG REAL (2026-08-11) — CAUSA RAIZ VERDADEIRA:
@@ -1259,7 +1217,12 @@ List<String> _frasesSplash(AppLocalizations l10n) => <String>[
 /// thread e deixava a splash mais lenta) e é aguardado aqui para decidir
 /// entre as duas telas.
 class _SplashGate extends StatefulWidget {
-  const _SplashGate();
+  const _SplashGate({this.semAnimacao = false});
+
+  /// Cold start pelo Widget SOS: a tela preta do SOS cobre tudo, então
+  /// nada de animação (nem consumo da frase da vez) — só a decisão
+  /// Home/login, sobre fundo preto.
+  final bool semAnimacao;
 
   @override
   State<_SplashGate> createState() => _SplashGateState();
@@ -1286,7 +1249,11 @@ class _SplashGateState extends State<_SplashGate> {
   @override
   void initState() {
     super.initState();
-    _carregarIndiceFrase();
+    if (widget.semAnimacao) {
+      _aoAnimacaoConcluir();
+    } else {
+      _carregarIndiceFrase();
+    }
     _aguardarProntidao();
   }
 
@@ -1346,7 +1313,9 @@ class _SplashGateState extends State<_SplashGate> {
     }
     if (!mounted) return;
     setState(() => _destino = destino);
-    if (destino == _DestinoSplash.login && await SessaoRevogadaService.foiRevogada()) {
+    if (destino == _DestinoSplash.login &&
+        !widget.semAnimacao &&
+        await SessaoRevogadaService.foiRevogada()) {
       // Só iOS: a última sessão foi encerrada por login em outro aparelho
       // — explica isso em vez de mostrar só o formulário de login.
       SessaoRevogadaService().exibirTela();

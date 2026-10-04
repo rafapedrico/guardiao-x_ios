@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "Copy all",
   "diagnosticoCopiado": "Diagnostics copied",
   "diagnosticoLimpar": "Clear",
-  "diagnosticoExplicacao": "The last 200 errors and warnings recorded on this device (newest at the end). Tap \"Copy all\" and paste it into your conversation with support."
+  "diagnosticoExplicacao": "The last 200 errors and warnings recorded on this device (newest at the end). Tap \"Copy all\" and paste it into your conversation with support.",
+  "sosWidgetEnviandoLocalizacao": "Sending location…",
+  "sosWidgetLocalizacaoEnviada": "Location sent, waiting for the camera",
+  "sosWidgetFalhaEnvio": "Failed to send location. Retrying…",
+  "sosWidgetCameraIndisponivel": "Camera unavailable — alert already sent to your contacts",
+  "monitoramentoAtualizadoHaHoras": "Updated {horas} h ago",
+  "monitoramentoPosicaoDesatualizada": "Position older than 15 min — may be out of date",
+  "monitoramentoUltimaPosicaoTitulo": "Last known position",
+  "monitoramentoUltimaPosicaoRegistradaEm": "Recorded on {dataHora}.",
+  "monitoramentoPosicaoDesatualizadaAviso": "This position is more than 15 minutes old and may not show where the person is now. It is only updated when the person accepts a request or has the timer or an alarm active.",
+  "monitoramentoUltimaPosicaoSemHorario": "Time of the last position unknown.",
+  "monitoramentoAbrirMapa": "Open map"
 }

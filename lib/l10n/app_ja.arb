@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "すべてコピー",
   "diagnosticoCopiado": "診断をコピーしました",
   "diagnosticoLimpar": "消去",
-  "diagnosticoExplicacao": "この端末で記録された最新200件のエラーと警告（新しいものが最後）。「すべてコピー」をタップして、サポートとの会話に貼り付けてください。"
+  "diagnosticoExplicacao": "この端末で記録された最新200件のエラーと警告（新しいものが最後）。「すべてコピー」をタップして、サポートとの会話に貼り付けてください。",
+  "sosWidgetEnviandoLocalizacao": "位置情報を送信中…",
+  "sosWidgetLocalizacaoEnviada": "位置情報を送信しました。カメラの起動を待っています",
+  "sosWidgetFalhaEnvio": "位置情報の送信に失敗しました。再試行しています…",
+  "sosWidgetCameraIndisponivel": "カメラを利用できません — アラートは連絡先に送信済みです",
+  "monitoramentoAtualizadoHaHoras": "{horas}時間前に更新",
+  "monitoramentoPosicaoDesatualizada": "15分以上前の位置 — 古い可能性があります",
+  "monitoramentoUltimaPosicaoTitulo": "最後に確認された位置",
+  "monitoramentoUltimaPosicaoRegistradaEm": "{dataHora} に記録。",
+  "monitoramentoPosicaoDesatualizadaAviso": "この位置は15分以上前のもので、相手の現在地を示していない可能性があります。相手がリクエストを承認したとき、またはタイマーやアラームが有効なときにのみ更新されます。",
+  "monitoramentoUltimaPosicaoSemHorario": "最後の位置の時刻は不明です。",
+  "monitoramentoAbrirMapa": "地図を開く"
 }

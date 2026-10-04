@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "Alles kopieren",
   "diagnosticoCopiado": "Diagnose kopiert",
   "diagnosticoLimpar": "Leeren",
-  "diagnosticoExplicacao": "Die letzten 200 auf diesem Gerät aufgezeichneten Fehler und Warnungen (neueste am Ende). Tippe auf „Alles kopieren“ und füge es in den Chat mit dem Support ein."
+  "diagnosticoExplicacao": "Die letzten 200 auf diesem Gerät aufgezeichneten Fehler und Warnungen (neueste am Ende). Tippe auf „Alles kopieren“ und füge es in den Chat mit dem Support ein.",
+  "sosWidgetEnviandoLocalizacao": "Standort wird gesendet…",
+  "sosWidgetLocalizacaoEnviada": "Standort gesendet, warte auf die Kamera",
+  "sosWidgetFalhaEnvio": "Standort konnte nicht gesendet werden. Neuer Versuch…",
+  "sosWidgetCameraIndisponivel": "Kamera nicht verfügbar — Alarm bereits an Ihre Kontakte gesendet",
+  "monitoramentoAtualizadoHaHoras": "Vor {horas} Std. aktualisiert",
+  "monitoramentoPosicaoDesatualizada": "Position älter als 15 Min. — möglicherweise veraltet",
+  "monitoramentoUltimaPosicaoTitulo": "Letzte bekannte Position",
+  "monitoramentoUltimaPosicaoRegistradaEm": "Erfasst am {dataHora}.",
+  "monitoramentoPosicaoDesatualizadaAviso": "Diese Position ist älter als 15 Minuten und zeigt möglicherweise nicht, wo die Person jetzt ist. Sie wird nur aktualisiert, wenn die Person eine Anfrage annimmt oder der Timer oder ein Alarm aktiv ist.",
+  "monitoramentoUltimaPosicaoSemHorario": "Zeitpunkt der letzten Position unbekannt.",
+  "monitoramentoAbrirMapa": "Karte öffnen"
 }

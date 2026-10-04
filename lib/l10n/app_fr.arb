@@ -919,5 +919,16 @@
   "diagnosticoCopiar": "Tout copier",
   "diagnosticoCopiado": "Diagnostic copié",
   "diagnosticoLimpar": "Effacer",
-  "diagnosticoExplicacao": "Les 200 dernières erreurs et alertes enregistrées sur cet appareil (les plus récentes à la fin). Touchez « Tout copier » et collez-le dans la conversation avec le support."
+  "diagnosticoExplicacao": "Les 200 dernières erreurs et alertes enregistrées sur cet appareil (les plus récentes à la fin). Touchez « Tout copier » et collez-le dans la conversation avec le support.",
+  "sosWidgetEnviandoLocalizacao": "Envoi de la position…",
+  "sosWidgetLocalizacaoEnviada": "Position envoyée, en attente de l'appareil photo",
+  "sosWidgetFalhaEnvio": "Échec de l'envoi de la position. Nouvelle tentative…",
+  "sosWidgetCameraIndisponivel": "Appareil photo indisponible — alerte déjà envoyée à vos contacts",
+  "monitoramentoAtualizadoHaHoras": "Mis à jour il y a {horas} h",
+  "monitoramentoPosicaoDesatualizada": "Position de plus de 15 min — peut-être obsolète",
+  "monitoramentoUltimaPosicaoTitulo": "Dernière position connue",
+  "monitoramentoUltimaPosicaoRegistradaEm": "Enregistrée le {dataHora}.",
+  "monitoramentoPosicaoDesatualizadaAviso": "Cette position date de plus de 15 minutes et peut ne pas indiquer où se trouve la personne maintenant. Elle n'est mise à jour que lorsque la personne accepte une demande ou a le minuteur ou une alarme actifs.",
+  "monitoramentoUltimaPosicaoSemHorario": "Heure de la dernière position inconnue.",
+  "monitoramentoAbrirMapa": "Ouvrir la carte"
 }
