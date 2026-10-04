@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "{dataHora} に記録。",
   "monitoramentoPosicaoDesatualizadaAviso": "この位置は15分以上前のもので、相手の現在地を示していない可能性があります。相手がリクエストを承認したとき、またはタイマーやアラームが有効なときにのみ更新されます。",
   "monitoramentoUltimaPosicaoSemHorario": "最後の位置の時刻は不明です。",
-  "monitoramentoAbrirMapa": "地図を開く"
+  "monitoramentoAbrirMapa": "地図を開く",
+  "sosPlanoNotificacaoTitulo": "SOS ボタン",
+  "sosPlanoLembreteNotificacao": "SOS ボタンは明日（{inicio}）から {fim} まで無効になります。常に有効にしておくにはプレミアムに登録してください。",
+  "sosPlanoDesativadoAte": "SOS ボタンは {fim} まで無効です。有効にしておくにはプレミアムに登録してください。",
+  "sosPlanoWidgetDesativado": "Free プランでは SOS ボタンは {fim} まで無効です",
+  "sosPlanoBotaoAssinar": "プレミアムに登録",
+  "sosPlanoStatusDesativado": "Free プランで無効"
 }

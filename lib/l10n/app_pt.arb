@@ -1234,5 +1234,35 @@
   },
   "monitoramentoPosicaoDesatualizadaAviso": "Esta posição tem mais de 15 minutos e pode não mostrar onde a pessoa está agora. Ela só é atualizada quando a pessoa aceita uma solicitação ou está com o cronômetro ou um alarme ativo.",
   "monitoramentoUltimaPosicaoSemHorario": "Horário da última posição desconhecido.",
-  "monitoramentoAbrirMapa": "Abrir mapa"
+  "monitoramentoAbrirMapa": "Abrir mapa",
+  "sosPlanoNotificacaoTitulo": "Botão SOS",
+  "sosPlanoLembreteNotificacao": "Seu botão SOS ficará desativado a partir de amanhã ({inicio}) até {fim}. Assine o Premium para mantê-lo sempre ativo.",
+  "@sosPlanoLembreteNotificacao": {
+    "placeholders": {
+      "inicio": {
+        "type": "String"
+      },
+      "fim": {
+        "type": "String"
+      }
+    }
+  },
+  "sosPlanoDesativadoAte": "Seu botão SOS está desativado até {fim}. Assine o Premium para mantê-lo ativo.",
+  "@sosPlanoDesativadoAte": {
+    "placeholders": {
+      "fim": {
+        "type": "String"
+      }
+    }
+  },
+  "sosPlanoWidgetDesativado": "Botão SOS desativado no Plano Free até {fim}",
+  "@sosPlanoWidgetDesativado": {
+    "placeholders": {
+      "fim": {
+        "type": "String"
+      }
+    }
+  },
+  "sosPlanoBotaoAssinar": "Assinar Premium",
+  "sosPlanoStatusDesativado": "Desativado no Plano Free"
 }

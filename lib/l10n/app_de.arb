@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "Erfasst am {dataHora}.",
   "monitoramentoPosicaoDesatualizadaAviso": "Diese Position ist älter als 15 Minuten und zeigt möglicherweise nicht, wo die Person jetzt ist. Sie wird nur aktualisiert, wenn die Person eine Anfrage annimmt oder der Timer oder ein Alarm aktiv ist.",
   "monitoramentoUltimaPosicaoSemHorario": "Zeitpunkt der letzten Position unbekannt.",
-  "monitoramentoAbrirMapa": "Karte öffnen"
+  "monitoramentoAbrirMapa": "Karte öffnen",
+  "sosPlanoNotificacaoTitulo": "SOS-Taste",
+  "sosPlanoLembreteNotificacao": "Ihre SOS-Taste ist ab morgen ({inicio}) bis zum {fim} deaktiviert. Abonnieren Sie Premium, damit sie immer aktiv bleibt.",
+  "sosPlanoDesativadoAte": "Ihre SOS-Taste ist bis zum {fim} deaktiviert. Abonnieren Sie Premium, damit sie aktiv bleibt.",
+  "sosPlanoWidgetDesativado": "SOS-Taste im Free-Plan bis zum {fim} deaktiviert",
+  "sosPlanoBotaoAssinar": "Premium abonnieren",
+  "sosPlanoStatusDesativado": "Im Free-Plan deaktiviert"
 }

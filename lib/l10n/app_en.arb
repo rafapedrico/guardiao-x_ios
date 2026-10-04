@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "Recorded on {dataHora}.",
   "monitoramentoPosicaoDesatualizadaAviso": "This position is more than 15 minutes old and may not show where the person is now. It is only updated when the person accepts a request or has the timer or an alarm active.",
   "monitoramentoUltimaPosicaoSemHorario": "Time of the last position unknown.",
-  "monitoramentoAbrirMapa": "Open map"
+  "monitoramentoAbrirMapa": "Open map",
+  "sosPlanoNotificacaoTitulo": "SOS button",
+  "sosPlanoLembreteNotificacao": "Your SOS button will be turned off from tomorrow ({inicio}) until {fim}. Subscribe to Premium to keep it always on.",
+  "sosPlanoDesativadoAte": "Your SOS button is turned off until {fim}. Subscribe to Premium to keep it on.",
+  "sosPlanoWidgetDesativado": "SOS button turned off on the Free Plan until {fim}",
+  "sosPlanoBotaoAssinar": "Subscribe to Premium",
+  "sosPlanoStatusDesativado": "Turned off on the Free Plan"
 }

@@ -30,6 +30,9 @@ class PermissaoStatusCard extends StatelessWidget {
     this.corStatusPendente,
     this.textoBotaoConceder,
     this.aoTocarCard,
+    this.aviso,
+    this.textoBotaoAviso,
+    this.aoTocarBotaoAviso,
   });
 
   final IconData icone;
@@ -59,6 +62,13 @@ class PermissaoStatusCard extends StatelessWidget {
 
   /// Toque em qualquer parte do card (além do botão).
   final VoidCallback? aoTocarCard;
+
+  /// Quando informado, o card fica VERMELHO e mostra este aviso com o botão
+  /// [textoBotaoAviso] — ex.: o botão SOS desativado nos dias bloqueados do
+  /// Plano Free ("Assinar Premium").
+  final String? aviso;
+  final String? textoBotaoAviso;
+  final VoidCallback? aoTocarBotaoAviso;
 
   @override
   Widget build(BuildContext context) {
@@ -93,9 +103,12 @@ class PermissaoStatusCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: aviso != null ? Colors.red.shade50 : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: aviso != null ? Colors.red.shade400 : Colors.grey.shade300,
+          width: aviso != null ? 1.5 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +160,7 @@ class PermissaoStatusCard extends StatelessWidget {
                 style: TextStyle(fontSize: 12.5, color: corStatus, fontWeight: FontWeight.w600),
               ),
               const Spacer(),
-              if (!concedida)
+              if (!concedida && aviso == null)
                 ElevatedButton(
                   onPressed: aoConceder,
                   style: ElevatedButton.styleFrom(
@@ -158,6 +171,42 @@ class PermissaoStatusCard extends StatelessWidget {
                 ),
             ],
           ),
+          if (aviso != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade600,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    aviso!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      height: 1.35,
+                    ),
+                  ),
+                  if (textoBotaoAviso != null && aoTocarBotaoAviso != null) ...[
+                    const SizedBox(height: 10),
+                    FilledButton(
+                      onPressed: aoTocarBotaoAviso,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.red.shade700,
+                      ),
+                      child: Text(textoBotaoAviso!),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
           if (aoAbrirConfiguracoes != null) ...[
             const SizedBox(height: 4),
             Align(

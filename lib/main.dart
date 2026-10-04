@@ -43,6 +43,7 @@ import 'services/rotina_alarme_service.dart';
 import 'services/sessao_revogada_service.dart';
 import 'services/sos_deep_link_service.dart';
 import 'services/sos_disparo_service.dart';
+import 'services/sos_plano_aviso_service.dart';
 import 'services/sos_widget_fluxo_service.dart';
 import 'services/volume_sos_service.dart';
 import 'services/wallpaper_service.dart';
@@ -663,6 +664,10 @@ Future<void> iniciarServicosPosLoginOuDashboard() async {
   // sempre fazem sua PRÓPRIA leitura fresca do Firestore quando
   // necessário, nunca dependem deste disparo já ter terminado.
   PlanoCicloService().iniciar();
+
+  // Avisos locais de que o botão SOS para nos dias bloqueados do Plano
+  // Free (véspera e início do bloqueio) — ver SosPlanoAvisoService.
+  SosPlanoAvisoService().iniciar();
 
   // REGRA DE NEGÓCIO (Alarme de Rotina, pedido explícito do usuário,
   // 2026-09-04): fora dos 10 dias ativos do mês (e sem Premium), nenhum

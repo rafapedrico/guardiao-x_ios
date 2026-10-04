@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "Enregistrée le {dataHora}.",
   "monitoramentoPosicaoDesatualizadaAviso": "Cette position date de plus de 15 minutes et peut ne pas indiquer où se trouve la personne maintenant. Elle n'est mise à jour que lorsque la personne accepte une demande ou a le minuteur ou une alarme actifs.",
   "monitoramentoUltimaPosicaoSemHorario": "Heure de la dernière position inconnue.",
-  "monitoramentoAbrirMapa": "Ouvrir la carte"
+  "monitoramentoAbrirMapa": "Ouvrir la carte",
+  "sosPlanoNotificacaoTitulo": "Bouton SOS",
+  "sosPlanoLembreteNotificacao": "Votre bouton SOS sera désactivé à partir de demain ({inicio}) jusqu'au {fim}. Abonnez-vous à Premium pour le garder toujours actif.",
+  "sosPlanoDesativadoAte": "Votre bouton SOS est désactivé jusqu'au {fim}. Abonnez-vous à Premium pour le garder actif.",
+  "sosPlanoWidgetDesativado": "Bouton SOS désactivé dans le Forfait Free jusqu'au {fim}",
+  "sosPlanoBotaoAssinar": "S'abonner à Premium",
+  "sosPlanoStatusDesativado": "Désactivé dans le Forfait Free"
 }

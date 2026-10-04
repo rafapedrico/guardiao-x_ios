@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 
+import '../services/sos_plano_aviso_service.dart';
 import '../services/sos_widget_fluxo_service.dart';
 
 /// Tela preta do Widget SOS: a única coisa visível do toque no widget até a
@@ -47,8 +48,38 @@ class TelaSosWidget extends StatelessWidget {
       case EtapaTelaSosWidget.cameraIndisponivel:
         return l10n?.sosWidgetCameraIndisponivel ??
             'Câmera indisponível — alerta já enviado aos seus contatos';
+      case EtapaTelaSosWidget.desativadoPlanoFree:
+        final fim = SosWidgetFluxoService().fimBloqueioPlano;
+        final data = fim == null ? '—' : formatarDiaMes(fim);
+        return l10n?.sosPlanoWidgetDesativado(data) ??
+            'Botão SOS desativado no Plano Free até $data';
     }
   }
+
+  static const Color _vermelho = Color(0xFFFF1744);
+
+  List<Widget> _botoesPlano(AppLocalizations? l10n) => [
+        const SizedBox(height: 36),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: SosWidgetFluxoService().assinarPremium,
+            style: FilledButton.styleFrom(
+              backgroundColor: _vermelho,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            child: Text(l10n?.sosPlanoBotaoAssinar ?? 'Assinar Premium'),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: SosWidgetFluxoService().fecharAvisoPlano,
+          style: TextButton.styleFrom(foregroundColor: Colors.white70),
+          child: Text(l10n?.agoraNao ?? 'Agora não'),
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -59,18 +90,25 @@ class TelaSosWidget extends StatelessWidget {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-            child: Semantics(
-              liveRegion: true,
-              child: Text(
-                _texto(AppLocalizations.of(context)),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFFFF1744),
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  height: 1.25,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    _texto(AppLocalizations.of(context)),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: _vermelho,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      height: 1.25,
+                    ),
+                  ),
                 ),
-              ),
+                if (etapa == EtapaTelaSosWidget.desativadoPlanoFree)
+                  ..._botoesPlano(AppLocalizations.of(context)),
+              ],
             ),
           ),
         ),

@@ -5,6 +5,9 @@ import 'package:permission_handler/permission_handler.dart' show openAppSettings
 import 'package:security_check_app/l10n/app_localizations.dart';
 
 import '../services/onboarding_service.dart';
+import '../services/plano_ciclo_service.dart';
+import '../services/sos_plano_aviso_service.dart';
+import '../widgets/premium_compra_aviso.dart';
 import '../services/sessao_revogada_service.dart';
 import '../services/sos_widget_status_service.dart';
 import 'login_screen.dart';
@@ -46,6 +49,10 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
   /// do WidgetCenter — ver [SosWidgetStatusService]). `null` = desconhecido.
   bool? _widgetSos;
 
+  /// Só iOS: botão SOS desativado agora pelos dias bloqueados do Plano
+  /// Free (`null` = ativo ou Premium) — card vermelho com "Assinar Premium".
+  BloqueioSosPlano? _bloqueioSosPlano;
+
   /// Só iOS: a sessão deste iPhone foi encerrada por login em outro
   /// aparelho ("uma conta, um aparelho ativo", ver SessaoRevogadaService).
   bool _sessaoEncerrada = false;
@@ -84,6 +91,9 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
     // didChangeAppLifecycleState): fica verde sozinho depois que o
     // usuário adiciona o widget e volta ao app.
     final widgetSos = await SosWidgetStatusService.widgetInstalado();
+    final bloqueioSosPlano = Platform.isIOS
+        ? BloqueioSosPlano.vigente(await PlanoCicloService().obterStatusAtualizado())
+        : null;
     // Confere com o servidor a cada abertura/volta ao primeiro plano; se a
     // sessão caiu, o serviço também abre o aviso.
     final sessaoEncerrada =
@@ -96,6 +106,7 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
       _camera = resultados[3];
       _telaCheia = resultados[4];
       _widgetSos = widgetSos;
+      _bloqueioSosPlano = bloqueioSosPlano;
       _sessaoEncerrada = sessaoEncerrada;
       _carregando = false;
     });
@@ -238,15 +249,22 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
                       titulo: l10n.sosWidgetStatusTitulo,
                       descricao: l10n.sosWidgetStatusDescricao,
                       essencial: false,
-                      status: _widgetSos == true
+                      status: _widgetSos == true && _bloqueioSosPlano == null
                           ? StatusPermissaoOnboarding.concedida
                           : StatusPermissaoOnboarding.pendente,
                       textoStatusConcedida: l10n.sosWidgetStatusAtivo,
-                      textoStatusPendente: l10n.sosWidgetStatusNaoAdicionado,
+                      textoStatusPendente: _bloqueioSosPlano != null
+                          ? l10n.sosPlanoStatusDesativado
+                          : l10n.sosWidgetStatusNaoAdicionado,
                       corStatusPendente: Colors.red.shade600,
                       textoBotaoConceder: l10n.sosWidgetBotaoComoAdicionar,
                       aoConceder: () => SosWidgetStatusService.abrirTutorial(context),
                       aoTocarCard: () => SosWidgetStatusService.abrirTutorial(context),
+                      aviso: _bloqueioSosPlano == null
+                          ? null
+                          : l10n.sosPlanoDesativadoAte(formatarDiaMes(_bloqueioSosPlano!.fim)),
+                      textoBotaoAviso: l10n.sosPlanoBotaoAssinar,
+                      aoTocarBotaoAviso: () => iniciarCompraPremiumComAviso(context),
                     ),
                 ],
               ),

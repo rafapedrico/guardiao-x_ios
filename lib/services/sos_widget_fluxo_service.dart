@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import '../app_navigator.dart';
 import '../screens/camera_captura_screen.dart';
 import '../screens/sos_sem_login_screen.dart';
-import '../widgets/plano_bloqueado_dialog.dart';
+import '../widgets/premium_compra_aviso.dart';
 import 'bloqueio_app_service.dart';
 import 'captura_dissuasao_service.dart';
 import 'plano_ciclo_service.dart';
 import 'sos_disparo_service.dart';
+import 'sos_plano_aviso_service.dart';
 
 /// Texto da tela preta do Widget SOS (ver [TelaSosWidget]).
 enum EtapaTelaSosWidget {
@@ -17,6 +18,10 @@ enum EtapaTelaSosWidget {
   localizacaoEnviada,
   falhaTentandoNovamente,
   cameraIndisponivel,
+
+  /// Dias bloqueados do Plano Free: "Botão SOS desativado no Plano Free
+  /// até DD/MM" com "Assinar Premium" — nada é enviado.
+  desativadoPlanoFree,
 }
 
 /// Fluxo do toque no Widget SOS do iOS (`guardiaox://sos`, ver
@@ -49,6 +54,10 @@ class SosWidgetFluxoService {
 
   /// `null` = tela preta fora da tela.
   final ValueNotifier<EtapaTelaSosWidget?> etapa = ValueNotifier<EtapaTelaSosWidget?>(null);
+
+  /// Fim do bloqueio do Plano Free exibido em
+  /// [EtapaTelaSosWidget.desativadoPlanoFree].
+  DateTime? fimBloqueioPlano;
 
   VoidCallback? _encerrarLiberacao;
   bool _envioConfirmado = false;
@@ -94,9 +103,12 @@ class SosWidgetFluxoService {
     }
 
     // Uma única leitura da janela do Plano Free para o envio e a câmera.
-    final planoLiberado = PlanoCicloService().podeUsarRecursosAvancados();
+    // Sem status (sem rede/falha), libera — nunca silenciar um SOS por
+    // falha técnica (mesma regra de [PlanoCicloService.podeUsarRecursosAvancados]).
+    final status = PlanoCicloService().obterStatusAtualizado();
+    final planoLiberado = status.then((s) => s?.ativo ?? true);
     unawaited(_enviarLocalizacao(planoLiberado));
-    unawaited(_abrirCamera(planoLiberado));
+    unawaited(_abrirCamera(planoLiberado, status));
   }
 
   Future<void> _enviarLocalizacao(Future<bool> planoLiberado) async {
@@ -133,19 +145,17 @@ class SosWidgetFluxoService {
     }
   }
 
-  Future<void> _abrirCamera(Future<bool> planoLiberado) async {
+  Future<void> _abrirCamera(
+    Future<bool> planoLiberado,
+    Future<PlanoCicloStatus?> status,
+  ) async {
     if (!await planoLiberado) {
-      // Fora dos 10 dias ativos do Plano Free: nada é enviado. A tela preta
-      // sai para o aviso do plano aparecer; o bloqueio só volta depois.
-      debugPrint('🔒 [SosWidgetFluxo] Plano Free fora da janela ativa — SOS não enviado.');
-      final encerrarLiberacao = _encerrarLiberacao;
-      _encerrarLiberacao = null;
-      _encerrarTela();
-      final contexto = appNavigatorKey.currentContext;
-      if (contexto != null && contexto.mounted) {
-        await garantirRecursoLiberadoOuExibirUpsell(contexto);
-      }
-      encerrarLiberacao?.call();
+      // Dias bloqueados do Plano Free: nada é enviado. Em vez de não
+      // acontecer nada, a tela preta explica até quando e oferece o
+      // Premium (ver [assinarPremium]/[fecharAvisoPlano]).
+      debugPrint('🔒 [SosWidgetFluxo] Plano Free nos dias bloqueados — SOS não enviado.');
+      fimBloqueioPlano = BloqueioSosPlano.vigente(await status)?.fim;
+      etapa.value = EtapaTelaSosWidget.desativadoPlanoFree;
       return;
     }
 
@@ -186,6 +196,19 @@ class SosWidgetFluxoService {
     etapa.value = EtapaTelaSosWidget.cameraIndisponivel;
     _timerSaida = Timer(_exibicaoCameraIndisponivel, _encerrarTela);
   }
+
+  /// "Assinar Premium" na tela do botão desativado.
+  Future<void> assinarPremium() async {
+    _encerrarTela();
+    final navigator = await _aguardarNavigator();
+    final contexto = navigator?.context;
+    if (contexto != null && contexto.mounted) {
+      await iniciarCompraPremiumComAviso(contexto);
+    }
+  }
+
+  /// "Agora não" na tela do botão desativado.
+  void fecharAvisoPlano() => _encerrarTela();
 
   /// Tira a tela preta. A câmera/tela vermelha tem a própria liberação do
   /// bloqueio ([LiberaBloqueioEnquantoAberta]).

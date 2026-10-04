@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "{dataHora} को दर्ज किया गया।",
   "monitoramentoPosicaoDesatualizadaAviso": "यह स्थान 15 मिनट से अधिक पुराना है और हो सकता है कि यह न दिखाए कि व्यक्ति अभी कहाँ है। यह केवल तब अपडेट होता है जब व्यक्ति कोई अनुरोध स्वीकार करता है या उसका टाइमर या कोई अलार्म सक्रिय होता है।",
   "monitoramentoUltimaPosicaoSemHorario": "अंतिम स्थान का समय अज्ञात है।",
-  "monitoramentoAbrirMapa": "मानचित्र खोलें"
+  "monitoramentoAbrirMapa": "मानचित्र खोलें",
+  "sosPlanoNotificacaoTitulo": "SOS बटन",
+  "sosPlanoLembreteNotificacao": "आपका SOS बटन कल ({inicio}) से {fim} तक बंद रहेगा। इसे हमेशा चालू रखने के लिए प्रीमियम सब्सक्राइब करें।",
+  "sosPlanoDesativadoAte": "आपका SOS बटन {fim} तक बंद है। इसे चालू रखने के लिए प्रीमियम सब्सक्राइब करें।",
+  "sosPlanoWidgetDesativado": "Free प्लान में SOS बटन {fim} तक बंद है",
+  "sosPlanoBotaoAssinar": "प्रीमियम सब्सक्राइब करें",
+  "sosPlanoStatusDesativado": "Free प्लान में बंद"
 }

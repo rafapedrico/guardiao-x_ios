@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "Registrata il {dataHora}.",
   "monitoramentoPosicaoDesatualizadaAviso": "Questa posizione ha più di 15 minuti e potrebbe non mostrare dove si trova ora la persona. Viene aggiornata solo quando la persona accetta una richiesta o ha il timer o una sveglia attivi.",
   "monitoramentoUltimaPosicaoSemHorario": "Ora dell'ultima posizione sconosciuta.",
-  "monitoramentoAbrirMapa": "Apri mappa"
+  "monitoramentoAbrirMapa": "Apri mappa",
+  "sosPlanoNotificacaoTitulo": "Pulsante SOS",
+  "sosPlanoLembreteNotificacao": "Il tuo pulsante SOS sarà disattivato da domani ({inicio}) fino al {fim}. Abbonati a Premium per mantenerlo sempre attivo.",
+  "sosPlanoDesativadoAte": "Il tuo pulsante SOS è disattivato fino al {fim}. Abbonati a Premium per mantenerlo attivo.",
+  "sosPlanoWidgetDesativado": "Pulsante SOS disattivato nel Piano Free fino al {fim}",
+  "sosPlanoBotaoAssinar": "Abbonati a Premium",
+  "sosPlanoStatusDesativado": "Disattivato nel Piano Free"
 }

@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "سُجّل في {dataHora}.",
   "monitoramentoPosicaoDesatualizadaAviso": "هذا الموقع أقدم من 15 دقيقة وقد لا يُظهر مكان الشخص الآن. لا يتم تحديثه إلا عندما يقبل الشخص طلبًا أو يكون المؤقت أو أحد المنبهات نشطًا.",
   "monitoramentoUltimaPosicaoSemHorario": "وقت آخر موقع غير معروف.",
-  "monitoramentoAbrirMapa": "فتح الخريطة"
+  "monitoramentoAbrirMapa": "فتح الخريطة",
+  "sosPlanoNotificacaoTitulo": "زر SOS",
+  "sosPlanoLembreteNotificacao": "سيتم تعطيل زر SOS اعتبارًا من الغد ({inicio}) حتى {fim}. اشترك في الخطة المميزة لإبقائه نشطًا دائمًا.",
+  "sosPlanoDesativadoAte": "زر SOS معطّل حتى {fim}. اشترك في الخطة المميزة لإبقائه نشطًا.",
+  "sosPlanoWidgetDesativado": "زر SOS معطّل في الخطة المجانية حتى {fim}",
+  "sosPlanoBotaoAssinar": "الاشتراك في الخطة المميزة",
+  "sosPlanoStatusDesativado": "معطّل في الخطة المجانية"
 }

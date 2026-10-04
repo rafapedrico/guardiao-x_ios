@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "记录于 {dataHora}。",
   "monitoramentoPosicaoDesatualizadaAviso": "此位置已超过 15 分钟，可能无法显示对方现在的位置。只有当对方接受请求，或计时器或闹钟处于启用状态时才会更新。",
   "monitoramentoUltimaPosicaoSemHorario": "最后位置的时间未知。",
-  "monitoramentoAbrirMapa": "打开地图"
+  "monitoramentoAbrirMapa": "打开地图",
+  "sosPlanoNotificacaoTitulo": "SOS 按钮",
+  "sosPlanoLembreteNotificacao": "您的 SOS 按钮将从明天（{inicio}）起停用，直到 {fim}。订阅高级版即可保持始终可用。",
+  "sosPlanoDesativadoAte": "您的 SOS 按钮已停用，直到 {fim}。订阅高级版即可保持可用。",
+  "sosPlanoWidgetDesativado": "免费版中的 SOS 按钮已停用，直到 {fim}",
+  "sosPlanoBotaoAssinar": "订阅高级版",
+  "sosPlanoStatusDesativado": "免费版中已停用"
 }

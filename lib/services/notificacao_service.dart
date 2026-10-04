@@ -1459,6 +1459,57 @@ class NotificacaoService {
 
   /// Cancela (remove) a notificação de check-in de rotina exibida para
   /// o [idAlarme] informado. Chamado tanto quando o usuário confirma o
+  /// Aviso informativo agendado localmente (sem servidor) — usado pelos
+  /// avisos do botão SOS no Plano Free (ver `SosPlanoAvisoService`).
+  /// [quando] no passado não agenda nada.
+  static Future<void> agendarAvisoLocal({
+    required int id,
+    required String titulo,
+    required String corpo,
+    required DateTime quando,
+    String? payload,
+  }) async {
+    if (!quando.isAfter(DateTime.now())) return;
+    await inicializar();
+    await _plugin.zonedSchedule(
+      id,
+      titulo,
+      corpo,
+      tz.TZDateTime.from(quando.toUtc(), tz.UTC),
+      NotificationDetails(
+        android: AndroidNotificationDetails(canalId, canalNome),
+        iOS: const DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      payload: payload,
+    );
+  }
+
+  /// Exibe agora um aviso informativo (mesmo formato de [agendarAvisoLocal]).
+  static Future<void> exibirAvisoLocal({
+    required int id,
+    required String titulo,
+    required String corpo,
+    String? payload,
+  }) async {
+    await inicializar();
+    await _plugin.show(
+      id,
+      titulo,
+      corpo,
+      NotificationDetails(
+        android: AndroidNotificationDetails(canalId, canalNome),
+        iOS: const DarwinNotificationDetails(),
+      ),
+      payload: payload,
+    );
+  }
+
+  static Future<void> cancelarAvisoLocal(int id) async {
+    await inicializar();
+    await _plugin.cancel(id);
+  }
+
   /// check-in quanto quando o disparo de emergência já ocorreu (a
   /// notificação de pedido de confirmação não faz mais sentido).
   static Future<void> cancelarNotificacaoCheckin(int idAlarme) async {

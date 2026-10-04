@@ -13,6 +13,7 @@ import 'tabs/monitoramento_tab.dart';
 import 'tabs/historico_tab.dart';
 import 'tabs/configuracoes_tab.dart';
 import 'tabs/inicio_dashboard.dart';
+import '../widgets/aviso_sos_plano_banner.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -186,12 +187,21 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
 
-      body: _mostrandoInicio
-          ? const InicioDashboard()
-          : IndexedStack(
-              index: _indiceAbaAtual,
-              children: _telas,
-            ),
+      // Faixa do botão SOS desativado (dias bloqueados do Plano Free) no
+      // topo, em qualquer aba — ver AvisoSosPlanoBanner.
+      body: Column(
+        children: [
+          const AvisoSosPlanoBanner(),
+          Expanded(
+            child: _mostrandoInicio
+                ? const InicioDashboard()
+                : IndexedStack(
+                    index: _indiceAbaAtual,
+                    children: _telas,
+                  ),
+          ),
+        ],
+      ),
       bottomNavigationBar: _BarraAbas(
         indiceAtual: _indiceAbaAtual,
         // Estado neutro do Dashboard: nenhuma aba deve parecer "ativa"

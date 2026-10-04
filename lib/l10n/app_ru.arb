@@ -930,5 +930,11 @@
   "monitoramentoUltimaPosicaoRegistradaEm": "Записано {dataHora}.",
   "monitoramentoPosicaoDesatualizadaAviso": "Этой позиции больше 15 минут, и она может не показывать, где человек находится сейчас. Она обновляется, только когда человек принимает запрос или у него активен таймер или будильник.",
   "monitoramentoUltimaPosicaoSemHorario": "Время последней позиции неизвестно.",
-  "monitoramentoAbrirMapa": "Открыть карту"
+  "monitoramentoAbrirMapa": "Открыть карту",
+  "sosPlanoNotificacaoTitulo": "Кнопка SOS",
+  "sosPlanoLembreteNotificacao": "Ваша кнопка SOS будет отключена с завтрашнего дня ({inicio}) до {fim}. Оформите Премиум, чтобы она всегда оставалась активной.",
+  "sosPlanoDesativadoAte": "Ваша кнопка SOS отключена до {fim}. Оформите Премиум, чтобы она оставалась активной.",
+  "sosPlanoWidgetDesativado": "Кнопка SOS отключена в плане Free до {fim}",
+  "sosPlanoBotaoAssinar": "Оформить Премиум",
+  "sosPlanoStatusDesativado": "Отключена в плане Free"
 }
