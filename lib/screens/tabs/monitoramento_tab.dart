@@ -33,6 +33,7 @@ DateTime? _momentoDaPosicao(Map<String, dynamic>? dados) {
 String _textoIdadePosicao(AppLocalizations l10n, DateTime momento) {
   final idade = DateTime.now().difference(momento);
   final minutos = idade.isNegative ? 0 : idade.inMinutes;
+  if (minutos < 1) return l10n.monitoramentoAtualizadoAgora;
   if (minutos < 60) return l10n.monitoramentoAtualizadoHaMinutos(minutos);
   return l10n.monitoramentoAtualizadoHaHoras(minutos ~/ 60);
 }
@@ -119,6 +120,12 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
   void _liberarSwitch(Map<int, DateTime> travas, int id) {
     travas[id] = DateTime.now().add(_carenciaToqueSwitch);
   }
+
+  // Botão "Atualizar localização" de cada card (por uid do contato): pedido
+  // em andamento (ignora novos toques) e o resultado do último pedido, para
+  // o aviso no próprio card.
+  final Set<String> _atualizandoPosicao = {};
+  final Map<String, ResultadoPedidoPosicao> _resultadoAtualizacao = {};
 
   // ==========================================================
   // TRAVA DO CICLO DO PLANO FREE (pedido explícito do usuário, 2026-09-04)
@@ -1199,21 +1206,109 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
                     ),
                 ],
             ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: semLocalizacaoAinda
-                    ? () => _avisarLocalizacaoAindaNaoDisponivel(l10n)
-                    : (dados == null ? null : () => _abrirMapa(uid)),
-                icon: const Icon(Icons.map_outlined, size: 18),
-                label: Text(l10n.monitoramentoVerNoMapa),
-                style: TextButton.styleFrom(foregroundColor: _corDestaque),
-              ),
+            // Wrap: com fonte grande, "Atualizar localização" desce para a
+            // linha de baixo em vez de estourar a largura do card.
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                TextButton.icon(
+                  onPressed: semLocalizacaoAinda
+                      ? () => _avisarLocalizacaoAindaNaoDisponivel(l10n)
+                      : (dados == null ? null : () => _abrirMapa(uid)),
+                  icon: const Icon(Icons.map_outlined, size: 18),
+                  label: Text(l10n.monitoramentoVerNoMapa),
+                  style: TextButton.styleFrom(foregroundColor: _corDestaque),
+                ),
+                _botaoAtualizarLocalizacao(uid, l10n),
+              ],
             ),
+            if (_avisoAtualizacao(uid, l10n) case final aviso?)
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 2),
+                child: Text(
+                  aviso,
+                  style: TextStyle(fontSize: 11.5, color: Colors.red.shade700, fontWeight: FontWeight.w600),
+                ),
+              ),
           ],
         );
       },
     );
+  }
+
+  /// "↻ Atualizar localização": pede a posição ATUAL ao aparelho do contato
+  /// (mesmo push silencioso do "Ver no mapa" — o outro celular não mostra
+  /// nada) sem diálogo nem travar a tela: durante a espera (até 30 s) o
+  /// próprio botão vira um indicador pequeno. Depois de um
+  /// `resource-exhausted` (1 pedido/min), fica desabilitado com "Aguarde Ns".
+  Widget _botaoAtualizarLocalizacao(String uid, AppLocalizations l10n) {
+    if (_atualizandoPosicao.contains(uid)) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: _corDestaque),
+            ),
+            const SizedBox(width: 8),
+            Text(l10n.monitoramentoAtualizandoLocalizacao,
+                style: const TextStyle(fontSize: 13, color: _corDestaque)),
+          ],
+        ),
+      );
+    }
+    final liberaEm = _servico.liberaNovoPedidoEm(uid);
+    if (liberaEm != null) {
+      return _ContagemLiberacao(
+        ate: liberaEm,
+        l10n: l10n,
+        aoTerminar: () {
+          if (mounted) setState(() {});
+        },
+      );
+    }
+    return TextButton.icon(
+      onPressed: () => _atualizarLocalizacao(uid),
+      icon: const Icon(Icons.refresh, size: 18),
+      label: Text(l10n.monitoramentoAtualizarLocalizacao),
+      style: TextButton.styleFrom(foregroundColor: _corDestaque),
+    );
+  }
+
+  String? _avisoAtualizacao(String uid, AppLocalizations l10n) =>
+      switch (_resultadoAtualizacao[uid]) {
+        ResultadoPedidoPosicao.semResposta => l10n.monitoramentoSemRespostaAparelho,
+        ResultadoPedidoPosicao.semPermissao => l10n.monitoramentoContatoNaoCompartilha,
+        _ => null,
+      };
+
+  Future<void> _atualizarLocalizacao(String uid) async {
+    // Toque duplo: ignorado enquanto o pedido estiver em andamento.
+    if (_atualizandoPosicao.contains(uid) || _servico.liberaNovoPedidoEm(uid) != null) return;
+    _atualizandoPosicao.add(uid);
+    setState(() => _resultadoAtualizacao.remove(uid));
+    if (!await garantirRecursoLiberadoOuExibirUpsell(context)) {
+      if (mounted) setState(() => _atualizandoPosicao.remove(uid));
+      return;
+    }
+    ResultadoPedidoPosicao resultado;
+    try {
+      resultado = await _servico
+          .pedirLocalizacaoAtual(uid, limite: _limitePedidoPosicao)
+          .timeout(_limitePedidoPosicao, onTimeout: () => ResultadoPedidoPosicao.semResposta);
+    } catch (_) {
+      resultado = ResultadoPedidoPosicao.semResposta;
+    }
+    if (!mounted) return;
+    // O rebuild refaz a leitura de monitoramento/atual no card: com posição
+    // nova, "Atualizado agora" e o aviso de mais de 15 min some sozinho.
+    setState(() {
+      _atualizandoPosicao.remove(uid);
+      _resultadoAtualizacao[uid] = resultado;
+    });
   }
 
   Widget _linhaStatusAguardandoLocalizacao(AppLocalizations l10n) {
@@ -1607,6 +1702,58 @@ class _LinhaEstadoAlvo extends StatelessWidget {
           child: Text(texto, style: TextStyle(fontSize: 11, color: cor, fontWeight: FontWeight.w600)),
         );
       },
+    );
+  }
+}
+
+/// "↻ Aguarde Ns" desabilitado depois de um `resource-exhausted` do
+/// `pedirLocalizacaoAtual`. Conta com o próprio timer — só este botão se
+/// redesenha a cada segundo, não o card (que releria a posição no
+/// Firestore) — e avisa [aoTerminar] quando o pedido volta a ser aceito.
+class _ContagemLiberacao extends StatefulWidget {
+  const _ContagemLiberacao({required this.ate, required this.l10n, required this.aoTerminar});
+
+  final DateTime ate;
+  final AppLocalizations l10n;
+  final VoidCallback aoTerminar;
+
+  @override
+  State<_ContagemLiberacao> createState() => _ContagemLiberacaoState();
+}
+
+class _ContagemLiberacaoState extends State<_ContagemLiberacao> {
+  Timer? _timer;
+
+  int get _segundosRestantes {
+    final ms = widget.ate.difference(DateTime.now()).inMilliseconds;
+    return ms <= 0 ? 0 : (ms / 1000).ceil();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_segundosRestantes == 0) {
+        _timer?.cancel();
+        widget.aoTerminar();
+      } else {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: null,
+      icon: const Icon(Icons.refresh, size: 18),
+      label: Text(widget.l10n.monitoramentoAguardeSegundos(_segundosRestantes)),
     );
   }
 }

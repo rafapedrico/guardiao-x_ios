@@ -986,5 +986,10 @@
   "rcMotivoPausado": "आपने रोका है",
   "rcMotivoSemSempre": "\"हमेशा\" स्थान की अनुमति नहीं",
   "rcMotivoPlanoFree": "फ़्री प्लान इन दिनों ब्लॉक है",
-  "rcMotivoSessaoDiferente": "इस डिवाइस पर किसी दूसरे खाते का सत्र"
+  "rcMotivoSessaoDiferente": "इस डिवाइस पर किसी दूसरे खाते का सत्र",
+  "monitoramentoAtualizarLocalizacao": "स्थान अपडेट करें",
+  "monitoramentoAtualizandoLocalizacao": "अपडेट हो रहा है…",
+  "monitoramentoSemRespostaAparelho": "डिवाइस से कोई जवाब नहीं — आख़िरी स्थान दिखाया जा रहा है",
+  "monitoramentoAguardeSegundos": "{segundos} सेकंड रुकें",
+  "monitoramentoAtualizadoAgora": "अभी अपडेट हुआ"
 }

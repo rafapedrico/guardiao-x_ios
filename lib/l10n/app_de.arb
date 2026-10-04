@@ -986,5 +986,10 @@
   "rcMotivoPausado": "von dir pausiert",
   "rcMotivoSemSempre": "Standort \"Immer\" nicht erlaubt",
   "rcMotivoPlanoFree": "Free-Plan an diesen Tagen gesperrt",
-  "rcMotivoSessaoDiferente": "Sitzung eines anderen Kontos auf diesem Gerät"
+  "rcMotivoSessaoDiferente": "Sitzung eines anderen Kontos auf diesem Gerät",
+  "monitoramentoAtualizarLocalizacao": "Standort aktualisieren",
+  "monitoramentoAtualizandoLocalizacao": "Wird aktualisiert…",
+  "monitoramentoSemRespostaAparelho": "Keine Antwort vom Gerät — letzte Position wird angezeigt",
+  "monitoramentoAguardeSegundos": "Warte {segundos}s",
+  "monitoramentoAtualizadoAgora": "Gerade aktualisiert"
 }

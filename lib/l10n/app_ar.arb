@@ -986,5 +986,10 @@
   "rcMotivoPausado": "متوقف مؤقتًا بواسطتك",
   "rcMotivoSemSempre": "الموقع \"دائمًا\" غير مسموح",
   "rcMotivoPlanoFree": "الخطة المجانية محظورة في هذه الأيام",
-  "rcMotivoSessaoDiferente": "جلسة حساب آخر على هذا الجهاز"
+  "rcMotivoSessaoDiferente": "جلسة حساب آخر على هذا الجهاز",
+  "monitoramentoAtualizarLocalizacao": "تحديث الموقع",
+  "monitoramentoAtualizandoLocalizacao": "جارٍ التحديث…",
+  "monitoramentoSemRespostaAparelho": "لا يوجد رد من الجهاز — يتم عرض آخر موقع",
+  "monitoramentoAguardeSegundos": "انتظر {segundos} ث",
+  "monitoramentoAtualizadoAgora": "تم التحديث الآن"
 }

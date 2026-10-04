@@ -13,7 +13,7 @@ import 'location_service.dart';
 import 'plano_ciclo_service.dart';
 
 /// Resultado de [MonitoramentoService.pedirLocalizacaoAtual].
-enum ResultadoPedidoPosicao { posicaoNova, semResposta, semPermissao }
+enum ResultadoPedidoPosicao { posicaoNova, semResposta, semPermissao, limiteExcedido }
 
 /// Serviço central da aba Monitoramento: gerencia a lista LOCAL de
 /// contatos (SQLite, tabela `monitoramento_contatos`, TOTALMENTE
@@ -723,9 +723,11 @@ class MonitoramentoService {
   /// - [ResultadoPedidoPosicao.posicaoNova]: chegou posição nova.
   /// - [ResultadoPedidoPosicao.semPermissao]: `permission-denied` — o contato
   ///   não está compartilhando a localização comigo; não adianta esperar.
+  /// - [ResultadoPedidoPosicao.limiteExcedido]: `resource-exhausted` (limite
+  ///   de 1 pedido/min) — ver [liberaNovoPedidoEm].
   /// - [ResultadoPedidoPosicao.semResposta]: qualquer outro caso (sem
-  ///   resposta, limite de 1 pedido/min, alvo sem rastreamento, function
-  ///   indisponível) — o mapa abre com a última posição e o horário.
+  ///   resposta, alvo sem rastreamento, function indisponível) — o mapa
+  ///   abre com a última posição e o horário.
   Future<ResultadoPedidoPosicao> pedirLocalizacaoAtual(
     String uidAlvo, {
     Duration limite = const Duration(seconds: 30),
@@ -733,6 +735,8 @@ class MonitoramentoService {
     if (!_firebaseDisponivel || uidAlvo == _meuUid) {
       return ResultadoPedidoPosicao.semResposta;
     }
+    // Ainda dentro do limite que o servidor acabou de recusar: nem chama.
+    if (liberaNovoPedidoEm(uidAlvo) != null) return ResultadoPedidoPosicao.limiteExcedido;
     final pedidoEm = DateTime.now();
     final prazo = pedidoEm.add(limite);
     Duration restante() {
@@ -748,11 +752,18 @@ class MonitoramentoService {
           .httpsCallable('pedirLocalizacaoAtual')
           .call<Map<String, dynamic>>({'uidAlvo': uidAlvo})
           .timeout(limiteCallable);
+      _ultimoPedidoPosicaoEm[_chavePar(uidAlvo)] = pedidoEm;
     } on FirebaseFunctionsException catch (e) {
       debugPrint('⚠️ [MonitoramentoService] Pedido de posição atual recusado: ${e.code} ${e.message}');
-      return e.code == 'permission-denied'
-          ? ResultadoPedidoPosicao.semPermissao
-          : ResultadoPedidoPosicao.semResposta;
+      switch (e.code) {
+        case 'permission-denied':
+          return ResultadoPedidoPosicao.semPermissao;
+        case 'resource-exhausted':
+          _liberaPedidoPosicaoEm[_chavePar(uidAlvo)] = _calcularLiberacao(uidAlvo);
+          return ResultadoPedidoPosicao.limiteExcedido;
+        default:
+          return ResultadoPedidoPosicao.semResposta;
+      }
     } catch (e) {
       debugPrint('⚠️ [MonitoramentoService] Pedido de posição atual não enviado: $e');
       return ResultadoPedidoPosicao.semResposta;
@@ -778,6 +789,35 @@ class MonitoramentoService {
     } catch (_) {
       return ResultadoPedidoPosicao.semResposta;
     }
+  }
+
+  /// Limite do servidor para `pedirLocalizacaoAtual`: 1 pedido/min por PAR
+  /// solicitante→alvo (`controle/pedido_{alvo}__{solicitante}`), contado a
+  /// partir do último pedido ACEITO — os recusados não reiniciam o prazo. O
+  /// servidor não informa os segundos restantes, então a contagem é local.
+  static const Duration _intervaloPedidoPosicao = Duration(minutes: 1);
+  final Map<String, DateTime> _ultimoPedidoPosicaoEm = {};
+  final Map<String, DateTime> _liberaPedidoPosicaoEm = {};
+
+  String _chavePar(String uidAlvo) => '${uidAlvo}__$_meuUid';
+
+  /// Quando um novo [pedirLocalizacaoAtual] para [uidAlvo] deve ser aceito
+  /// depois de um `resource-exhausted` (`null` = liberado).
+  DateTime? liberaNovoPedidoEm(String uidAlvo) {
+    final ate = _liberaPedidoPosicaoEm[_chavePar(uidAlvo)];
+    if (ate == null || !DateTime.now().isBefore(ate)) return null;
+    return ate;
+  }
+
+  /// 60 s depois do último pedido aceito deste par que este app conhece; sem
+  /// ele (o pedido aceito veio de outra sessão da mesma conta), 60 s a
+  /// partir de agora — nunca libera antes do servidor.
+  DateTime _calcularLiberacao(String uidAlvo) {
+    final agora = DateTime.now();
+    final ultimo = _ultimoPedidoPosicaoEm[_chavePar(uidAlvo)];
+    final pelaUltima = ultimo?.add(_intervaloPedidoPosicao);
+    if (pelaUltima != null && pelaUltima.isAfter(agora)) return pelaUltima;
+    return agora.add(_intervaloPedidoPosicao);
   }
 
   /// Estado do rastreamento contínuo de [uidAlvo]

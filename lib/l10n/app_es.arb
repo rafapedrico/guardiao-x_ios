@@ -986,5 +986,10 @@
   "rcMotivoPausado": "pausado por ti",
   "rcMotivoSemSempre": "ubicación \"Siempre\" no permitida",
   "rcMotivoPlanoFree": "Plan Free bloqueado estos días",
-  "rcMotivoSessaoDiferente": "sesión de otra cuenta en este dispositivo"
+  "rcMotivoSessaoDiferente": "sesión de otra cuenta en este dispositivo",
+  "monitoramentoAtualizarLocalizacao": "Actualizar ubicación",
+  "monitoramentoAtualizandoLocalizacao": "Actualizando…",
+  "monitoramentoSemRespostaAparelho": "Sin respuesta del dispositivo — mostrando la última posición",
+  "monitoramentoAguardeSegundos": "Espera {segundos}s",
+  "monitoramentoAtualizadoAgora": "Actualizado ahora"
 }

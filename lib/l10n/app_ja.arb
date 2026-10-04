@@ -986,5 +986,10 @@
   "rcMotivoPausado": "あなたが一時停止中",
   "rcMotivoSemSempre": "位置情報「常に」が許可されていません",
   "rcMotivoPlanoFree": "フリープランはこの期間ロック中",
-  "rcMotivoSessaoDiferente": "この端末では別アカウントのセッションです"
+  "rcMotivoSessaoDiferente": "この端末では別アカウントのセッションです",
+  "monitoramentoAtualizarLocalizacao": "位置情報を更新",
+  "monitoramentoAtualizandoLocalizacao": "更新中…",
+  "monitoramentoSemRespostaAparelho": "端末から応答がありません — 最後の位置を表示しています",
+  "monitoramentoAguardeSegundos": "{segundos}秒お待ちください",
+  "monitoramentoAtualizadoAgora": "たった今更新"
 }

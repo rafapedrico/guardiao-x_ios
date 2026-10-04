@@ -986,5 +986,10 @@
   "rcMotivoPausado": "messo in pausa da te",
   "rcMotivoSemSempre": "posizione \"Sempre\" non consentita",
   "rcMotivoPlanoFree": "Piano Free bloccato in questi giorni",
-  "rcMotivoSessaoDiferente": "sessione di un altro account su questo dispositivo"
+  "rcMotivoSessaoDiferente": "sessione di un altro account su questo dispositivo",
+  "monitoramentoAtualizarLocalizacao": "Aggiorna posizione",
+  "monitoramentoAtualizandoLocalizacao": "Aggiornamento…",
+  "monitoramentoSemRespostaAparelho": "Nessuna risposta dal dispositivo — mostro l'ultima posizione",
+  "monitoramentoAguardeSegundos": "Attendi {segundos}s",
+  "monitoramentoAtualizadoAgora": "Aggiornato ora"
 }

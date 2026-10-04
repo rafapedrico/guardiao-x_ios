@@ -986,5 +986,10 @@
   "rcMotivoPausado": "已被你暂停",
   "rcMotivoSemSempre": "未允许“始终”定位",
   "rcMotivoPlanoFree": "免费方案在这些天被锁定",
-  "rcMotivoSessaoDiferente": "此设备上是其他账号的会话"
+  "rcMotivoSessaoDiferente": "此设备上是其他账号的会话",
+  "monitoramentoAtualizarLocalizacao": "更新位置",
+  "monitoramentoAtualizandoLocalizacao": "正在更新…",
+  "monitoramentoSemRespostaAparelho": "设备无响应 — 显示最后的位置",
+  "monitoramentoAguardeSegundos": "请等待 {segundos} 秒",
+  "monitoramentoAtualizadoAgora": "刚刚更新"
 }

@@ -986,5 +986,10 @@
   "rcMotivoPausado": "приостановлено вами",
   "rcMotivoSemSempre": "доступ к геопозиции «Всегда» не разрешён",
   "rcMotivoPlanoFree": "тариф Free заблокирован в эти дни",
-  "rcMotivoSessaoDiferente": "сеанс другой учётной записи на этом устройстве"
+  "rcMotivoSessaoDiferente": "сеанс другой учётной записи на этом устройстве",
+  "monitoramentoAtualizarLocalizacao": "Обновить местоположение",
+  "monitoramentoAtualizandoLocalizacao": "Обновление…",
+  "monitoramentoSemRespostaAparelho": "Устройство не отвечает — показано последнее местоположение",
+  "monitoramentoAguardeSegundos": "Подождите {segundos} с",
+  "monitoramentoAtualizadoAgora": "Обновлено только что"
 }

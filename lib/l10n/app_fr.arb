@@ -986,5 +986,10 @@
   "rcMotivoPausado": "mis en pause par vous",
   "rcMotivoSemSempre": "position « Toujours » non autorisée",
   "rcMotivoPlanoFree": "Forfait Free bloqué ces jours-ci",
-  "rcMotivoSessaoDiferente": "session d'un autre compte sur cet appareil"
+  "rcMotivoSessaoDiferente": "session d'un autre compte sur cet appareil",
+  "monitoramentoAtualizarLocalizacao": "Actualiser la position",
+  "monitoramentoAtualizandoLocalizacao": "Actualisation…",
+  "monitoramentoSemRespostaAparelho": "Pas de réponse de l'appareil — dernière position affichée",
+  "monitoramentoAguardeSegundos": "Patientez {segundos}s",
+  "monitoramentoAtualizadoAgora": "Mis à jour à l'instant"
 }

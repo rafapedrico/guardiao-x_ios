@@ -1366,5 +1366,17 @@
   "rcMotivoPausado": "pausado por você",
   "rcMotivoSemSempre": "localização \"Sempre\" não permitida",
   "rcMotivoPlanoFree": "Plano Free bloqueado nestes dias",
-  "rcMotivoSessaoDiferente": "sessão de outra conta neste aparelho"
+  "rcMotivoSessaoDiferente": "sessão de outra conta neste aparelho",
+  "monitoramentoAtualizarLocalizacao": "Atualizar localização",
+  "monitoramentoAtualizandoLocalizacao": "Atualizando…",
+  "monitoramentoSemRespostaAparelho": "Sem resposta do aparelho — mostrando a última posição",
+  "monitoramentoAguardeSegundos": "Aguarde {segundos}s",
+  "@monitoramentoAguardeSegundos": {
+    "placeholders": {
+      "segundos": {
+        "type": "int"
+      }
+    }
+  },
+  "monitoramentoAtualizadoAgora": "Atualizado agora"
 }
