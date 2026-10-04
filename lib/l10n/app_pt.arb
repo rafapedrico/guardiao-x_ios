@@ -1264,5 +1264,77 @@
     }
   },
   "sosPlanoBotaoAssinar": "Assinar Premium",
-  "sosPlanoStatusDesativado": "Desativado no Plano Free"
+  "sosPlanoStatusDesativado": "Desativado no Plano Free",
+  "rcTitulo": "Compartilhamento contínuo",
+  "rcCompartilhandoCom": "Sua localização está sendo compartilhada continuamente com: {nomes}",
+  "@rcCompartilhandoCom": {
+    "placeholders": {
+      "nomes": {
+        "type": "String"
+      }
+    }
+  },
+  "rcConvite": "Quem pode ver sua localização: {nomes}. Ative o compartilhamento contínuo para que vejam sua posição atual mesmo com o Guardião-X fechado.",
+  "@rcConvite": {
+    "placeholders": {
+      "nomes": {
+        "type": "String"
+      }
+    }
+  },
+  "rcBotaoAtivar": "Ativar compartilhamento contínuo",
+  "rcSwitch": "Compartilhar continuamente",
+  "rcPausado": "Pausado: sua posição só é atualizada com o app aberto.",
+  "rcLimitadoSemSempre": "Limitado: permita a localização \"Sempre\" para funcionar com o app fechado.",
+  "rcIndisponivelPlano": "Pausado pelo Plano Free até {fim}.",
+  "@rcIndisponivelPlano": {
+    "placeholders": {
+      "fim": {
+        "type": "String"
+      }
+    }
+  },
+  "rcAtivoAgora": "Ativo: sua posição é atualizada mesmo com o app fechado.",
+  "rcAbrirAjustes": "Abrir Ajustes",
+  "rcEtapa1Titulo": "Compartilhar sua localização",
+  "rcEtapa1Texto": "Os contatos que você aprovou na aba Monitoramento poderão ver onde você está. Primeiro, permita o acesso à sua localização enquanto usa o app.",
+  "rcEtapa1Botao": "Permitir localização",
+  "rcEtapa2Titulo": "Manter atualizado com o app fechado",
+  "rcEtapa2Texto": "Para que eles vejam sua posição atual mesmo com o Guardião-X fechado, escolha \"Alterar para Sempre Permitir\" na próxima janela. Também vamos pedir acesso a Movimento e Condicionamento: com ele, o GPS só é ligado quando você está se deslocando, o que economiza bateria. Você pode pausar a qualquer momento na aba Monitoramento.",
+  "rcEtapa2Botao": "Permitir \"Sempre\" e Movimento",
+  "rcConcordo": "Concordo em compartilhar minha localização continuamente com: {nomes}",
+  "@rcConcordo": {
+    "placeholders": {
+      "nomes": {
+        "type": "String"
+      }
+    }
+  },
+  "rcConcluido": "Compartilhamento contínuo ativado.",
+  "rcSemSempre": "Sem a permissão \"Sempre\", sua posição só é atualizada com o app aberto. Para mudar: Ajustes > Guardião-X > Localização > Sempre.",
+  "rcStatusTitulo": "Rastreamento contínuo",
+  "rcStatusDescricao": "Mantém sua posição atualizada para os contatos que você aprovou, mesmo com o app fechado.",
+  "rcStatusAtivo": "Ativo",
+  "rcStatusInativo": "Desativado",
+  "rcStatusLimitado": "Limitado",
+  "rcItemSempre": "Localização \"Sempre\"",
+  "rcItemMovimento": "Movimento e condicionamento",
+  "rcItemSegundoPlano": "Atualização em 2º plano",
+  "rcItemPrecisao": "Localização exata",
+  "rcItemPoucaEnergia": "Modo Pouca Energia desligado",
+  "rcEncerradoTexto": "Abra o Guardião-X para manter sua proteção ativa.",
+  "rcAlvoIndisponivelPlano": "Localização indisponível no Plano Free até {fim}",
+  "@rcAlvoIndisponivelPlano": {
+    "placeholders": {
+      "fim": {
+        "type": "String"
+      }
+    }
+  },
+  "rcAlvoLimitado": "Este contato está sem atualização contínua — a posição pode estar antiga.",
+  "rcPedindoPosicao": "Pedindo a posição atual…",
+  "rcDiagTitulo": "Localização",
+  "rcDiagVazio": "Nenhum evento de localização registrado ainda.",
+  "rcDiagGravou": "Gravou",
+  "rcDiagNaoGravou": "Não gravou"
 }

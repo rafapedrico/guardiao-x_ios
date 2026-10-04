@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/monitoramento_service.dart';
 import '../../services/plano_ciclo_service.dart';
+import '../../services/rastreamento_continuo_service.dart';
+import '../../services/sos_plano_aviso_service.dart' show formatarDiaMes;
+import '../consentimento_rastreamento_screen.dart';
 import '../../services/wallpaper_service.dart';
 import '../../widgets/monitoramento_decisao_dialog.dart';
 import '../../widgets/plano_bloqueado_dialog.dart';
@@ -515,6 +519,12 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     // PlanoCicloService) — checado ANTES de consultar a localização,
     // exibindo o modal de upsell em vez de simplesmente não abrir nada.
     if (!await garantirRecursoLiberadoOuExibirUpsell(context)) return;
+    if (!mounted) return;
+
+    // Pede a posição ATUAL ao aparelho do contato (push silencioso) e espera
+    // até ~20 s; sem resposta, segue com a última conhecida + horário.
+    await _pedirPosicaoAtualComAviso(uidAlvo);
+    if (!mounted) return;
 
     final dados = await _servico.buscarUltimaLocalizacao(uidAlvo);
     final latitude = (dados?['latitude'] as num?)?.toDouble();
@@ -531,6 +541,37 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
       // Best-effort — se não houver app de mapas disponível, ignora.
+    }
+  }
+
+  Future<void> _pedirPosicaoAtualComAviso(String uidAlvo) async {
+    final l10n = AppLocalizations.of(context)!;
+    final navegador = Navigator.of(context, rootNavigator: true);
+    var aberto = true;
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: _corDestaque),
+              ),
+              const SizedBox(width: 16),
+              Expanded(child: Text(l10n.rcPedindoPosicao)),
+            ],
+          ),
+        ),
+      ),
+    ).whenComplete(() => aberto = false));
+    try {
+      await _servico.pedirLocalizacaoAtual(uidAlvo);
+    } finally {
+      if (aberto && navegador.mounted) navegador.pop();
     }
   }
 
@@ -614,6 +655,7 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                       children: [
+                        if (Platform.isIOS) _CartaoCompartilhamentoContinuo(l10n: l10n),
                         if (_contatos.isEmpty)
                           _construirEstadoVazio(l10n)
                         else ...[
@@ -1061,6 +1103,7 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
                         ),
                       ),
                     ),
+                  _LinhaEstadoAlvo(uidAlvo: uid, l10n: l10n),
                   if (desatualizada)
                     Padding(
                       padding: const EdgeInsets.only(left: 22, top: 2),
@@ -1315,6 +1358,144 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.redAccent,
       ),
+    );
+  }
+}
+
+/// "Sua localização está sendo compartilhada continuamente com: …" — com o
+/// botão de pausar/retomar, ou o convite para ativar (com consentimento
+/// explícito em [ConsentimentoRastreamentoScreen]). Só aparece quando há
+/// alguém aprovado para ver a minha localização.
+class _CartaoCompartilhamentoContinuo extends StatelessWidget {
+  const _CartaoCompartilhamentoContinuo({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final servico = RastreamentoContinuoService();
+    return AnimatedBuilder(
+      animation: Listenable.merge(
+          [servico.monitorandoMe, servico.consentido, servico.pausado, servico.estado]),
+      builder: (context, _) {
+        final contatos = servico.monitorandoMe.value;
+        if (contatos.isEmpty) return const SizedBox.shrink();
+        final nomes = contatos.map((c) => c.nome).join(', ');
+        final consentido = servico.consentido.value;
+        final pausado = servico.pausado.value;
+        final estado = servico.estado.value;
+
+        String? situacao;
+        Color corSituacao = Colors.green.shade800;
+        if (consentido && !pausado && estado != null) {
+          if (estado.rastreamentoAtivo) {
+            situacao = l10n.rcAtivoAgora;
+          } else if (estado.motivoInativo == 'plano_free') {
+            final fim = servico.fimBloqueioPlano;
+            situacao = l10n.rcIndisponivelPlano(fim == null ? '—' : formatarDiaMes(fim));
+            corSituacao = Colors.red.shade700;
+          } else if (!estado.sempre) {
+            situacao = l10n.rcLimitadoSemSempre;
+            corSituacao = Colors.orange.shade900;
+          }
+        } else if (consentido && pausado) {
+          situacao = l10n.rcPausado;
+          corSituacao = Colors.grey.shade700;
+        }
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: _corDestaque.withValues(alpha: 0.5)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.share_location_rounded, color: _corDestaque),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.rcTitulo,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                    ),
+                    if (consentido)
+                      Switch(
+                        value: !pausado,
+                        activeThumbColor: _corDestaque,
+                        onChanged: (ligado) => servico.definirPausa(!ligado),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  consentido ? l10n.rcCompartilhandoCom(nomes) : l10n.rcConvite(nomes),
+                  style: const TextStyle(fontSize: 13.5, height: 1.35),
+                ),
+                if (situacao != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    situacao,
+                    style: TextStyle(fontSize: 12.5, color: corSituacao, fontWeight: FontWeight.w600),
+                  ),
+                ],
+                if (!consentido) ...[
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute<bool>(
+                      builder: (_) => const ConsentimentoRastreamentoScreen(),
+                    )),
+                    style: FilledButton.styleFrom(backgroundColor: _corDestaque),
+                    child: Text(l10n.rcBotaoAtivar),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+}
+
+/// Do lado de quem monitora: avisa quando o contato está nos dias
+/// bloqueados do Plano Free ("Localização indisponível no Plano Free até
+/// DD/MM") ou sem atualização contínua. Lê o `monitoramento/estado` que o
+/// aparelho do contato grava.
+class _LinhaEstadoAlvo extends StatelessWidget {
+  const _LinhaEstadoAlvo({required this.uidAlvo, required this.l10n});
+
+  final String uidAlvo;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Map<String, dynamic>?>(
+      stream: MonitoramentoService().estadoAlvoStream(uidAlvo),
+      builder: (context, snapshot) {
+        final estado = snapshot.data;
+        if (estado == null) return const SizedBox.shrink();
+        String? texto;
+        Color cor = Colors.orange.shade900;
+        final bloqueadoAte = estado['bloqueadoAte'];
+        if (estado['motivoInativo'] == 'plano_free' && bloqueadoAte is Timestamp) {
+          texto = l10n.rcAlvoIndisponivelPlano(formatarDiaMes(bloqueadoAte.toDate()));
+          cor = Colors.red.shade700;
+        } else if (estado['rastreamentoAtivo'] != true) {
+          texto = l10n.rcAlvoLimitado;
+        }
+        if (texto == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(left: 22, top: 2),
+          child: Text(texto, style: TextStyle(fontSize: 11, color: cor, fontWeight: FontWeight.w600)),
+        );
+      },
     );
   }
 }

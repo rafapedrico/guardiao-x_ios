@@ -47,9 +47,11 @@
 	     Equivalente a ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION +
 	     ACCESS_BACKGROUND_LOCATION do AndroidManifest.xml. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>O Guardião-X usa sua localização para incluir no alerta de emergência enviado aos seus contatos de confiança e para o compartilhamento em tempo real na aba Monitoramento.</string>
+	<string>O Guardião-X usa sua localização para enviá-la nos alertas de emergência aos seus contatos de confiança e para compartilhá-la com os contatos que você aprovou na aba Monitoramento.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>O Guardião-X precisa acompanhar sua localização mesmo em segundo plano durante o cronômetro de check-in de segurança, para que a última posição conhecida esteja sempre pronta caso um alerta de emergência precise ser disparado.</string>
+	<string>Com "Sempre", o Guardião-X mantém sua posição atualizada para os contatos que você aprovou na aba Monitoramento, mesmo com o app fechado, e deixa a última posição pronta para um alerta de emergência. Você pode pausar o compartilhamento a qualquer momento na aba Monitoramento.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>O Guardião-X usa o sensor de movimento para saber quando você está se deslocando e só então ligar o GPS, mantendo sua posição atualizada para os contatos que você aprovou e economizando bateria quando você está parado.</string>
 
 	<!-- Contatos — aba Família (contatos de emergência).
 	     Equivalente a READ_CONTACTS/WRITE_CONTACTS. -->

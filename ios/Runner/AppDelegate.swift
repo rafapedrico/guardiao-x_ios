@@ -8,7 +8,36 @@ import WidgetKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Rastreamento contínuo do Monitoramento (RastreamentoContinuo.swift):
+    // precisa ser recriado aqui — inclusive quando o iOS relança o app em
+    // segundo plano por um evento de localização (cerca, visit, mudança
+    // significativa), sem cena e sem Flutter.
+    RastreamentoContinuo.shared.retomarNoLancamento(launchOptions)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  override func applicationWillTerminate(_ application: UIApplication) {
+    // Best-effort: o iOS nem sempre chama isto quando o usuário encerra o
+    // app pelo seletor. A cerca continua relançando o app de todo modo.
+    RastreamentoContinuo.shared.aoEncerrarApp()
+    super.applicationWillTerminate(application)
+  }
+
+  /// Pedido de posição sob demanda (push silencioso `pedido_localizacao`
+  /// da function `pedirLocalizacaoAtual`): respondido aqui, sem Dart.
+  override func application(
+    _ application: UIApplication,
+    didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+  ) {
+    if userInfo["tipo"] as? String == "pedido_localizacao" {
+      RastreamentoContinuo.shared.atenderPedido { ok in
+        completionHandler(ok ? .newData : .failed)
+      }
+      return
+    }
+    super.application(
+      application, didReceiveRemoteNotification: userInfo, fetchCompletionHandler: completionHandler)
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
@@ -19,6 +48,9 @@ import WidgetKit
     // Toque no Widget SOS capturado no SceneDelegate (ver SceneDelegate.swift).
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SOSWidgetLink") {
       SOSWidgetLinkPlugin.register(with: registrar)
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "Rastreamento") {
+      RastreamentoPlugin.register(with: registrar)
     }
   }
 }

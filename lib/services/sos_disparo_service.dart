@@ -238,6 +238,8 @@ class SosDisparoService {
       await FirebaseSyncService().atualizarLocalizacaoAtual(
         latitude: posicao.latitude,
         longitude: posicao.longitude,
+        precisao: posicao.accuracy,
+        origem: 'sos',
       );
       debugPrint('📍 [SosDisparoService] Posição precisa do SOS enviada à conta.');
     } catch (e) {

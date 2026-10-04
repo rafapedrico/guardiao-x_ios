@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'dart:io' show Platform;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import 'firebase_auth_service.dart';
+import 'rastreamento_continuo_service.dart';
 import 'plano_ciclo_service.dart';
 
 /// Teto de tempo para QUALQUER chamada de rede ao Firestore neste
@@ -411,14 +414,30 @@ class FirebaseSyncService {
   /// [LocationService.iniciarCicloDeAtualizacao]) enquanto o
   /// monitoramento ativo estiver em andamento (cronômetro de Segurança ou
   /// alarme de rotina disparado da Família aguardando confirmação).
+  ///
+  /// iOS: grava pelo nativo (`RastreamentoContinuo.swift`), no MESMO
+  /// formato de documento usado pelo rastreamento contínuo — um único
+  /// esquema para os dois caminhos. [origem] vai para o documento e para a
+  /// tela Diagnóstico → Localização.
   Future<void> atualizarLocalizacaoAtual({
     required double latitude,
     required double longitude,
+    double? precisao,
+    String origem = 'app',
   }) async {
     if (!_firebaseDisponivel) return;
     if (!await _podeUsarRecursoAvancado()) {
       debugPrint('🔒 [FirebaseSyncService] Plano Free fora da janela de 10 dias ativos — '
           'transmissão de localização em tempo real bloqueada.');
+      return;
+    }
+    if (Platform.isIOS) {
+      await RastreamentoContinuoService().gravarPosicao(
+        latitude: latitude,
+        longitude: longitude,
+        precisao: precisao,
+        origem: origem,
+      );
       return;
     }
     final agora = FieldValue.serverTimestamp();

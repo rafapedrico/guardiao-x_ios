@@ -209,6 +209,8 @@ class LocationService {
     await FirebaseSyncService().atualizarLocalizacaoAtual(
       latitude: posicao.latitude,
       longitude: posicao.longitude,
+      precisao: posicao.accuracy,
+      origem: 'cronometro',
     );
   }
 

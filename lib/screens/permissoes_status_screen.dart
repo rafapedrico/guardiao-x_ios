@@ -6,6 +6,7 @@ import 'package:security_check_app/l10n/app_localizations.dart';
 
 import '../services/onboarding_service.dart';
 import '../services/plano_ciclo_service.dart';
+import '../services/rastreamento_continuo_service.dart';
 import '../services/sos_plano_aviso_service.dart';
 import '../widgets/premium_compra_aviso.dart';
 import '../services/sessao_revogada_service.dart';
@@ -53,6 +54,9 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
   /// Free (`null` = ativo ou Premium) — card vermelho com "Assinar Premium".
   BloqueioSosPlano? _bloqueioSosPlano;
 
+  /// Só iOS: rastreamento contínuo da aba Monitoramento (lido do nativo).
+  EstadoRastreamento? _rastreamento;
+
   /// Só iOS: a sessão deste iPhone foi encerrada por login em outro
   /// aparelho ("uma conta, um aparelho ativo", ver SessaoRevogadaService).
   bool _sessaoEncerrada = false;
@@ -91,6 +95,7 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
     // didChangeAppLifecycleState): fica verde sozinho depois que o
     // usuário adiciona o widget e volta ao app.
     final widgetSos = await SosWidgetStatusService.widgetInstalado();
+    final rastreamento = await RastreamentoContinuoService().atualizarEstado();
     final bloqueioSosPlano = Platform.isIOS
         ? BloqueioSosPlano.vigente(await PlanoCicloService().obterStatusAtualizado())
         : null;
@@ -107,6 +112,7 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
       _telaCheia = resultados[4];
       _widgetSos = widgetSos;
       _bloqueioSosPlano = bloqueioSosPlano;
+      _rastreamento = rastreamento;
       _sessaoEncerrada = sessaoEncerrada;
       _carregando = false;
     });
@@ -266,9 +272,101 @@ class _PermissoesStatusScreenState extends State<PermissoesStatusScreen>
                       textoBotaoAviso: l10n.sosPlanoBotaoAssinar,
                       aoTocarBotaoAviso: () => iniciarCompraPremiumComAviso(context),
                     ),
+                  if (Platform.isIOS && _rastreamento != null)
+                    _CartaoRastreamentoContinuo(estado: _rastreamento!),
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// Card "Rastreamento contínuo" (aba Monitoramento): se está ativo e cada
+/// requisito do iOS para funcionar com o app fechado, com atalho para os
+/// Ajustes.
+class _CartaoRastreamentoContinuo extends StatelessWidget {
+  const _CartaoRastreamentoContinuo({required this.estado});
+
+  final EstadoRastreamento estado;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final consentido = RastreamentoContinuoService().consentido.value;
+    final String status;
+    final Color cor;
+    if (estado.rastreamentoAtivo) {
+      status = l10n.rcStatusAtivo;
+      cor = Colors.green.shade600;
+    } else if (consentido && !RastreamentoContinuoService().pausado.value) {
+      status = l10n.rcStatusLimitado;
+      cor = Colors.orange.shade700;
+    } else {
+      status = l10n.rcStatusInativo;
+      cor = Colors.grey.shade600;
+    }
+    final itens = <(String, bool)>[
+      (l10n.rcItemSempre, estado.sempre),
+      (l10n.rcItemMovimento, estado.movimento == 'permitido'),
+      (l10n.rcItemSegundoPlano, estado.atualizacaoSegundoPlano),
+      (l10n.rcItemPrecisao, estado.precisaoExata),
+      (l10n.rcItemPoucaEnergia, !estado.modoPoucaEnergia),
+    ];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.blue.shade400.withValues(alpha: 0.12),
+                child: Icon(Icons.share_location_rounded, color: Colors.blue.shade400),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.rcStatusTitulo,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+              ),
+              Text(status, style: TextStyle(color: cor, fontWeight: FontWeight.w700, fontSize: 12.5)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            l10n.rcStatusDescricao,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.35),
+          ),
+          const SizedBox(height: 10),
+          for (final (rotulo, ok) in itens)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  Icon(
+                    ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                    size: 17,
+                    color: ok ? Colors.green.shade600 : Colors.red.shade400,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(rotulo, style: const TextStyle(fontSize: 13))),
+                ],
+              ),
+            ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: openAppSettings, child: Text(l10n.rcAbrirAjustes)),
+          ),
+        ],
+      ),
     );
   }
 }

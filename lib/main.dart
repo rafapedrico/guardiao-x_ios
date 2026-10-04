@@ -37,6 +37,7 @@ import 'services/notificacao_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/plano_ciclo_service.dart';
 import 'services/premium_purchase_service.dart';
+import 'services/rastreamento_continuo_service.dart';
 import 'services/relatorio_falha_entrega_service.dart';
 import 'services/retry_upload_service.dart';
 import 'services/rotina_alarme_service.dart';
@@ -668,6 +669,11 @@ Future<void> iniciarServicosPosLoginOuDashboard() async {
   // Avisos locais de que o botão SOS para nos dias bloqueados do Plano
   // Free (véspera e início do bloqueio) — ver SosPlanoAvisoService.
   SosPlanoAvisoService().iniciar();
+
+  // Rastreamento contínuo da aba Monitoramento (iOS, nativo): liga só com
+  // alguém aprovado para me ver, consentimento e "Sempre" — ver
+  // RastreamentoContinuoService.
+  RastreamentoContinuoService().iniciar();
 
   // REGRA DE NEGÓCIO (Alarme de Rotina, pedido explícito do usuário,
   // 2026-09-04): fora dos 10 dias ativos do mês (e sem Premium), nenhum

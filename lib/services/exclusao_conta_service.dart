@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database_helper.dart';
 import 'firebase_auth_service.dart';
+import 'rastreamento_continuo_service.dart';
 import 'sessao_revogada_service.dart';
 
 /// Resultado da tentativa de exclusão de conta — ver
@@ -51,6 +52,9 @@ class ExclusaoContaService {
     // marca, o SDK podia deslogar sozinho no meio do caminho e o app
     // mostraria por engano "conta aberta em outro aparelho".
     SessaoRevogadaService().marcarSaidaVoluntaria();
+    // Rastreamento contínuo (iOS): para e limpa as cercas antes de a conta
+    // sumir.
+    await RastreamentoContinuoService().pararAntesDeSair('conta_excluida');
     try {
       await FirebaseFunctions.instance
           .httpsCallable('excluirContaCompleta')

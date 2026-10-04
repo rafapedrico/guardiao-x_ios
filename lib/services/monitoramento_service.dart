@@ -423,6 +423,8 @@ class MonitoramentoService {
       await FirebaseSyncService().atualizarLocalizacaoAtual(
         latitude: posicao.latitude,
         longitude: posicao.longitude,
+        precisao: posicao.accuracy,
+        origem: 'aceite',
       );
     } catch (e) {
       debugPrint(
@@ -707,6 +709,64 @@ class MonitoramentoService {
           '⚠️ [MonitoramentoService] Falha ao buscar última localização de $uidAlvo: $e');
       return null;
     }
+  }
+
+  /// Pede ao aparelho de [uidAlvo] a posição ATUAL (callable
+  /// `pedirLocalizacaoAtual`, que manda um push silencioso) e espera até
+  /// [espera] por uma posição gravada depois do pedido. Devolve `true` se
+  /// chegou posição nova; `false` em qualquer outro caso (sem resposta,
+  /// limite de 1 pedido/min, alvo sem rastreamento, function indisponível)
+  /// — o mapa abre com a última posição conhecida e o horário.
+  Future<bool> pedirLocalizacaoAtual(
+    String uidAlvo, {
+    Duration espera = const Duration(seconds: 20),
+  }) async {
+    if (!_firebaseDisponivel || uidAlvo == _meuUid) return false;
+    final pedidoEm = DateTime.now();
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('pedirLocalizacaoAtual')
+          .call<Map<String, dynamic>>({'uidAlvo': uidAlvo})
+          .timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('⚠️ [MonitoramentoService] Pedido de posição atual não enviado: $e');
+      return false;
+    }
+    try {
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(uidAlvo)
+          .collection('monitoramento')
+          .doc('atual')
+          .snapshots()
+          .firstWhere((snap) {
+            final momento = snap.data()?['atualizadoEm'];
+            return momento is Timestamp &&
+                momento.toDate().isAfter(pedidoEm.subtract(const Duration(seconds: 2)));
+          })
+          .timeout(espera);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Estado do rastreamento contínuo de [uidAlvo]
+  /// (`usuarios/{uidAlvo}/monitoramento/estado`, gravado pelo aparelho dele):
+  /// permissão, se está ativo e, nos dias bloqueados do Plano Free,
+  /// `bloqueadoAte`. Vazio se não houver/sem permissão de leitura.
+  Stream<Map<String, dynamic>?> estadoAlvoStream(String uidAlvo) {
+    if (!_firebaseDisponivel || uidAlvo == _meuUid) return Stream.value(null);
+    return FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uidAlvo)
+        .collection('monitoramento')
+        .doc('estado')
+        .snapshots()
+        .map((snap) => snap.data())
+        .handleError((Object e) {
+      debugPrint('⚠️ [MonitoramentoService] Estado do rastreamento de $uidAlvo indisponível: $e');
+    });
   }
 
   /// Mesma normalização de `CadastroScreen._normalizarTelefoneE164` e de

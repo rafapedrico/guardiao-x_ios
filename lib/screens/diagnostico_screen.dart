@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:security_check_app/l10n/app_localizations.dart';
 
 import '../services/diagnostico_service.dart';
+import 'diagnostico_localizacao_screen.dart';
 
 /// Mostra e permite copiar os últimos erros/avisos registrados por
 /// [DiagnosticoService]. Aberta por Configurações > Diagnóstico e também
@@ -27,6 +28,13 @@ class DiagnosticoScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(l10n.diagnosticoTitulo),
         actions: [
+          IconButton(
+            tooltip: l10n.rcDiagTitulo,
+            icon: const Icon(Icons.share_location_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const DiagnosticoLocalizacaoScreen()),
+            ),
+          ),
           IconButton(
             tooltip: l10n.diagnosticoLimpar,
             icon: const Icon(Icons.delete_outline),
