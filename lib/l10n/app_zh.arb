@@ -920,8 +920,8 @@
   "diagnosticoCopiado": "诊断信息已复制",
   "diagnosticoLimpar": "清除",
   "diagnosticoExplicacao": "此设备上记录的最近 200 条错误和警告（最新的在最后）。点按“全部复制”，然后粘贴到与客服的对话中。",
-  "sosWidgetEnviandoLocalizacao": "正在发送位置…",
-  "sosWidgetLocalizacaoEnviada": "位置已发送，正在等待相机",
+  "sosWidgetEnviandoLocalizacao": "警报已触发。正在发送你的位置…",
+  "sosWidgetLocalizacaoEnviada": "位置已发送。正在打开相机",
   "sosWidgetFalhaEnvio": "位置发送失败。正在重试…",
   "sosWidgetCameraIndisponivel": "相机不可用——警报已发送给您的联系人",
   "monitoramentoAtualizadoHaHoras": "{horas}小时前更新",
@@ -991,5 +991,6 @@
   "monitoramentoAtualizandoLocalizacao": "正在更新…",
   "monitoramentoSemRespostaAparelho": "设备无响应 — 显示最后的位置",
   "monitoramentoAguardeSegundos": "请等待 {segundos} 秒",
-  "monitoramentoAtualizadoAgora": "刚刚更新"
+  "monitoramentoAtualizadoAgora": "刚刚更新",
+  "contatoEscolherTelefone": "使用 {nome} 的哪个号码？"
 }

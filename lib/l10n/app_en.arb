@@ -920,8 +920,8 @@
   "diagnosticoCopiado": "Diagnostics copied",
   "diagnosticoLimpar": "Clear",
   "diagnosticoExplicacao": "The last 200 errors and warnings recorded on this device (newest at the end). Tap \"Copy all\" and paste it into your conversation with support.",
-  "sosWidgetEnviandoLocalizacao": "Sending location…",
-  "sosWidgetLocalizacaoEnviada": "Location sent, waiting for the camera",
+  "sosWidgetEnviandoLocalizacao": "Alert triggered. Sending your location…",
+  "sosWidgetLocalizacaoEnviada": "Location sent. Opening the camera",
   "sosWidgetFalhaEnvio": "Failed to send location. Retrying…",
   "sosWidgetCameraIndisponivel": "Camera unavailable — alert already sent to your contacts",
   "monitoramentoAtualizadoHaHoras": "Updated {horas} h ago",
@@ -991,5 +991,6 @@
   "monitoramentoAtualizandoLocalizacao": "Updating…",
   "monitoramentoSemRespostaAparelho": "No response from the device — showing the last position",
   "monitoramentoAguardeSegundos": "Wait {segundos}s",
-  "monitoramentoAtualizadoAgora": "Updated just now"
+  "monitoramentoAtualizadoAgora": "Updated just now",
+  "contatoEscolherTelefone": "Which number for {nome}?"
 }

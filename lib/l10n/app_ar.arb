@@ -920,8 +920,8 @@
   "diagnosticoCopiado": "تم نسخ التشخيص",
   "diagnosticoLimpar": "مسح",
   "diagnosticoExplicacao": "آخر 200 خطأ وتحذير مسجلة على هذا الجهاز (الأحدث في النهاية). اضغط على \"نسخ الكل\" والصقه في المحادثة مع الدعم.",
-  "sosWidgetEnviandoLocalizacao": "جارٍ إرسال الموقع…",
-  "sosWidgetLocalizacaoEnviada": "تم إرسال الموقع، في انتظار تشغيل الكاميرا",
+  "sosWidgetEnviandoLocalizacao": "تم تفعيل التنبيه. جارٍ إرسال موقعك…",
+  "sosWidgetLocalizacaoEnviada": "تم إرسال الموقع. جارٍ فتح الكاميرا",
   "sosWidgetFalhaEnvio": "فشل إرسال الموقع. جارٍ إعادة المحاولة…",
   "sosWidgetCameraIndisponivel": "الكاميرا غير متاحة — تم إرسال التنبيه بالفعل إلى جهات اتصالك",
   "monitoramentoAtualizadoHaHoras": "تم التحديث منذ {horas} ساعة",
@@ -991,5 +991,6 @@
   "monitoramentoAtualizandoLocalizacao": "جارٍ التحديث…",
   "monitoramentoSemRespostaAparelho": "لا يوجد رد من الجهاز — يتم عرض آخر موقع",
   "monitoramentoAguardeSegundos": "انتظر {segundos} ث",
-  "monitoramentoAtualizadoAgora": "تم التحديث الآن"
+  "monitoramentoAtualizadoAgora": "تم التحديث الآن",
+  "contatoEscolherTelefone": "أي رقم لـ {nome} تريد استخدامه؟"
 }

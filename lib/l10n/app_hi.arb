@@ -920,8 +920,8 @@
   "diagnosticoCopiado": "निदान कॉपी हो गया",
   "diagnosticoLimpar": "साफ़ करें",
   "diagnosticoExplicacao": "इस डिवाइस पर दर्ज पिछली 200 त्रुटियाँ और चेतावनियाँ (नवीनतम अंत में)। \"सब कॉपी करें\" पर टैप करें और सहायता के साथ बातचीत में पेस्ट करें।",
-  "sosWidgetEnviandoLocalizacao": "स्थान भेजा जा रहा है…",
-  "sosWidgetLocalizacaoEnviada": "स्थान भेज दिया गया, कैमरे की प्रतीक्षा है",
+  "sosWidgetEnviandoLocalizacao": "अलर्ट चालू हुआ। आपका स्थान भेजा जा रहा है…",
+  "sosWidgetLocalizacaoEnviada": "स्थान भेज दिया गया। कैमरा खुल रहा है",
   "sosWidgetFalhaEnvio": "स्थान भेजने में विफल। फिर से कोशिश की जा रही है…",
   "sosWidgetCameraIndisponivel": "कैमरा उपलब्ध नहीं — अलर्ट आपके संपर्कों को पहले ही भेज दिया गया है",
   "monitoramentoAtualizadoHaHoras": "{horas} घंटे पहले अपडेट किया गया",
@@ -991,5 +991,6 @@
   "monitoramentoAtualizandoLocalizacao": "अपडेट हो रहा है…",
   "monitoramentoSemRespostaAparelho": "डिवाइस से कोई जवाब नहीं — आख़िरी स्थान दिखाया जा रहा है",
   "monitoramentoAguardeSegundos": "{segundos} सेकंड रुकें",
-  "monitoramentoAtualizadoAgora": "अभी अपडेट हुआ"
+  "monitoramentoAtualizadoAgora": "अभी अपडेट हुआ",
+  "contatoEscolherTelefone": "{nome} का कौन-सा नंबर इस्तेमाल करें?"
 }

@@ -3,7 +3,6 @@ import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:intl/intl.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -14,6 +13,7 @@ import '../../services/rastreamento_continuo_service.dart';
 import '../../services/sos_plano_aviso_service.dart' show formatarDiaMes;
 import '../consentimento_rastreamento_screen.dart';
 import '../../services/wallpaper_service.dart';
+import '../../widgets/contato_agenda_picker.dart';
 import '../../widgets/monitoramento_decisao_dialog.dart';
 import '../../widgets/plano_bloqueado_dialog.dart';
 
@@ -385,51 +385,12 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
     required TextEditingController nomeController,
     required TextEditingController telefoneController,
   }) async {
-    final l10n = AppLocalizations.of(context)!;
-
-    final status = await FlutterContacts.permissions.request(PermissionType.read);
-    final bool permitido = status == PermissionStatus.granted || status == PermissionStatus.limited;
-    if (!permitido) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.contatosPermissaoNegada),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-      return;
-    }
-
-    Contact? contatoSelecionado;
-    try {
-      contatoSelecionado = await FlutterContacts.native.showPicker();
-    } catch (_) {
-      contatoSelecionado = null;
-    }
-    final contatoId = contatoSelecionado?.id;
-    if (contatoId == null) return;
-
-    final contatoCompleto = await FlutterContacts.get(
-      contatoId,
-      properties: {ContactProperty.phone},
-    );
-    if (contatoCompleto == null || contatoCompleto.phones.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.contatoSemTelefone),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    final nome = (contatoCompleto.displayName ?? '').trim();
-    if (nome.isNotEmpty) nomeController.text = nome;
-    telefoneController.text = contatoCompleto.phones.first.number;
+    // Seletor + escolha do telefone (ver [escolherContatoDaAgenda]: funciona
+    // com Contatos em "Acesso Limitado", inclusive fora da lista liberada).
+    final contato = await escolherContatoDaAgenda(context);
+    if (contato == null) return;
+    if (contato.nome.isNotEmpty) nomeController.text = contato.nome;
+    telefoneController.text = contato.telefone;
   }
 
   Future<void> _editarNomeContato(Map<String, dynamic> contato) async {

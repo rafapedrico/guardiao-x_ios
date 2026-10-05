@@ -920,8 +920,8 @@
   "diagnosticoCopiado": "診断をコピーしました",
   "diagnosticoLimpar": "消去",
   "diagnosticoExplicacao": "この端末で記録された最新200件のエラーと警告（新しいものが最後）。「すべてコピー」をタップして、サポートとの会話に貼り付けてください。",
-  "sosWidgetEnviandoLocalizacao": "位置情報を送信中…",
-  "sosWidgetLocalizacaoEnviada": "位置情報を送信しました。カメラの起動を待っています",
+  "sosWidgetEnviandoLocalizacao": "アラートを発信しました。現在地を送信中…",
+  "sosWidgetLocalizacaoEnviada": "現在地を送信しました。カメラを起動しています",
   "sosWidgetFalhaEnvio": "位置情報の送信に失敗しました。再試行しています…",
   "sosWidgetCameraIndisponivel": "カメラを利用できません — アラートは連絡先に送信済みです",
   "monitoramentoAtualizadoHaHoras": "{horas}時間前に更新",
@@ -991,5 +991,6 @@
   "monitoramentoAtualizandoLocalizacao": "更新中…",
   "monitoramentoSemRespostaAparelho": "端末から応答がありません — 最後の位置を表示しています",
   "monitoramentoAguardeSegundos": "{segundos}秒お待ちください",
-  "monitoramentoAtualizadoAgora": "たった今更新"
+  "monitoramentoAtualizadoAgora": "たった今更新",
+  "contatoEscolherTelefone": "{nome} のどの番号を使いますか？"
 }

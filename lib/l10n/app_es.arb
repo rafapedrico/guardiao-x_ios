@@ -920,8 +920,8 @@
   "diagnosticoCopiado": "Diagnóstico copiado",
   "diagnosticoLimpar": "Borrar",
   "diagnosticoExplicacao": "Los últimos 200 errores y avisos registrados en este dispositivo (los más recientes al final). Toca \"Copiar todo\" y pégalo en la conversación con el soporte.",
-  "sosWidgetEnviandoLocalizacao": "Enviando ubicación…",
-  "sosWidgetLocalizacaoEnviada": "Ubicación enviada, esperando que se libere la cámara",
+  "sosWidgetEnviandoLocalizacao": "Alerta activada. Enviando tu ubicación…",
+  "sosWidgetLocalizacaoEnviada": "Ubicación enviada. Abriendo la cámara",
   "sosWidgetFalhaEnvio": "Error al enviar la ubicación. Reintentando…",
   "sosWidgetCameraIndisponivel": "Cámara no disponible — alerta ya enviada a tus contactos",
   "monitoramentoAtualizadoHaHoras": "Actualizado hace {horas} h",
@@ -991,5 +991,6 @@
   "monitoramentoAtualizandoLocalizacao": "Actualizando…",
   "monitoramentoSemRespostaAparelho": "Sin respuesta del dispositivo — mostrando la última posición",
   "monitoramentoAguardeSegundos": "Espera {segundos}s",
-  "monitoramentoAtualizadoAgora": "Actualizado ahora"
+  "monitoramentoAtualizadoAgora": "Actualizado ahora",
+  "contatoEscolherTelefone": "¿Qué teléfono de {nome} usar?"
 }

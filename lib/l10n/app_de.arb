@@ -920,8 +920,8 @@
   "diagnosticoCopiado": "Diagnose kopiert",
   "diagnosticoLimpar": "Leeren",
   "diagnosticoExplicacao": "Die letzten 200 auf diesem Gerät aufgezeichneten Fehler und Warnungen (neueste am Ende). Tippe auf „Alles kopieren“ und füge es in den Chat mit dem Support ein.",
-  "sosWidgetEnviandoLocalizacao": "Standort wird gesendet…",
-  "sosWidgetLocalizacaoEnviada": "Standort gesendet, warte auf die Kamera",
+  "sosWidgetEnviandoLocalizacao": "Alarm ausgelöst. Dein Standort wird gesendet…",
+  "sosWidgetLocalizacaoEnviada": "Standort gesendet. Kamera wird geöffnet",
   "sosWidgetFalhaEnvio": "Standort konnte nicht gesendet werden. Neuer Versuch…",
   "sosWidgetCameraIndisponivel": "Kamera nicht verfügbar — Alarm bereits an Ihre Kontakte gesendet",
   "monitoramentoAtualizadoHaHoras": "Vor {horas} Std. aktualisiert",
@@ -991,5 +991,6 @@
   "monitoramentoAtualizandoLocalizacao": "Wird aktualisiert…",
   "monitoramentoSemRespostaAparelho": "Keine Antwort vom Gerät — letzte Position wird angezeigt",
   "monitoramentoAguardeSegundos": "Warte {segundos}s",
-  "monitoramentoAtualizadoAgora": "Gerade aktualisiert"
+  "monitoramentoAtualizadoAgora": "Gerade aktualisiert",
+  "contatoEscolherTelefone": "Welche Nummer von {nome} verwenden?"
 }

@@ -19,7 +19,7 @@ import '../excluir_conta_screen.dart';
 import '../login_screen.dart';
 import '../permissoes_status_screen.dart';
 import '../diagnostico_screen.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
+import '../../widgets/contato_agenda_picker.dart';
 
 
 
@@ -461,53 +461,15 @@ Future<void> _selecionarSom(int? numero) async {
       if (!mounted) return;
     }
 
-    // 1) Solicita permissão explicitamente ANTES de abrir a agenda.
-    final status = await FlutterContacts.permissions.request(PermissionType.read);
-    final bool permitido = status == PermissionStatus.granted || status == PermissionStatus.limited;
-    if (!permitido) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.contatosPermissaoNegada),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-      return;
-    }
+    // 1–3) Permissão, seletor nativo e escolha do telefone (ver
+    // [escolherContatoDaAgenda]: usa os dados do próprio seletor, então
+    // funciona com Contatos em "Acesso Limitado", inclusive fora da lista
+    // liberada). `null` = cancelou ou sem telefone (já avisado).
+    if (!mounted) return;
+    final contatoEscolhido = await escolherContatoDaAgenda(context);
+    if (contatoEscolhido == null) return;
 
-    // 2) Abre o seletor nativo de contatos do aparelho.
-    Contact? contatoSelecionado;
-    try {
-      contatoSelecionado = await FlutterContacts.native.showPicker();
-    } catch (_) {
-      contatoSelecionado = null;
-    }
-
-    final contatoId = contatoSelecionado?.id;
-    if (contatoId == null) return; // Usuário cancelou a seleção.
-
-    // 3) Recupera os dados completos do contato (incluindo telefones).
-    final contatoCompleto = await FlutterContacts.get(
-      contatoId,
-      properties: {ContactProperty.phone},
-    );
-    if (contatoCompleto == null || contatoCompleto.phones.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.contatoSemTelefone),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    final nome = (contatoCompleto.displayName ?? '').trim().isNotEmpty
-        ? (contatoCompleto.displayName ?? '').trim()
-        : semNomeFallback;
+    final nome = contatoEscolhido.nome.isNotEmpty ? contatoEscolhido.nome : semNomeFallback;
     // Normaliza para E.164 internacional (ver TelefoneUtils) — CORREÇÃO
     // DE BUG REAL: números importados da agenda costumam já vir com o
     // DDI embutido (ex: "5515981343706", sem o "+"); a limpeza antiga só
@@ -517,7 +479,7 @@ Future<void> _selecionarSom(int? numero) async {
     // chegavam de verdade a esse número. `TelefoneUtils.normalizarE164`
     // detecta e remove esse DDI duplicado corretamente, para qualquer
     // país.
-    final telefoneOriginal = contatoCompleto.phones.first.number;
+    final telefoneOriginal = contatoEscolhido.telefone;
     final telefoneNormalizado = TelefoneUtils.normalizarE164(telefoneOriginal);
 
     if (telefoneNormalizado == null) {

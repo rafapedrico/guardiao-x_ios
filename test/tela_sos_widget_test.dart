@@ -24,7 +24,7 @@ void main() {
 
     etapa.value = EtapaTelaSosWidget.enviandoLocalizacao;
     await tester.pump();
-    expect(find.text('Enviando localização…'), findsOneWidget);
+    expect(find.text('Alerta acionado. Enviando sua localização…'), findsOneWidget);
 
     etapa.value = EtapaTelaSosWidget.falhaTentandoNovamente;
     await tester.pump();
@@ -32,7 +32,7 @@ void main() {
 
     etapa.value = EtapaTelaSosWidget.localizacaoEnviada;
     await tester.pump();
-    expect(find.text('Localização enviada, aguardando liberação da câmera'), findsOneWidget);
+    expect(find.text('Localização enviada. Abrindo a câmera'), findsOneWidget);
 
     etapa.value = EtapaTelaSosWidget.cameraIndisponivel;
     await tester.pump();

@@ -920,8 +920,8 @@
   "diagnosticoCopiado": "Диагностика скопирована",
   "diagnosticoLimpar": "Очистить",
   "diagnosticoExplicacao": "Последние 200 ошибок и предупреждений на этом устройстве (новые — в конце). Нажмите «Копировать всё» и вставьте текст в чат с поддержкой.",
-  "sosWidgetEnviandoLocalizacao": "Отправка местоположения…",
-  "sosWidgetLocalizacaoEnviada": "Местоположение отправлено, ожидание камеры",
+  "sosWidgetEnviandoLocalizacao": "Тревога включена. Отправляем ваше местоположение…",
+  "sosWidgetLocalizacaoEnviada": "Местоположение отправлено. Открываем камеру",
   "sosWidgetFalhaEnvio": "Не удалось отправить местоположение. Повторная попытка…",
   "sosWidgetCameraIndisponivel": "Камера недоступна — оповещение уже отправлено вашим контактам",
   "monitoramentoAtualizadoHaHoras": "Обновлено {horas} ч назад",
@@ -991,5 +991,6 @@
   "monitoramentoAtualizandoLocalizacao": "Обновление…",
   "monitoramentoSemRespostaAparelho": "Устройство не отвечает — показано последнее местоположение",
   "monitoramentoAguardeSegundos": "Подождите {segundos} с",
-  "monitoramentoAtualizadoAgora": "Обновлено только что"
+  "monitoramentoAtualizadoAgora": "Обновлено только что",
+  "contatoEscolherTelefone": "Какой номер {nome} использовать?"
 }

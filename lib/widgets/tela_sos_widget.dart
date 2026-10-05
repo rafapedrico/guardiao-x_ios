@@ -38,10 +38,10 @@ class TelaSosWidget extends StatelessWidget {
   String _texto(AppLocalizations? l10n) {
     switch (etapa) {
       case EtapaTelaSosWidget.enviandoLocalizacao:
-        return l10n?.sosWidgetEnviandoLocalizacao ?? 'Enviando localização…';
+        return l10n?.sosWidgetEnviandoLocalizacao ?? 'Alerta acionado. Enviando sua localização…';
       case EtapaTelaSosWidget.localizacaoEnviada:
         return l10n?.sosWidgetLocalizacaoEnviada ??
-            'Localização enviada, aguardando liberação da câmera';
+            'Localização enviada. Abrindo a câmera';
       case EtapaTelaSosWidget.falhaTentandoNovamente:
         return l10n?.sosWidgetFalhaEnvio ??
             'Falha ao enviar a localização. Tentando novamente…';

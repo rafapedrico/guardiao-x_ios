@@ -1210,8 +1210,8 @@
   "diagnosticoCopiado": "Diagnóstico copiado",
   "diagnosticoLimpar": "Limpar",
   "diagnosticoExplicacao": "Os últimos 200 erros e avisos registrados neste aparelho (mais recentes no fim). Toque em \"Copiar tudo\" e cole na conversa com o suporte.",
-  "sosWidgetEnviandoLocalizacao": "Enviando localização…",
-  "sosWidgetLocalizacaoEnviada": "Localização enviada, aguardando liberação da câmera",
+  "sosWidgetEnviandoLocalizacao": "Alerta acionado. Enviando sua localização…",
+  "sosWidgetLocalizacaoEnviada": "Localização enviada. Abrindo a câmera",
   "sosWidgetFalhaEnvio": "Falha ao enviar a localização. Tentando novamente…",
   "sosWidgetCameraIndisponivel": "Câmera indisponível — alerta já enviado aos seus contatos",
   "monitoramentoAtualizadoHaHoras": "Atualizado há {horas} h",
@@ -1378,5 +1378,13 @@
       }
     }
   },
-  "monitoramentoAtualizadoAgora": "Atualizado agora"
+  "monitoramentoAtualizadoAgora": "Atualizado agora",
+  "contatoEscolherTelefone": "Qual telefone de {nome} usar?",
+  "@contatoEscolherTelefone": {
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  }
 }
