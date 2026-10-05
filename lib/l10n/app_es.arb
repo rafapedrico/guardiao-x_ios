@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "Sin respuesta del dispositivo — mostrando la última posición",
   "monitoramentoAguardeSegundos": "Espera {segundos}s",
   "monitoramentoAtualizadoAgora": "Actualizado ahora",
-  "contatoEscolherTelefone": "¿Qué teléfono de {nome} usar?"
+  "contatoEscolherTelefone": "¿Qué teléfono de {nome} usar?",
+  "indicacaoPergunta": "¿Tienes un código de referido?",
+  "indicacaoCampoLabel": "Código de referido (opcional)",
+  "indicacaoBotaoAplicar": "Aplicar",
+  "indicacaoResultadoOk": "Código de referido registrado.",
+  "indicacaoResultadoCodigoInvalido": "Código no válido. Revísalo e inténtalo de nuevo.",
+  "indicacaoResultadoAutoindicacao": "No puedes usar tu propio código.",
+  "indicacaoResultadoJaVinculado": "Tu cuenta ya tiene un código de referido.",
+  "indicacaoResultadoJaPremium": "El código solo se puede usar antes de suscribirte a Premium.",
+  "indicacaoResultadoErro": "No se pudo registrar el código ahora. Inténtalo de nuevo en Configuración."
 }

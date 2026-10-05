@@ -25,6 +25,8 @@ class SceneDelegate: FlutterSceneDelegate {
     // Antes do super: o toque fica no buffer antes de qualquer código Dart
     // poder perguntar por ele.
     SOSWidgetLinkPlugin.capturar(connectionOptions.urlContexts.map { $0.url })
+    // Universal Link de indicação com o app fechado.
+    IndicacaoLinkPlugin.capturar(connectionOptions.userActivities.compactMap(\.webpageURL))
     super.scene(scene, willConnectTo: session, options: connectionOptions)
     SOSWidgetLinkPlugin.marcarCenaConectada()
   }
@@ -37,6 +39,15 @@ class SceneDelegate: FlutterSceneDelegate {
     if !outros.isEmpty {
       super.scene(scene, openURLContexts: outros)
     }
+  }
+
+  /// Universal Link (https://meuguardiaox.com.br/i/{CODIGO}) com o app já
+  /// rodando. Segue também para os plugins.
+  override func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+    if userActivity.activityType == NSUserActivityTypeBrowsingWeb, let url = userActivity.webpageURL {
+      IndicacaoLinkPlugin.capturar([url])
+    }
+    super.scene(scene, continue: userActivity)
   }
 
   override func sceneDidDisconnect(_ scene: UIScene) {
@@ -161,5 +172,49 @@ final class SOSWidgetLinkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     if SOSWidgetLinkPlugin.ouvinteAtual === self {
       SOSWidgetLinkPlugin.ouvinteAtual = nil
     }
+  }
+}
+
+/// Canal "guardiaox/indicacao_link" — ver lib/services/indicacao_service.dart.
+///
+/// Guarda só o caminho do ÚLTIMO link https://meuguardiaox.com.br/i/{CODIGO}
+/// recebido (estático: sobrevive à troca de engine) até o Dart pedir
+/// (`consumirCodigo`, que esvazia). Com o Dart já ouvindo, avisa na hora
+/// (`codigoRecebido`) — o Dart então consome. A validação do código fica
+/// no Dart; aqui só se filtra o domínio e a rota `/i/`.
+final class IndicacaoLinkPlugin: NSObject, FlutterPlugin {
+  private static var pendente: String?
+  private static weak var instanciaAtual: IndicacaoLinkPlugin?
+  private var canal: FlutterMethodChannel?
+
+  private static let dominios: Set<String> = ["meuguardiaox.com.br", "www.meuguardiaox.com.br"]
+
+  static func capturar(_ urls: [URL]) {
+    for url in urls {
+      guard url.scheme?.lowercased() == "https",
+            let host = url.host?.lowercased(), dominios.contains(host) else { continue }
+      let partes = url.pathComponents.filter { $0 != "/" }
+      guard partes.count >= 2, partes[0].lowercased() == "i" else { continue }
+      pendente = partes[1]
+      instanciaAtual?.canal?.invokeMethod("codigoRecebido", arguments: nil)
+    }
+  }
+
+  static func register(with registrar: FlutterPluginRegistrar) {
+    let instancia = IndicacaoLinkPlugin()
+    let canal = FlutterMethodChannel(
+      name: "guardiaox/indicacao_link", binaryMessenger: registrar.messenger())
+    instancia.canal = canal
+    canal.setMethodCallHandler { chamada, resultado in
+      guard chamada.method == "consumirCodigo" else {
+        resultado(FlutterMethodNotImplemented)
+        return
+      }
+      let codigo = IndicacaoLinkPlugin.pendente
+      IndicacaoLinkPlugin.pendente = nil
+      resultado(codigo)
+    }
+    instanciaAtual = instancia
+    registrar.publish(instancia)
   }
 }

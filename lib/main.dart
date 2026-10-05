@@ -23,6 +23,7 @@ import 'screens/onboarding_screen.dart';
 import 'services/alarme_service.dart';
 import 'services/background_location_heartbeat_service.dart';
 import 'services/bloqueio_app_service.dart';
+import 'services/indicacao_service.dart';
 import 'services/captura_dissuasao_service.dart';
 import 'services/contatos_emergencia_service.dart';
 import 'services/database_helper.dart';
@@ -238,6 +239,10 @@ Future<void> main() async {
     debugPrint('🆘 [main] SOS via Widget (iOS) — app já em execução.');
     SosWidgetFluxoService().iniciar(garantirFirebaseEAuth: _garantirFirebaseEAuth);
   });
+
+  // Universal Link de indicação (https://meuguardiaox.com.br/i/{CODIGO}):
+  // só guarda o código para pré-preencher o campo do cadastro/Configurações.
+  IndicacaoService().iniciar();
 
   // Dispara (chama, SEM `await`) a inicialização de Firebase+Auth — isso
   // já executa o corpo síncrono da função até o primeiro `await`

@@ -49,6 +49,10 @@ import WidgetKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SOSWidgetLink") {
       SOSWidgetLinkPlugin.register(with: registrar)
     }
+    // Universal Link de indicação capturado no SceneDelegate (ver SceneDelegate.swift).
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "IndicacaoLink") {
+      IndicacaoLinkPlugin.register(with: registrar)
+    }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "Rastreamento") {
       RastreamentoPlugin.register(with: registrar)
     }

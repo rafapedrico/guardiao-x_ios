@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "设备无响应 — 显示最后的位置",
   "monitoramentoAguardeSegundos": "请等待 {segundos} 秒",
   "monitoramentoAtualizadoAgora": "刚刚更新",
-  "contatoEscolherTelefone": "使用 {nome} 的哪个号码？"
+  "contatoEscolherTelefone": "使用 {nome} 的哪个号码？",
+  "indicacaoPergunta": "有推荐码吗？",
+  "indicacaoCampoLabel": "推荐码（可选）",
+  "indicacaoBotaoAplicar": "使用",
+  "indicacaoResultadoOk": "推荐码已登记。",
+  "indicacaoResultadoCodigoInvalido": "推荐码无效。请检查后重试。",
+  "indicacaoResultadoAutoindicacao": "不能使用你自己的推荐码。",
+  "indicacaoResultadoJaVinculado": "你的账号已有推荐码。",
+  "indicacaoResultadoJaPremium": "推荐码只能在订阅 Premium 之前使用。",
+  "indicacaoResultadoErro": "暂时无法登记推荐码。请在设置中重试。"
 }

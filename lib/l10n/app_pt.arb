@@ -1386,5 +1386,14 @@
         "type": "String"
       }
     }
-  }
+  },
+  "indicacaoPergunta": "Tem um código de indicação?",
+  "indicacaoCampoLabel": "Código de indicação (opcional)",
+  "indicacaoBotaoAplicar": "Aplicar",
+  "indicacaoResultadoOk": "Código de indicação registrado.",
+  "indicacaoResultadoCodigoInvalido": "Código inválido. Confira e tente de novo.",
+  "indicacaoResultadoAutoindicacao": "Você não pode usar o seu próprio código.",
+  "indicacaoResultadoJaVinculado": "Sua conta já tem um código de indicação.",
+  "indicacaoResultadoJaPremium": "O código só pode ser usado antes da assinatura Premium.",
+  "indicacaoResultadoErro": "Não foi possível registrar o código agora. Tente de novo em Configurações."
 }

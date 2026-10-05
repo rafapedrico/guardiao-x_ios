@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "端末から応答がありません — 最後の位置を表示しています",
   "monitoramentoAguardeSegundos": "{segundos}秒お待ちください",
   "monitoramentoAtualizadoAgora": "たった今更新",
-  "contatoEscolherTelefone": "{nome} のどの番号を使いますか？"
+  "contatoEscolherTelefone": "{nome} のどの番号を使いますか？",
+  "indicacaoPergunta": "紹介コードをお持ちですか？",
+  "indicacaoCampoLabel": "紹介コード（任意）",
+  "indicacaoBotaoAplicar": "適用",
+  "indicacaoResultadoOk": "紹介コードを登録しました。",
+  "indicacaoResultadoCodigoInvalido": "無効なコードです。確認してもう一度お試しください。",
+  "indicacaoResultadoAutoindicacao": "自分のコードは使用できません。",
+  "indicacaoResultadoJaVinculado": "このアカウントには既に紹介コードがあります。",
+  "indicacaoResultadoJaPremium": "コードは Premium の登録前にのみ使用できます。",
+  "indicacaoResultadoErro": "今はコードを登録できませんでした。設定からもう一度お試しください。"
 }

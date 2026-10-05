@@ -30,5 +30,15 @@
 	     entitlement o iOS rebaixa para "active" e o aviso não fura o Foco. -->
 	<key>com.apple.developer.usernotifications.time-sensitive</key>
 	<true/>
+
+	<!-- Universal Link do Programa de Indicação
+	     (https://meuguardiaox.com.br/i/{CODIGO}, ver IndicacaoLinkPlugin no
+	     SceneDelegate.swift). Só abre o app depois que o site publicar
+	     /.well-known/apple-app-site-association com
+	     SW48YVGJZ7.com.rmfglobal.guardiaox e a rota /i/*. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:meuguardiaox.com.br</string>
+	</array>
 </dict>
 </plist>

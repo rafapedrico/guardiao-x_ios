@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "Устройство не отвечает — показано последнее местоположение",
   "monitoramentoAguardeSegundos": "Подождите {segundos} с",
   "monitoramentoAtualizadoAgora": "Обновлено только что",
-  "contatoEscolherTelefone": "Какой номер {nome} использовать?"
+  "contatoEscolherTelefone": "Какой номер {nome} использовать?",
+  "indicacaoPergunta": "Есть код приглашения?",
+  "indicacaoCampoLabel": "Код приглашения (необязательно)",
+  "indicacaoBotaoAplicar": "Применить",
+  "indicacaoResultadoOk": "Код приглашения сохранён.",
+  "indicacaoResultadoCodigoInvalido": "Неверный код. Проверьте и попробуйте снова.",
+  "indicacaoResultadoAutoindicacao": "Нельзя использовать собственный код.",
+  "indicacaoResultadoJaVinculado": "У вашей учётной записи уже есть код приглашения.",
+  "indicacaoResultadoJaPremium": "Код можно использовать только до оформления Premium.",
+  "indicacaoResultadoErro": "Не удалось сохранить код. Попробуйте снова в Настройках."
 }

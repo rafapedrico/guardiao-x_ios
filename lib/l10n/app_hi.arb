@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "डिवाइस से कोई जवाब नहीं — आख़िरी स्थान दिखाया जा रहा है",
   "monitoramentoAguardeSegundos": "{segundos} सेकंड रुकें",
   "monitoramentoAtualizadoAgora": "अभी अपडेट हुआ",
-  "contatoEscolherTelefone": "{nome} का कौन-सा नंबर इस्तेमाल करें?"
+  "contatoEscolherTelefone": "{nome} का कौन-सा नंबर इस्तेमाल करें?",
+  "indicacaoPergunta": "क्या आपके पास रेफ़रल कोड है?",
+  "indicacaoCampoLabel": "रेफ़रल कोड (वैकल्पिक)",
+  "indicacaoBotaoAplicar": "लागू करें",
+  "indicacaoResultadoOk": "रेफ़रल कोड दर्ज हो गया।",
+  "indicacaoResultadoCodigoInvalido": "अमान्य कोड। जाँचें और फिर से कोशिश करें।",
+  "indicacaoResultadoAutoindicacao": "आप अपना कोड इस्तेमाल नहीं कर सकते।",
+  "indicacaoResultadoJaVinculado": "आपके खाते में पहले से एक रेफ़रल कोड है।",
+  "indicacaoResultadoJaPremium": "कोड सिर्फ़ Premium सदस्यता से पहले इस्तेमाल किया जा सकता है।",
+  "indicacaoResultadoErro": "अभी कोड दर्ज नहीं हो सका। सेटिंग्स में फिर से कोशिश करें।"
 }

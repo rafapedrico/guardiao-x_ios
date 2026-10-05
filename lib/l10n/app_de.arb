@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "Keine Antwort vom Gerät — letzte Position wird angezeigt",
   "monitoramentoAguardeSegundos": "Warte {segundos}s",
   "monitoramentoAtualizadoAgora": "Gerade aktualisiert",
-  "contatoEscolherTelefone": "Welche Nummer von {nome} verwenden?"
+  "contatoEscolherTelefone": "Welche Nummer von {nome} verwenden?",
+  "indicacaoPergunta": "Hast du einen Empfehlungscode?",
+  "indicacaoCampoLabel": "Empfehlungscode (optional)",
+  "indicacaoBotaoAplicar": "Anwenden",
+  "indicacaoResultadoOk": "Empfehlungscode gespeichert.",
+  "indicacaoResultadoCodigoInvalido": "Ungültiger Code. Prüfe ihn und versuche es erneut.",
+  "indicacaoResultadoAutoindicacao": "Du kannst deinen eigenen Code nicht verwenden.",
+  "indicacaoResultadoJaVinculado": "Dein Konto hat bereits einen Empfehlungscode.",
+  "indicacaoResultadoJaPremium": "Der Code kann nur vor dem Premium-Abo verwendet werden.",
+  "indicacaoResultadoErro": "Der Code konnte gerade nicht gespeichert werden. Versuche es in den Einstellungen erneut."
 }

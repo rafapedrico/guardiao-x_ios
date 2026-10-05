@@ -20,6 +20,7 @@ import '../login_screen.dart';
 import '../permissoes_status_screen.dart';
 import '../diagnostico_screen.dart';
 import '../../widgets/contato_agenda_picker.dart';
+import '../../widgets/codigo_indicacao.dart';
 
 
 
@@ -1492,6 +1493,12 @@ Future<void> _selecionarSom(int? numero) async {
         // SEÇÃO: MEU PERFIL (número de contato — somente leitura)
         // =========================================
         _sectionHeader(theme, Icons.person_outline, AppLocalizations.of(context)!.meuPerfilTitulo),
+        // "Tem um código de indicação?" — só enquanto não é Premium nem tem
+        // vínculo (some sozinho depois de vinculado).
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: CartaoCodigoIndicacao(),
+        ),
         if (_carregandoTelefone)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),

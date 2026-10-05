@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/firebase_sync_service.dart';
+import '../services/indicacao_service.dart';
 import '../utils/mensagens_erro_auth.dart';
 import '../utils/telefone_utils.dart';
+import '../widgets/codigo_indicacao.dart';
 import 'verificar_email_screen.dart';
 
 /// Tela de Cadastro (primeiro acesso) do "SOS Security Personal".
@@ -37,13 +39,29 @@ class _CadastroScreenState extends State<CadastroScreen> {
   final _celularController = TextEditingController();
   final _senhaController = TextEditingController();
   final _confirmarSenhaController = TextEditingController();
+  final _codigoIndicacaoController = TextEditingController();
 
   bool _senhaVisivel = false;
   bool _confirmarSenhaVisivel = false;
   bool _criandoConta = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Universal Link https://meuguardiaox.com.br/i/{CODIGO}: pré-preenche.
+    _aplicarCodigoDoLink();
+    IndicacaoService().codigoDoLink.addListener(_aplicarCodigoDoLink);
+  }
+
+  void _aplicarCodigoDoLink() {
+    final codigo = IndicacaoService().codigoDoLink.value;
+    if (codigo != null) _codigoIndicacaoController.text = codigo;
+  }
+
+  @override
   void dispose() {
+    IndicacaoService().codigoDoLink.removeListener(_aplicarCodigoDoLink);
+    _codigoIndicacaoController.dispose();
     _nomeController.dispose();
     _emailController.dispose();
     _celularController.dispose();
@@ -98,6 +116,27 @@ class _CadastroScreenState extends State<CadastroScreen> {
         // depois em Configurações > Meu Perfil assim que confirmar o
         // e-mail e conseguir logar.
         telefoneEmUso = resultado == ResultadoSalvarTelefone.telefoneEmUso;
+
+        // Código de indicação (opcional): só depois da conta criada — a
+        // callable exige login. A recusa não impede o cadastro; o motivo
+        // aparece num SnackBar (o ScaffoldMessenger é o do app, então ele
+        // continua visível na tela seguinte). Sem sucesso, dá para tentar
+        // de novo em Configurações.
+        final codigo = _codigoIndicacaoController.text.trim();
+        if (codigo.isNotEmpty) {
+          final resultadoIndicacao = await IndicacaoService().registrar(codigo);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(textoResultadoIndicacao(
+                    AppLocalizations.of(context)!, resultadoIndicacao)),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor:
+                    resultadoIndicacao == ResultadoIndicacao.ok ? null : Colors.redAccent,
+              ),
+            );
+          }
+        }
       }
 
       // CORREÇÃO DE BUG REAL (2026-09-05, pedido explícito do usuário —
@@ -199,6 +238,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   _buildCampoSenha(),
                   const SizedBox(height: 16),
                   _buildCampoConfirmarSenha(),
+                  const SizedBox(height: 22),
+                  _buildCampoCodigoIndicacao(),
                   const SizedBox(height: 28),
                   _buildBotaoCriarConta(),
                   const SizedBox(height: 20),
@@ -365,6 +406,38 @@ class _CadastroScreenState extends State<CadastroScreen> {
         }
         return null;
       },
+    );
+  }
+
+  /// "Tem um código de indicação?" — opcional; validado só pelo servidor
+  /// (ver [IndicacaoService.registrar]).
+  Widget _buildCampoCodigoIndicacao() {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            l10n.indicacaoPergunta,
+            style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+        TextFormField(
+          controller: _codigoIndicacaoController,
+          textCapitalization: TextCapitalization.characters,
+          autocorrect: false,
+          enableSuggestions: false,
+          maxLength: 12,
+          textInputAction: TextInputAction.done,
+          onFieldSubmitted: (_) => _criarConta(),
+          style: const TextStyle(color: Colors.white),
+          decoration: _decoracaoInput(
+            label: l10n.indicacaoCampoLabel,
+            icone: Icons.person_add_alt_1_outlined,
+          ).copyWith(counterText: ''),
+        ),
+      ],
     );
   }
 

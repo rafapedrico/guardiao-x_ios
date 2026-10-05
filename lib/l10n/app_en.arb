@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "No response from the device — showing the last position",
   "monitoramentoAguardeSegundos": "Wait {segundos}s",
   "monitoramentoAtualizadoAgora": "Updated just now",
-  "contatoEscolherTelefone": "Which number for {nome}?"
+  "contatoEscolherTelefone": "Which number for {nome}?",
+  "indicacaoPergunta": "Have a referral code?",
+  "indicacaoCampoLabel": "Referral code (optional)",
+  "indicacaoBotaoAplicar": "Apply",
+  "indicacaoResultadoOk": "Referral code registered.",
+  "indicacaoResultadoCodigoInvalido": "Invalid code. Check it and try again.",
+  "indicacaoResultadoAutoindicacao": "You can't use your own code.",
+  "indicacaoResultadoJaVinculado": "Your account already has a referral code.",
+  "indicacaoResultadoJaPremium": "The code can only be used before subscribing to Premium.",
+  "indicacaoResultadoErro": "Couldn't register the code right now. Try again in Settings."
 }

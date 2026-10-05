@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "لا يوجد رد من الجهاز — يتم عرض آخر موقع",
   "monitoramentoAguardeSegundos": "انتظر {segundos} ث",
   "monitoramentoAtualizadoAgora": "تم التحديث الآن",
-  "contatoEscolherTelefone": "أي رقم لـ {nome} تريد استخدامه؟"
+  "contatoEscolherTelefone": "أي رقم لـ {nome} تريد استخدامه؟",
+  "indicacaoPergunta": "هل لديك رمز إحالة؟",
+  "indicacaoCampoLabel": "رمز الإحالة (اختياري)",
+  "indicacaoBotaoAplicar": "تطبيق",
+  "indicacaoResultadoOk": "تم تسجيل رمز الإحالة.",
+  "indicacaoResultadoCodigoInvalido": "رمز غير صالح. تحقق منه وحاول مرة أخرى.",
+  "indicacaoResultadoAutoindicacao": "لا يمكنك استخدام رمزك الخاص.",
+  "indicacaoResultadoJaVinculado": "حسابك لديه رمز إحالة بالفعل.",
+  "indicacaoResultadoJaPremium": "لا يمكن استخدام الرمز إلا قبل الاشتراك في Premium.",
+  "indicacaoResultadoErro": "تعذّر تسجيل الرمز الآن. حاول مرة أخرى من الإعدادات."
 }

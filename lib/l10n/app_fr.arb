@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "Pas de réponse de l'appareil — dernière position affichée",
   "monitoramentoAguardeSegundos": "Patientez {segundos}s",
   "monitoramentoAtualizadoAgora": "Mis à jour à l'instant",
-  "contatoEscolherTelefone": "Quel numéro de {nome} utiliser ?"
+  "contatoEscolherTelefone": "Quel numéro de {nome} utiliser ?",
+  "indicacaoPergunta": "Vous avez un code de parrainage ?",
+  "indicacaoCampoLabel": "Code de parrainage (facultatif)",
+  "indicacaoBotaoAplicar": "Appliquer",
+  "indicacaoResultadoOk": "Code de parrainage enregistré.",
+  "indicacaoResultadoCodigoInvalido": "Code invalide. Vérifiez-le et réessayez.",
+  "indicacaoResultadoAutoindicacao": "Vous ne pouvez pas utiliser votre propre code.",
+  "indicacaoResultadoJaVinculado": "Votre compte a déjà un code de parrainage.",
+  "indicacaoResultadoJaPremium": "Le code ne peut être utilisé qu'avant l'abonnement Premium.",
+  "indicacaoResultadoErro": "Impossible d'enregistrer le code pour le moment. Réessayez dans Réglages."
 }

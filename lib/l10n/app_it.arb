@@ -992,5 +992,14 @@
   "monitoramentoSemRespostaAparelho": "Nessuna risposta dal dispositivo — mostro l'ultima posizione",
   "monitoramentoAguardeSegundos": "Attendi {segundos}s",
   "monitoramentoAtualizadoAgora": "Aggiornato ora",
-  "contatoEscolherTelefone": "Quale numero di {nome} usare?"
+  "contatoEscolherTelefone": "Quale numero di {nome} usare?",
+  "indicacaoPergunta": "Hai un codice invito?",
+  "indicacaoCampoLabel": "Codice invito (facoltativo)",
+  "indicacaoBotaoAplicar": "Applica",
+  "indicacaoResultadoOk": "Codice invito registrato.",
+  "indicacaoResultadoCodigoInvalido": "Codice non valido. Controllalo e riprova.",
+  "indicacaoResultadoAutoindicacao": "Non puoi usare il tuo codice.",
+  "indicacaoResultadoJaVinculado": "Il tuo account ha già un codice invito.",
+  "indicacaoResultadoJaPremium": "Il codice si può usare solo prima dell'abbonamento Premium.",
+  "indicacaoResultadoErro": "Impossibile registrare il codice ora. Riprova in Impostazioni."
 }
