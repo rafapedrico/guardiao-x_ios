@@ -1137,10 +1137,13 @@ class MonitoramentoTabState extends State<MonitoramentoTab> {
                       ),
                     ),
                   _LinhaEstadoAlvo(uidAlvo: uid, l10n: l10n),
-                  // Contato Android: o app dele não grava `plataforma` em
-                  // monitoramento/atual (só o nativo do iOS grava "ios") e
-                  // não tem rastreamento contínuo.
-                  if (dados != null && dados['plataforma'] != 'ios')
+                  // Contato Android sem modo contínuo: o app dele não grava
+                  // `plataforma: 'ios'` em monitoramento/atual. Quando o
+                  // Android gravar `rastreamentoContinuo: true`, o aviso
+                  // some sozinho.
+                  if (dados != null &&
+                      dados['plataforma'] != 'ios' &&
+                      dados['rastreamentoContinuo'] != true)
                     Padding(
                       padding: const EdgeInsets.only(left: 22, top: 2),
                       child: Text(
