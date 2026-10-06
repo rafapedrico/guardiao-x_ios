@@ -3,6 +3,23 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 
+import '../services/pin_hash.dart';
+
+/// Limite de tentativas de PIN de uma área (ex.: a área protegida do
+/// Histórico, ver AreaProtegidaHistoricoService): o diálogo consulta se a
+/// área está bloqueada, avisa cada erro e cada acerto. Sem controle (o
+/// padrão), as tentativas são ilimitadas como sempre — o cronômetro e o
+/// despertador dependem disso para disparar o alerta no 3º erro.
+abstract class ControleTentativasPin {
+  /// Fim do bloqueio em vigor, ou `null`.
+  Future<DateTime?> bloqueadoAte();
+
+  /// Registra um erro; devolve o fim do bloqueio se este erro bloqueou.
+  Future<DateTime?> registrarErro();
+
+  Future<void> registrarAcerto();
+}
+
 /// Diálogo leve (AlertDialog) para confirmação de PIN, exibido POR CIMA
 /// da tela atual (sem substituir toda a árvore/rota como a antiga
 /// TelaBloqueioPin fazia). Isso elimina os conflitos de ciclo de vida
@@ -76,6 +93,7 @@ Future<void> exibirDialogoPin({
   VoidCallback? aoCancelar,
   Future<void> Function()? aoDescartarPorArraste,
   String? mensagemSucesso,
+  ControleTentativasPin? controleTentativas,
 }) {
   return showDialog<void>(
     context: context,
@@ -93,6 +111,7 @@ Future<void> exibirDialogoPin({
         aoCancelar: aoCancelar,
         aoDescartarPorArraste: aoDescartarPorArraste,
         mensagemSucesso: mensagemSucesso,
+        controleTentativas: controleTentativas,
       );
     },
   );
@@ -112,9 +131,15 @@ class PinDialogContent extends StatefulWidget {
     this.aoCancelar,
     this.aoDescartarPorArraste,
     this.mensagemSucesso,
+    this.controleTentativas,
   });
 
+  /// Valor guardado em `user_config.pin_real`: hash com sal (ver [PinHash])
+  /// ou, em instalações ainda não migradas, o PIN em texto puro.
   final String? pinEsperado;
+
+  /// Limite de tentativas da área (ver [ControleTentativasPin]).
+  final ControleTentativasPin? controleTentativas;
   final Future<void> Function() aoConfirmarPinCorreto;
   final int? segundosTolerancia;
 
@@ -207,9 +232,51 @@ class _PinDialogContentState extends State<PinDialogContent> {
   Timer? _timerLimiteDuro;
   bool _limiteDuroJaAcionado = false;
 
+  // Bloqueio por tentativas (ver [widget.controleTentativas]).
+  DateTime? _bloqueadoAte;
+  Timer? _timerBloqueio;
+
+  bool get _bloqueado => _bloqueadoAte != null && _bloqueadoAte!.isAfter(DateTime.now());
+
+  void _aplicarBloqueio(DateTime? fim) {
+    _timerBloqueio?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _bloqueadoAte = fim;
+      _pinDigitado = '';
+    });
+    if (fim == null) return;
+    _timerBloqueio = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (!_bloqueado) {
+        timer.cancel();
+        setState(() {
+          _bloqueadoAte = null;
+          _mensagemErro = null;
+        });
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  String _textoBloqueio() {
+    final restante = _bloqueadoAte!.difference(DateTime.now());
+    final minutos = restante.inMinutes;
+    final segundos = (restante.inSeconds % 60).toString().padLeft(2, '0');
+    return AppLocalizations.of(context)!.pinAreaBloqueada('$minutos:$segundos');
+  }
+
   @override
   void initState() {
     super.initState();
+    final controle = widget.controleTentativas;
+    if (controle != null) {
+      controle.bloqueadoAte().then(_aplicarBloqueio);
+    }
     if (widget.segundosLimiteDuro != null) {
       _segundosRestantesLimiteDuro = widget.segundosLimiteDuro;
       _timerLimiteDuro = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -232,6 +299,7 @@ class _PinDialogContentState extends State<PinDialogContent> {
   @override
   void dispose() {
     _timerLimiteDuro?.cancel();
+    _timerBloqueio?.cancel();
     super.dispose();
   }
 
@@ -269,7 +337,7 @@ class _PinDialogContentState extends State<PinDialogContent> {
   }
 
   void _pressionarTecla(String caractere) {
-    if (_pinDigitado.length >= 4 || _verificando) return;
+    if (_pinDigitado.length >= 4 || _verificando || _bloqueado) return;
     setState(() {
       _pinDigitado += caractere;
       _mensagemErro = null;
@@ -289,13 +357,13 @@ class _PinDialogContentState extends State<PinDialogContent> {
   }
 
   Future<void> _verificarPin() async {
-    final pinCorreto = widget.pinEsperado != null &&
-        widget.pinEsperado!.isNotEmpty &&
-        _pinDigitado == widget.pinEsperado;
+    final pinCorreto = PinHash.verificar(_pinDigitado, widget.pinEsperado);
 
     if (pinCorreto) {
       _errosConsecutivos = 0;
       _timerLimiteDuro?.cancel();
+      await widget.controleTentativas?.registrarAcerto();
+      if (!mounted) return;
       setState(() {
         _verificando = true;
         // Altera a mensagem no próprio teclado: usa o texto específico do
@@ -333,6 +401,12 @@ class _PinDialogContentState extends State<PinDialogContent> {
         _mensagemErro = AppLocalizations.of(context)!.pinSenhaIncorreta; // Mensagem atualizada
         _pinDigitado = ''; // Reseta os indicadores de círculos para nova tentativa
       });
+    }
+
+    final controle = widget.controleTentativas;
+    if (controle != null) {
+      final fim = await controle.registrarErro();
+      if (fim != null) _aplicarBloqueio(fim);
     }
   }
 
@@ -431,11 +505,11 @@ class _PinDialogContentState extends State<PinDialogContent> {
             const SizedBox(height: 16),
             _buildIndicadoresPIN(),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 18,
-              child: _mensagemErro != null
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 18),
+              child: (_bloqueado || _mensagemErro != null)
                   ? Text(
-                      _mensagemErro!,
+                      _bloqueado ? _textoBloqueio() : _mensagemErro!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.redAccent,

@@ -8,47 +8,68 @@ import '../screens/sos_sem_login_screen.dart';
 import '../widgets/premium_compra_aviso.dart';
 import 'bloqueio_app_service.dart';
 import 'captura_dissuasao_service.dart';
+import 'historico_alertas_service.dart';
 import 'plano_ciclo_service.dart';
 import 'sos_disparo_service.dart';
 import 'sos_plano_aviso_service.dart';
 
-/// Texto da tela preta do Widget SOS (ver [TelaSosWidget]).
+/// Texto da tela preta do SOS (ver [TelaSosWidget]).
 enum EtapaTelaSosWidget {
+  /// "Alerta acionado. Enviando sua localização…"
   enviandoLocalizacao,
+
+  /// "Localização enviada com sucesso" — 2 s, depois [abrindoCamera].
   localizacaoEnviada,
-  falhaTentandoNovamente,
+
+  /// Sem confirmação em 8 s: "Sem conexão. Seu alerta será enviado
+  /// automaticamente assim que houver sinal" — 2 s, depois [abrindoCamera].
+  semConexao,
+
+  /// "Abrindo a câmera" até o preview aparecer.
+  abrindoCamera,
+
+  /// A câmera não abriu em 10 s (alerta já confirmado pelo servidor).
   cameraIndisponivel,
+
+  /// A câmera não abriu em 10 s e o alerta ainda está na fila.
+  cameraIndisponivelSemConexao,
 
   /// Dias bloqueados do Plano Free: "Botão SOS desativado no Plano Free
   /// até DD/MM" com "Assinar Premium" — nada é enviado.
   desativadoPlanoFree,
 }
 
-/// Fluxo do toque no Widget SOS do iOS (`guardiaox://sos`, ver
-/// [SosDeepLinkService]) — app fechado, em segundo plano (com ou sem
-/// bloqueio pendente), em primeiro plano em qualquer tela, ou logo após
-/// desbloquear o iPhone.
+/// Fluxo do SOS do iOS — o MESMO para o Widget SOS (`guardiaox://sos`, ver
+/// [SosDeepLinkService]) e para o botão SOS da aba Segurança.
 ///
-/// Do primeiro quadro após o toque até a câmera abrir, a ÚNICA coisa
-/// visível é a [TelaSosWidget] (preta, texto vermelho), desenhada em
-/// `MaterialApp.builder` POR CIMA de tudo — Navigator, diálogos e a
-/// camada de bloqueio ([CamadaBloqueioApp]). Nunca splash, login,
-/// bloqueio ou Home.
+/// Do toque até a câmera abrir, a ÚNICA coisa visível é a [TelaSosWidget]
+/// (preta, texto vermelho), desenhada em `MaterialApp.builder` POR CIMA de
+/// tudo — Navigator, diálogos e a camada de bloqueio ([CamadaBloqueioApp]).
 ///
-/// Em paralelo, a partir de uma única leitura da janela do Plano Free:
-///   - P1: Push com a última posição conhecida, com progresso na tela
-///     ("Enviando…" → "Localização enviada…", ou "Falha… Tentando
-///     novamente…" enquanto o Firestore insiste) — ver
-///     [SosDisparoService.executarP1DoWidget];
-///   - P2: a câmera ([CameraCapturaScreen]). Quando o preview aparece, a
-///     tela preta sai. Se a câmera não abrir em [_limiteCamera], o texto
-///     vira "Câmera indisponível…" e a captura segue para a tela vermelha.
+/// Sequência:
+///   1. toque → envio imediato, sem confirmação, da localização exata
+///      ([SosDisparoService.executarP1Sos], alerta com id fixo e
+///      confirmação do servidor) — "Alerta acionado. Enviando sua
+///      localização…";
+///   2. confirmado → "Localização enviada com sucesso" por 2 s; sem
+///      confirmação em 8 s → "Sem conexão…" por 2 s (o envio continua
+///      tentando sozinho);
+///   3. "Abrindo a câmera" até o preview aparecer (teto de 10 s; sem câmera,
+///      "Câmera indisponível…" e a captura segue para a tela vermelha).
+/// A câmera só abre depois desses avisos.
 class SosWidgetFluxoService {
   SosWidgetFluxoService._internal();
   static final SosWidgetFluxoService _instance = SosWidgetFluxoService._internal();
   factory SosWidgetFluxoService() => _instance;
 
+  /// `origem` do alerta no Firestore para o Widget SOS.
   static const String origem = 'sos_widget_ios';
+
+  /// `origem` do alerta no Firestore para o botão SOS da aba Segurança.
+  static const String origemBotaoApp = 'sos_manual';
+
+  static const Duration _limiteConfirmacao = Duration(seconds: 8);
+  static const Duration _exibicaoAviso = Duration(seconds: 2);
   static const Duration _limiteCamera = Duration(seconds: 10);
   static const Duration _exibicaoCameraIndisponivel = Duration(seconds: 3);
 
@@ -60,41 +81,54 @@ class SosWidgetFluxoService {
   DateTime? fimBloqueioPlano;
 
   VoidCallback? _encerrarLiberacao;
+  Completer<bool>? _confirmacao;
   bool _envioConfirmado = false;
-  bool _soReenviando = false;
   Timer? _timerSaida;
 
   /// Começa o fluxo. Síncrono até a tela preta estar pedida: chamado antes
-  /// do `runApp` no cold start (o primeiro quadro já sai preto) e direto do
-  /// evento nativo no warm start. Um toque com a tela preta já na tela é
-  /// ignorado (o SOS já está em andamento).
-  void iniciar({required Future<void> Function() garantirFirebaseEAuth}) {
+  /// do `runApp` no cold start (o primeiro quadro já sai preto), direto do
+  /// evento nativo no warm start e no toque do botão SOS do app. Um toque
+  /// com a tela preta já na tela é ignorado (o SOS já está em andamento).
+  ///
+  /// [origemAlerta]: [origem] (widget) ou [origemBotaoApp].
+  /// [aoPlanoBloqueado]: nos dias bloqueados do Plano Free, em vez da tela
+  /// preta de "Botão SOS desativado", fecha a tela preta e chama este aviso
+  /// (o botão do app mantém o aviso de sempre).
+  void iniciar({
+    Future<void> Function()? garantirFirebaseEAuth,
+    String origemAlerta = origem,
+    Future<void> Function()? aoPlanoBloqueado,
+  }) {
     if (etapa.value != null) {
-      debugPrint('🆘 [SosWidgetFluxo] Toque ignorado — SOS do widget já em andamento.');
+      debugPrint('🆘 [SosFluxo] Toque ignorado — SOS já em andamento.');
       return;
     }
-    debugPrint('🆘 [SosWidgetFluxo] Toque no Widget SOS — tela preta e envio imediato.');
+    debugPrint('🆘 [SosFluxo] SOS ($origemAlerta) — tela preta e envio imediato.');
     _timerSaida?.cancel();
     _envioConfirmado = false;
-    _soReenviando = false;
+    _confirmacao = Completer<bool>();
     // O SOS nunca espera desbloqueio: esconde a camada de bloqueio (e o
     // Face ID automático dela) enquanto o fluxo estiver na tela.
     _encerrarLiberacao = BloqueioAppService().liberarParaEmergencia();
     FocusManager.instance.primaryFocus?.unfocus();
     etapa.value = EtapaTelaSosWidget.enviandoLocalizacao;
-    unawaited(_executar(garantirFirebaseEAuth));
+    unawaited(_executar(garantirFirebaseEAuth, origemAlerta, aoPlanoBloqueado));
   }
 
-  Future<void> _executar(Future<void> Function() garantirFirebaseEAuth) async {
+  Future<void> _executar(
+    Future<void> Function()? garantirFirebaseEAuth,
+    String origemAlerta,
+    Future<void> Function()? aoPlanoBloqueado,
+  ) async {
     try {
-      await garantirFirebaseEAuth();
+      await garantirFirebaseEAuth?.call();
     } catch (e) {
-      debugPrint('⚠️ [SosWidgetFluxo] Firebase/Auth indisponível: $e');
+      debugPrint('⚠️ [SosFluxo] Firebase/Auth indisponível: $e');
     }
 
     if (!BloqueioAppService.sessaoValida()) {
       // Ninguém nunca entrou neste aparelho: não há como enviar alerta.
-      debugPrint('🆘 [SosWidgetFluxo] Sem sessão — explicando como ativar o botão.');
+      debugPrint('🆘 [SosFluxo] Sem sessão — explicando como ativar o botão.');
       _encerrarTela();
       (await _aguardarNavigator())?.push(
         MaterialPageRoute<void>(builder: (_) => const SosSemLoginScreen()),
@@ -102,81 +136,65 @@ class SosWidgetFluxoService {
       return;
     }
 
-    // Uma única leitura da janela do Plano Free para o envio e a câmera.
     // Sem status (sem rede/falha), libera — nunca silenciar um SOS por
     // falha técnica (mesma regra de [PlanoCicloService.podeUsarRecursosAvancados]).
-    final status = PlanoCicloService().obterStatusAtualizado();
-    final planoLiberado = status.then((s) => s?.ativo ?? true);
-    unawaited(_enviarLocalizacao(planoLiberado));
-    unawaited(_abrirCamera(planoLiberado, status));
-  }
-
-  Future<void> _enviarLocalizacao(Future<bool> planoLiberado) async {
-    if (!await planoLiberado) return;
-    try {
-      await SosDisparoService().executarP1DoWidget(
-        origem: origem,
-        aoConfirmar: _aoConfirmarEnvio,
-        aoFalhar: _aoFalharEnvio,
-      );
-    } catch (e) {
-      debugPrint('⚠️ [SosWidgetFluxo] Falha no envio da localização: $e');
-      _aoFalharEnvio();
-    }
-  }
-
-  void _aoConfirmarEnvio() {
-    _envioConfirmado = true;
-    final atual = etapa.value;
-    if (atual == EtapaTelaSosWidget.enviandoLocalizacao ||
-        atual == EtapaTelaSosWidget.falhaTentandoNovamente) {
-      etapa.value = EtapaTelaSosWidget.localizacaoEnviada;
-    }
-    if (_soReenviando && etapa.value != null) {
-      _timerSaida?.cancel();
-      _timerSaida = Timer(const Duration(milliseconds: 1500), _encerrarTela);
-    }
-  }
-
-  void _aoFalharEnvio() {
-    if (_envioConfirmado) return;
-    if (etapa.value == EtapaTelaSosWidget.enviandoLocalizacao) {
-      etapa.value = EtapaTelaSosWidget.falhaTentandoNovamente;
-    }
-  }
-
-  Future<void> _abrirCamera(
-    Future<bool> planoLiberado,
-    Future<PlanoCicloStatus?> status,
-  ) async {
-    if (!await planoLiberado) {
-      // Dias bloqueados do Plano Free: nada é enviado. Em vez de não
-      // acontecer nada, a tela preta explica até quando e oferece o
-      // Premium (ver [assinarPremium]/[fecharAvisoPlano]).
-      debugPrint('🔒 [SosWidgetFluxo] Plano Free nos dias bloqueados — SOS não enviado.');
-      fimBloqueioPlano = BloqueioSosPlano.vigente(await status)?.fim;
+    final status = await PlanoCicloService().obterStatusAtualizado();
+    if (!(status?.ativo ?? true)) {
+      debugPrint('🔒 [SosFluxo] Plano Free nos dias bloqueados — SOS não enviado.');
+      if (aoPlanoBloqueado != null) {
+        _encerrarTela();
+        await aoPlanoBloqueado();
+        return;
+      }
+      fimBloqueioPlano = BloqueioSosPlano.vigente(status)?.fim;
       etapa.value = EtapaTelaSosWidget.desativadoPlanoFree;
       return;
     }
 
-    if (CameraCapturaScreen.instanciasAbertas > 0) {
-      // Já há uma câmera/tela vermelha de SOS aberta: só reenvia a
-      // localização e devolve a tela que já estava aberta.
-      debugPrint('🆘 [SosWidgetFluxo] Câmera do SOS já aberta — só reenviando a localização.');
-      _soReenviando = true;
-      if (_envioConfirmado) {
-        _aoConfirmarEnvio();
-      } else {
-        _timerSaida = Timer(_limiteCamera, _encerrarTela);
-      }
+    if (!await SosDisparoService().reivindicarDisparo()) {
+      // Outro disparo de SOS começou há poucos segundos e já está enviando.
+      debugPrint('🔁 [SosFluxo] SOS já em andamento por outro disparo.');
+      _encerrarTela();
       return;
     }
 
+    final alertaId = HistoricoAlertasService().novoAlertaId();
+    unawaited(SosDisparoService()
+        .executarP1Sos(
+          alertaId: alertaId,
+          origem: origemAlerta,
+          tipoHistorico: origemAlerta == origemBotaoApp
+              ? TipoAlertaHistorico.sosManual
+              : TipoAlertaHistorico.sosWidget,
+          aoConfirmar: _aoConfirmarEnvio,
+          aoFalhar: () {},
+        )
+        .catchError((Object e) {
+      debugPrint('⚠️ [SosFluxo] Falha no envio da localização: $e');
+    }));
+
+    final confirmado = await _confirmacao!.future
+        .timeout(_limiteConfirmacao, onTimeout: () => false);
+    if (etapa.value == null) return;
+    etapa.value = confirmado ? EtapaTelaSosWidget.localizacaoEnviada : EtapaTelaSosWidget.semConexao;
+    await Future<void>.delayed(_exibicaoAviso);
+    if (etapa.value == null) return;
+
+    if (CameraCapturaScreen.instanciasAbertas > 0) {
+      // Já há uma câmera/tela vermelha de SOS aberta: o alerta novo já foi
+      // enviado; devolve a tela que já estava aberta.
+      debugPrint('🆘 [SosFluxo] Câmera do SOS já aberta — só reenviou a localização.');
+      _encerrarTela();
+      return;
+    }
+
+    etapa.value = EtapaTelaSosWidget.abrindoCamera;
     // Rede de segurança: se nem a tela de captura conseguir avisar, a tela
     // preta não fica para sempre.
     _timerSaida = Timer(_limiteCamera + const Duration(seconds: 2), () => _aoResolverCamera(false));
     final abriuTela = await CapturaDissuasaoService().abrirCapturaSePermitido(
-      origemUnificada: origem,
+      origemUnificada: origemAlerta,
+      alertaId: alertaId,
       planoJaVerificado: true,
       limiteAbertura: _limiteCamera,
       aoResolverAbertura: _aoResolverCamera,
@@ -184,16 +202,29 @@ class SosWidgetFluxoService {
     if (!abriuTela) _aoResolverCamera(false);
   }
 
+  void _aoConfirmarEnvio() {
+    _envioConfirmado = true;
+    final confirmacao = _confirmacao;
+    if (confirmacao != null && !confirmacao.isCompleted) confirmacao.complete(true);
+  }
+
   void _aoResolverCamera(bool abriu) {
-    if (etapa.value == null || etapa.value == EtapaTelaSosWidget.cameraIndisponivel) return;
+    final atual = etapa.value;
+    if (atual == null ||
+        atual == EtapaTelaSosWidget.cameraIndisponivel ||
+        atual == EtapaTelaSosWidget.cameraIndisponivelSemConexao) {
+      return;
+    }
     _timerSaida?.cancel();
     if (abriu) {
-      debugPrint('📷 [SosWidgetFluxo] Câmera aberta — saindo da tela preta.');
+      debugPrint('📷 [SosFluxo] Câmera aberta — saindo da tela preta.');
       _encerrarTela();
       return;
     }
-    debugPrint('📷 [SosWidgetFluxo] Câmera indisponível — seguindo para a tela vermelha.');
-    etapa.value = EtapaTelaSosWidget.cameraIndisponivel;
+    debugPrint('📷 [SosFluxo] Câmera indisponível — seguindo para a tela vermelha.');
+    etapa.value = _envioConfirmado
+        ? EtapaTelaSosWidget.cameraIndisponivel
+        : EtapaTelaSosWidget.cameraIndisponivelSemConexao;
     _timerSaida = Timer(_exibicaoCameraIndisponivel, _encerrarTela);
   }
 

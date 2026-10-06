@@ -1395,5 +1395,55 @@
   "indicacaoResultadoAutoindicacao": "Você não pode usar o seu próprio código.",
   "indicacaoResultadoJaVinculado": "Sua conta já tem um código de indicação.",
   "indicacaoResultadoJaPremium": "O código só pode ser usado antes da assinatura Premium.",
-  "indicacaoResultadoErro": "Não foi possível registrar o código agora. Tente de novo em Configurações."
+  "indicacaoResultadoErro": "Não foi possível registrar o código agora. Tente de novo em Configurações.",
+  "historicoTipoSosManual": "SOS acionado pelo botão do app",
+  "historicoTipoSosWidget": "SOS acionado pelo widget",
+  "historicoTipoCronometroExpirado": "Alerta: tempo do cronômetro esgotado",
+  "historicoTipoTentativaDesarme": "Alerta: PIN incorreto 3 vezes no cronômetro",
+  "historicoTipoCronometroAtivado": "Cronômetro ativado",
+  "historicoTipoCronometroDesarmado": "Cronômetro desarmado com o PIN correto",
+  "historicoTipoDespertadorConfirmado": "Despertador confirmado com o PIN correto",
+  "historicoTipoDespertadorExpirado": "Alerta: despertador não confirmado a tempo",
+  "historicoTipoDespertadorPinIncorreto": "Alerta: PIN incorreto 3 vezes no despertador",
+  "historicoTipoDespertadorTentativaApagar": "Alerta: tentativa de apagar/pausar o despertador com senha incorreta",
+  "historicoTipoAlertaServidor": "Alerta enviado pelo servidor",
+  "historicoStatusEnviando": "Enviando…",
+  "historicoStatusEnviado": "Enviado aos contatos",
+  "historicoStatusPendente": "Pendente — será enviado assim que houver conexão",
+  "historicoStatusFalhou": "Não enviado",
+  "historicoDetalheTitulo": "Detalhe do alerta",
+  "historicoDetalheDataHora": "DATA E HORA",
+  "historicoDetalheStatus": "STATUS",
+  "historicoDetalheFoto": "FOTO",
+  "historicoDetalheSemFoto": "Nenhuma foto neste alerta",
+  "historicoDetalheFotoIndisponivel": "Foto indisponível no momento",
+  "historicoDetalheLocalizacao": "LOCALIZAÇÃO",
+  "historicoDetalheSemLocalizacao": "Localização não registrada",
+  "historicoDetalhePrecisao": "Precisão: ± {metros} m",
+  "@historicoDetalhePrecisao": {
+    "placeholders": {
+      "metros": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoDetalheVerNoMapa": "Ver no mapa",
+  "historicoDetalheTexto": "TEXTO PERSONALIZADO",
+  "historicoComLocalizacao": "com localização",
+  "historicoComFoto": "com foto",
+  "historicoPinConfirmado": "PIN confirmado",
+  "pinAreaBloqueada": "Muitas tentativas incorretas. Tente novamente em {tempo}.",
+  "@pinAreaBloqueada": {
+    "placeholders": {
+      "tempo": {
+        "type": "String"
+      }
+    }
+  },
+  "sosLocalizacaoEnviadaSucesso": "Localização enviada com sucesso",
+  "sosSemConexao": "Sem conexão. Seu alerta será enviado automaticamente assim que houver sinal",
+  "sosAbrindoCamera": "Abrindo a câmera",
+  "sosCameraIndisponivelSemConexao": "Câmera indisponível — seu alerta será enviado aos seus contatos assim que houver sinal",
+  "mensagemEnviadaAvisoSemFoto": "ATENÇÃO, UMA MENSAGEM FOI ENVIADA AOS FAMILIARES COM SUA LOCALIZAÇÃO. ESTA OPERAÇÃO NÃO PODE SER DESFEITA.",
+  "mensagemAvisoSemConexao": "ATENÇÃO, SEU ALERTA SERÁ ENVIADO AOS FAMILIARES ASSIM QUE HOUVER CONEXÃO."
 }

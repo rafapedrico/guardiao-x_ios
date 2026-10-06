@@ -4,8 +4,8 @@ import 'package:security_check_app/l10n/app_localizations.dart';
 import '../services/sos_plano_aviso_service.dart';
 import '../services/sos_widget_fluxo_service.dart';
 
-/// Tela preta do Widget SOS: a única coisa visível do toque no widget até a
-/// câmera abrir (ver [SosWidgetFluxoService]). Fica em `MaterialApp.builder`
+/// Tela preta do SOS (Widget SOS e botão SOS do app): a única coisa visível
+/// do toque até a câmera abrir (ver [SosWidgetFluxoService]). Fica em `MaterialApp.builder`
 /// por cima do Navigator e da [CamadaBloqueioApp]; some sozinha quando
 /// [SosWidgetFluxoService.etapa] volta a `null`.
 class CamadaTelaSosWidget extends StatelessWidget {
@@ -40,14 +40,18 @@ class TelaSosWidget extends StatelessWidget {
       case EtapaTelaSosWidget.enviandoLocalizacao:
         return l10n?.sosWidgetEnviandoLocalizacao ?? 'Alerta acionado. Enviando sua localização…';
       case EtapaTelaSosWidget.localizacaoEnviada:
-        return l10n?.sosWidgetLocalizacaoEnviada ??
-            'Localização enviada. Abrindo a câmera';
-      case EtapaTelaSosWidget.falhaTentandoNovamente:
-        return l10n?.sosWidgetFalhaEnvio ??
-            'Falha ao enviar a localização. Tentando novamente…';
+        return l10n?.sosLocalizacaoEnviadaSucesso ?? 'Localização enviada com sucesso';
+      case EtapaTelaSosWidget.semConexao:
+        return l10n?.sosSemConexao ??
+            'Sem conexão. Seu alerta será enviado automaticamente assim que houver sinal';
+      case EtapaTelaSosWidget.abrindoCamera:
+        return l10n?.sosAbrindoCamera ?? 'Abrindo a câmera';
       case EtapaTelaSosWidget.cameraIndisponivel:
         return l10n?.sosWidgetCameraIndisponivel ??
             'Câmera indisponível — alerta já enviado aos seus contatos';
+      case EtapaTelaSosWidget.cameraIndisponivelSemConexao:
+        return l10n?.sosCameraIndisponivelSemConexao ??
+            'Câmera indisponível — seu alerta será enviado aos seus contatos assim que houver sinal';
       case EtapaTelaSosWidget.desativadoPlanoFree:
         final fim = SosWidgetFluxoService().fimBloqueioPlano;
         final data = fim == null ? '—' : formatarDiaMes(fim);

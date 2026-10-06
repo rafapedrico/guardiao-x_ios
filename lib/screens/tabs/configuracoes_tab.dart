@@ -645,7 +645,8 @@ Future<void> _selecionarSom(int? numero) async {
   }
 
   void _showPinRealDialog() {
-    final pinController = TextEditingController(text: _pinReal ?? '');
+    // O PIN é guardado só como hash (ver PinHash): o campo começa vazio.
+    final pinController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     showDialog(

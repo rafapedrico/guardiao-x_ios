@@ -387,10 +387,15 @@ class EmergencyAlertService {
   /// headless), uma flag em disco garante que o SMS nativo só seja
   /// enviado UMA vez por [eventoId], mesmo que ambos os caminhos cheguem
   /// a chamar este método.
+  ///
+  /// [registrarHistorico] `false` quando o chamador já registra o alerta
+  /// no Histórico estruturado (ver HistoricoAlertasService), com o status
+  /// real do envio.
   Future<void> dispararAlertaTentativaDesarmeIncorreto({
     Position? posicaoEmMemoria,
     String? motivo,
     String? eventoId,
+    bool registrarHistorico = true,
   }) async {
     final l10n = await L10nHeadlessService.obter();
     final String motivoTexto = motivo ?? l10n.smsTentativaDesarmeMotivoPadrao;
@@ -446,15 +451,17 @@ class EmergencyAlertService {
     debugPrint('📋 [TENTATIVA DE DESARME INCORRETA] Mensagem enviada via '
         'SMS: $mensagemAlerta');
 
-    try {
-      await _db.inserirEventoHistorico(
-        titulo: l10n.historicoTentativaDesarmeTitulo,
-        descricao: l10n.historicoTentativaDesarmeDescricao(motivoTexto, localizacaoFormatada),
-        categoria: 'critico',
-      );
-    } catch (e) {
-      debugPrint('⚠️ [TENTATIVA DE DESARME INCORRETA] Falha ao registrar '
-          'evento no histórico: $e');
+    if (registrarHistorico) {
+      try {
+        await _db.inserirEventoHistorico(
+          titulo: l10n.historicoTentativaDesarmeTitulo,
+          descricao: l10n.historicoTentativaDesarmeDescricao(motivoTexto, localizacaoFormatada),
+          categoria: 'critico',
+        );
+      } catch (e) {
+        debugPrint('⚠️ [TENTATIVA DE DESARME INCORRETA] Falha ao registrar '
+            'evento no histórico: $e');
+      }
     }
 
     await _enviarSms(contatosEmergencia, mensagemAlerta);
@@ -689,7 +696,7 @@ class EmergencyAlertService {
   /// TextEditingController/contexto de UI, [contexto] é sempre lido do
   /// SQLite ('contexto_timer_ativo'), com fallback para uma mensagem
   /// padrão caso não exista nada salvo.
-  Future<void> dispararSosComDuplaLocalizacao() async {
+  Future<void> dispararSosComDuplaLocalizacao({bool registrarHistorico = true}) async {
     debugPrint('🚨 [SOS] Canal SMS oficial acionado — disparando localização imediata (1 SMS).');
 
     final l10n = await L10nHeadlessService.obter();
@@ -735,16 +742,18 @@ class EmergencyAlertService {
 
     debugPrint('📋 [SOS FÍSICO] SMS imediato (localização atual): $mensagemImediata');
 
-    try {
-      await _db.inserirEventoHistorico(
-        titulo: l10n.historicoSosCacheTitulo,
-        descricao: Platform.isIOS
-            ? l10n.historicoSosCacheDescricaoIos(localizacaoFormatada)
-            : l10n.historicoSosCacheDescricao(localizacaoFormatada),
-        categoria: 'critico',
-      );
-    } catch (e) {
-      debugPrint('⚠️ [SOS FÍSICO] Falha ao registrar evento no histórico: $e');
+    // No iOS não existe SMS: o SOS é registrado pelo Histórico estruturado
+    // (HistoricoAlertasService), com o status real do envio pela nuvem.
+    if (registrarHistorico && !Platform.isIOS) {
+      try {
+        await _db.inserirEventoHistorico(
+          titulo: l10n.historicoSosCacheTitulo,
+          descricao: l10n.historicoSosCacheDescricao(localizacaoFormatada),
+          categoria: 'critico',
+        );
+      } catch (e) {
+        debugPrint('⚠️ [SOS FÍSICO] Falha ao registrar evento no histórico: $e');
+      }
     }
 
     await _enviarSms(contatosEmergencia, mensagemImediata);
@@ -776,15 +785,17 @@ class EmergencyAlertService {
 
     final String mensagemResgate = l10n.smsResgateCorpo(link, login, senha);
 
+    // No iOS não há SMS: nada foi enviado nem gravado na nuvem por este
+    // caminho, então não há o que registrar no Histórico.
+    if (Platform.isIOS) return;
+
     debugPrint('📋 [SMS RESGATE] Enviando credenciais de resgate para contatos...');
     await _enviarSms(contatos, mensagemResgate);
 
     try {
       await _db.inserirEventoHistorico(
         titulo: l10n.historicoEvidenciaFotograficaTitulo,
-        descricao: Platform.isIOS
-            ? l10n.historicoEvidenciaFotograficaDescricaoIos
-            : l10n.historicoEvidenciaFotograficaDescricao,
+        descricao: l10n.historicoEvidenciaFotograficaDescricao,
         categoria: 'critico',
       );
     } catch (_) {}
@@ -828,6 +839,9 @@ class EmergencyAlertService {
 
     final l10n = await L10nHeadlessService.obter();
     final String mensagem = l10n.smsFotoCorpo(fotoUrl);
+
+    // No iOS a foto vai só pela nuvem e entra no Histórico estruturado.
+    if (Platform.isIOS) return;
 
     debugPrint('📋 [SMS Foto] Enviando link da foto para contatos (localização já enviada no SMS de P1)...');
     await _enviarSms(contatos, mensagem);

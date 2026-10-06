@@ -580,19 +580,26 @@ class FirebaseSyncService {
   /// (uma única leitura compartilhada com a abertura da câmera). Retorna
   /// `true` quando o servidor confirmou; `false` só sem sessão ou depois de
   /// [tentativasMaximas] erros seguidos.
+  ///
+  /// [alertaId] é o id do documento (o mesmo da entrada do Histórico, ver
+  /// HistoricoAlertasService); sem ele, um id novo é gerado.
   Future<bool> enviarAlertaSosComConfirmacao({
+    String? alertaId,
     double? latitude,
     double? longitude,
+    double? precisao,
     required String origem,
     required VoidCallback aoDemorarOuFalhar,
     int tentativasMaximas = 40,
   }) async {
     if (!_firebaseDisponivel) return false;
-    final referencia = _documentoUsuario.collection('alertas').doc();
+    final colecao = _documentoUsuario.collection('alertas');
+    final referencia = alertaId != null ? colecao.doc(alertaId) : colecao.doc();
     final dados = <String, dynamic>{
       'tipo': 'sos_fisico',
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
+      if (precisao != null) 'precisao': precisao,
       'origem': origem,
       'criadoEm': FieldValue.serverTimestamp(),
       'processado': false,
@@ -631,9 +638,20 @@ class FirebaseSyncService {
   /// [fotoUrl] é o link (com token de acesso) que a Cloud Function
   /// repassa aos contatos de emergência via Push. Requer sessão
   /// autenticada, mesma regra de [dispararAlertaSosFisico].
+  ///
+  /// [alertaId] é o id do alerta de localização deste SOS (a foto entra na
+  /// mesma entrada do Histórico); [latitude]/[longitude]/[precisao] são a
+  /// melhor posição conhecida do SOS. [limite] substitui o tempo de espera
+  /// padrão pela confirmação: esgotado, retorna `false`, mas a escrita
+  /// continua na fila do Firestore e sai sozinha quando a rede voltar.
   Future<bool> dispararAlertaSosFoto({
     required String fotoUrl,
     required String origem,
+    String? alertaId,
+    double? latitude,
+    double? longitude,
+    double? precisao,
+    Duration? limite,
   }) async {
     if (!_firebaseDisponivel) return false;
     if (!await _podeUsarRecursoAvancado()) {
@@ -646,9 +664,13 @@ class FirebaseSyncService {
         'tipo': 'sos_fisico_foto',
         'fotoUrl': fotoUrl,
         'origem': origem,
+        if (alertaId != null) 'alertaId': alertaId,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (precisao != null) 'precisao': precisao,
         'criadoEm': FieldValue.serverTimestamp(),
         'processado': false,
-      }).timeout(_timeoutFirestore);
+      }).timeout(limite ?? _timeoutFirestore);
       debugPrint(
           '☁️ [FirebaseSyncService] Alerta de foto do SOS ($origem) enviado à nuvem.');
       return true;
@@ -656,6 +678,48 @@ class FirebaseSyncService {
       debugPrint(
           '⚠️ [FirebaseSyncService] Falha ao enviar alerta de foto do SOS à nuvem: $e');
       return false;
+    }
+  }
+
+  /// Alerta do cronômetro (tempo esgotado ou 3 PINs errados) com id fixo
+  /// [alertaId] — o mesmo da entrada do Histórico — e a posição do momento.
+  /// Mesmo documento `tentativa_desarme_incorreto` de
+  /// [dispararAlertaTentativaDesarmeIncorreto] (a Cloud Function trata
+  /// igual), com [subtipo] para o Histórico distinguir os dois casos.
+  ///
+  /// Devolve o status do envio para o Histórico: "enviado" (confirmado pelo
+  /// servidor), "pendente" (sem confirmação a tempo — a escrita fica na fila
+  /// do Firestore e sai quando a rede voltar) ou "falhou" (sem sessão, Plano
+  /// Free bloqueado ou erro).
+  Future<String> enviarAlertaCronometro({
+    required String alertaId,
+    required String subtipo,
+    String? motivo,
+    double? latitude,
+    double? longitude,
+    double? precisao,
+  }) async {
+    if (!_firebaseDisponivel) return 'falhou';
+    if (!await _podeUsarRecursoAvancado()) return 'falhou';
+    try {
+      await _documentoUsuario.collection('alertas').doc(alertaId).set({
+        'tipo': 'tentativa_desarme_incorreto',
+        'subtipo': subtipo,
+        if (motivo != null) 'motivo': motivo,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (precisao != null) 'precisao': precisao,
+        'criadoEm': FieldValue.serverTimestamp(),
+        'processado': false,
+      }).timeout(_timeoutFirestore);
+      debugPrint('☁️ [FirebaseSyncService] Alerta do cronômetro ($subtipo) confirmado pelo servidor.');
+      return 'enviado';
+    } on TimeoutException {
+      debugPrint('⏳ [FirebaseSyncService] Alerta do cronômetro ($subtipo) sem confirmação — na fila.');
+      return 'pendente';
+    } catch (e) {
+      debugPrint('⚠️ [FirebaseSyncService] Falha ao enviar o alerta do cronômetro: $e');
+      return 'falhou';
     }
   }
 

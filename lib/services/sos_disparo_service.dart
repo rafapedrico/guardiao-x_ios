@@ -8,11 +8,21 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'database_helper.dart';
 import 'emergency_alert_service.dart';
 import 'firebase_auth_service.dart';
 import 'firebase_sync_service.dart';
+import 'historico_alertas_service.dart';
 import 'retry_upload_service.dart';
 import 'sos_dispatch_native_service.dart';
+
+/// Posição usada num SOS e se ela já é a precisa (até 30 s de idade e
+/// precisão de até 50 m, ou leitura nova do GPS).
+class _PosicaoSos {
+  const _PosicaoSos(this.posicao, {required this.precisa});
+  final Position? posicao;
+  final bool precisa;
+}
 
 /// Serviço ÚNICO e UNIFICADO de disparo do SOS — reúne, num só lugar, a
 /// sequência estritamente sequencial exigida para o botão físico
@@ -172,78 +182,156 @@ class SosDisparoService {
     });
   }
 
-  /// P1 do Widget SOS do iOS ([SosWidgetFluxoService]): mesmo envio do
-  /// [executarP1LocalizacaoImediata], mas sem esperar o GPS e com retorno
-  /// de progresso para a tela preta.
-  ///   - O Push sai NA HORA com a última posição conhecida do sistema (sem
-  ///     cache, sai sem coordenadas e a Cloud Function usa a última
-  ///     posição sincronizada da conta).
-  ///   - Em paralelo, uma leitura precisa do GPS atualiza a posição da
-  ///     conta ([FirebaseSyncService.atualizarLocalizacaoAtual]) — é a
-  ///     posição que o Push da foto (P2) leva aos contatos, e a que a aba
-  ///     Monitoramento mostra.
-  ///   - [aoConfirmar] quando o servidor confirma o alerta; [aoFalhar] a
-  ///     cada demora/erro (o envio continua tentando sozinho).
-  ///
-  /// A janela do Plano Free já foi checada pelo chamador.
-  Future<void> executarP1DoWidget({
+  /// Alertas de SOS cuja localização o servidor já confirmou (a tela
+  /// vermelha da câmera usa para escolher a frase).
+  final Set<String> _localizacaoConfirmada = {};
+
+  /// Melhor posição conhecida de cada SOS — vai no documento da foto.
+  final Map<String, Position> _posicaoDoAlerta = {};
+
+  bool localizacaoConfirmada(String alertaId) => _localizacaoConfirmada.contains(alertaId);
+
+  /// Muda a cada localização de SOS confirmada (a tela vermelha reescreve a
+  /// frase quando a confirmação chega depois dela).
+  final ValueNotifier<int> confirmacoes = ValueNotifier<int>(0);
+
+  /// Trava contra toque duplo/disparo em dobro (ver [_reivindicarDisparoUnico]).
+  Future<bool> reivindicarDisparo() => _reivindicarDisparoUnico();
+
+  /// P1 do SOS do iOS — botão da aba Segurança e Widget SOS, o mesmo
+  /// pipeline (ver [SosWidgetFluxoService]):
+  ///   - cria a entrada do Histórico [alertaId] com status "enviando";
+  ///   - localização exata ([_obterPosicaoExata]): cache só com até 30 s e
+  ///     precisão de até 50 m, senão leitura nova de alta precisão com teto
+  ///     de 5 s; sem ela, sai com a melhor disponível e a precisa, quando
+  ///     chegar, atualiza a posição da conta e a entrada do Histórico (e vai
+  ///     no documento da foto);
+  ///   - envia o alerta com id fixo [alertaId] e espera a confirmação do
+  ///     servidor ([FirebaseSyncService.enviarAlertaSosComConfirmacao]).
+  ///     [aoConfirmar] quando confirmado; [aoFalhar] a cada demora/erro (o
+  ///     envio continua tentando). O Histórico só vira "enviado" com a
+  ///     confirmação — antes disso, "pendente".
+  /// Protegido por uma background task do iOS ([SosDispatchNativeService]).
+  /// A janela do Plano Free e a deduplicação ficam com o chamador.
+  Future<void> executarP1Sos({
+    required String alertaId,
     required String origem,
+    required String tipoHistorico,
     required VoidCallback aoConfirmar,
     required VoidCallback aoFalhar,
   }) async {
-    if (!await _reivindicarDisparoUnico()) {
-      // Outro disparo de SOS começou há poucos segundos e já está enviando.
-      debugPrint('🔁 [SosDisparoService] P1 do widget ($origem) já em andamento por outro disparo.');
-      aoConfirmar();
-      return;
-    }
-
-    // Histórico local (e SMS no Android — no iOS o canal SMS não existe).
-    unawaited(_emergencyAlertService.dispararSosComDuplaLocalizacao().catchError((Object e) {
-      debugPrint('⚠️ [SosDisparoService] Falha ao registrar o SOS do widget no histórico: $e');
-    }));
-
-    final String? uid = await FirebaseAuthService().aguardarUidPronto();
-    if (uid == null) {
-      debugPrint('📵 [SosDisparoService] P1 do widget sem sessão — nada a enviar.');
-      aoFalhar();
-      return;
-    }
-
-    Position? ultimaConhecida;
+    final historico = HistoricoAlertasService();
+    String? contexto;
     try {
-      ultimaConhecida = await Geolocator.getLastKnownPosition();
+      contexto = ((await DatabaseHelper().getUserConfig())?['contexto_timer_ativo'] as String?)?.trim();
     } catch (_) {}
-    unawaited(_atualizarPosicaoPrecisaDaConta());
-
-    final confirmado = await FirebaseSyncService().enviarAlertaSosComConfirmacao(
-      latitude: ultimaConhecida?.latitude,
-      longitude: ultimaConhecida?.longitude,
-      origem: origem,
-      aoDemorarOuFalhar: aoFalhar,
+    await historico.registrarAlerta(
+      alertaId: alertaId,
+      tipo: tipoHistorico,
+      contexto: (contexto == null || contexto.isEmpty) ? null : contexto,
     );
-    if (confirmado) {
-      aoConfirmar();
-    } else {
-      aoFalhar();
+
+    await SosDispatchNativeService().executarComServicoAtivo(() async {
+      if (Platform.isAndroid) {
+        unawaited(_emergencyAlertService
+            .dispararSosComDuplaLocalizacao(registrarHistorico: false)
+            .catchError((Object e) {
+          debugPrint('⚠️ [SosDisparoService] Falha no SMS do SOS: $e');
+        }));
+      }
+
+      final resultado = await _obterPosicaoExata();
+      final posicao = resultado.posicao;
+      if (posicao != null) {
+        _posicaoDoAlerta[alertaId] = posicao;
+        await historico.atualizarPosicao(alertaId, posicao);
+      }
+
+      final String? uid = await FirebaseAuthService().aguardarUidPronto();
+      if (uid == null) {
+        debugPrint('📵 [SosDisparoService] SOS ($origem) sem sessão — nada a enviar.');
+        await historico.marcarStatus(alertaId, StatusAlertaHistorico.falhou);
+        aoFalhar();
+        return;
+      }
+
+      if (!resultado.precisa) unawaited(_atualizarPosicaoPrecisa(alertaId));
+
+      final confirmado = await FirebaseSyncService().enviarAlertaSosComConfirmacao(
+        alertaId: alertaId,
+        latitude: posicao?.latitude,
+        longitude: posicao?.longitude,
+        precisao: posicao?.accuracy,
+        origem: origem,
+        aoDemorarOuFalhar: () {
+          unawaited(historico.marcarStatus(alertaId, StatusAlertaHistorico.pendente));
+          aoFalhar();
+        },
+      );
+      if (confirmado) {
+        _localizacaoConfirmada.add(alertaId);
+        confirmacoes.value++;
+        await historico.marcarStatus(alertaId, StatusAlertaHistorico.enviado);
+        aoConfirmar();
+      } else {
+        await historico.marcarStatus(alertaId, StatusAlertaHistorico.falhou);
+        aoFalhar();
+      }
+    });
+  }
+
+  /// Posição para o SOS: a última do sistema só se tiver até 30 s e
+  /// precisão de até 50 m; senão uma leitura nova de alta precisão, com
+  /// teto de 5 s; sem ela, a melhor disponível (`precisa: false`).
+  Future<_PosicaoSos> _obterPosicaoExata() async {
+    Position? cache;
+    try {
+      cache = await Geolocator.getLastKnownPosition();
+    } catch (_) {}
+    if (cache != null) {
+      final idade = DateTime.now().difference(cache.timestamp);
+      if (idade <= const Duration(seconds: 30) && cache.accuracy <= 50) {
+        return _PosicaoSos(cache, precisa: true);
+      }
+    }
+    try {
+      final nova = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 5),
+      );
+      return _PosicaoSos(nova, precisa: nova.accuracy <= 50);
+    } catch (e) {
+      debugPrint('⚠️ [SosDisparoService] GPS sem posição nova em 5 s — enviando a melhor disponível: $e');
+      return _PosicaoSos(cache, precisa: false);
     }
   }
 
-  Future<void> _atualizarPosicaoPrecisaDaConta() async {
+  /// Leitura precisa que chega depois do envio: atualiza a posição da conta
+  /// (a que a aba Monitoramento mostra), a entrada do Histórico e a posição
+  /// que vai no documento da foto deste SOS. O documento do alerta em si não
+  /// pode ser alterado depois de criado (regras do Firestore).
+  Future<void> _atualizarPosicaoPrecisa(String alertaId) async {
     try {
       final posicao = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 20),
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 25),
       );
+      final anterior = _posicaoDoAlerta[alertaId];
+      if (anterior != null && anterior.accuracy < posicao.accuracy &&
+          DateTime.now().difference(anterior.timestamp) <= const Duration(seconds: 30)) {
+        return;
+      }
+      _posicaoDoAlerta[alertaId] = posicao;
+      await HistoricoAlertasService().atualizarPosicao(alertaId, posicao);
       await FirebaseSyncService().atualizarLocalizacaoAtual(
         latitude: posicao.latitude,
         longitude: posicao.longitude,
         precisao: posicao.accuracy,
         origem: 'sos',
       );
-      debugPrint('📍 [SosDisparoService] Posição precisa do SOS enviada à conta.');
+      debugPrint('📍 [SosDisparoService] Posição precisa do SOS registrada (±${posicao.accuracy.round()} m).');
     } catch (e) {
-      debugPrint('⚠️ [SosDisparoService] Sem posição precisa para o SOS do widget: $e');
+      debugPrint('⚠️ [SosDisparoService] Sem posição precisa para o SOS: $e');
     }
   }
 
@@ -272,6 +360,10 @@ class SosDisparoService {
   /// SMS usa a mensagem de fallback (sem link real) — a entrega de P2
   /// nunca pode depender de um único canal funcionando.
   Future<void> dispararFotoCapturada(XFile foto, {required String origem}) async {
+    if (Platform.isIOS) {
+      await dispararFotoDoSos(foto, origem: origem);
+      return;
+    }
     String? fotoUrl;
 
     // Mesma janela crítica do P1 (ver executarP1LocalizacaoImediata):
@@ -359,6 +451,83 @@ class SosDisparoService {
     });
   }
 
+  /// Teto para o upload da foto e a gravação do documento dela.
+  static const Duration _limiteFoto = Duration(seconds: 15);
+
+  /// P2 do SOS do iOS: a foto vai ao Storage e o documento `sos_fisico_foto`
+  /// (com o [alertaId] do SOS e a melhor posição conhecida) aos contatos —
+  /// sem esperar o link curto do SMS, que não existe no iOS.
+  ///   - Uma cópia fica na pasta privada do app para o Histórico.
+  ///   - Upload e gravação têm [_limiteFoto] no total. Upload que não termina
+  ///     a tempo é cancelado e a foto vai para a fila do
+  ///     [RetryUploadService]; gravação que não confirma a tempo continua na
+  ///     fila do próprio Firestore. Nos dois casos o fluxo segue.
+  /// Retorna `true` só quando a foto chegou ao servidor dentro do limite.
+  Future<bool> dispararFotoDoSos(XFile foto, {required String origem, String? alertaId}) async {
+    final inicio = DateTime.now();
+    Duration restante() {
+      final r = _limiteFoto - DateTime.now().difference(inicio);
+      return r < const Duration(seconds: 1) ? const Duration(seconds: 1) : r;
+    }
+
+    if (alertaId != null) {
+      await HistoricoAlertasService().guardarCopiaLocalFoto(foto.path, alertaId);
+    }
+    final posicao = alertaId != null ? _posicaoDoAlerta[alertaId] : null;
+
+    Future<void> enfileirar() async {
+      try {
+        await RetryUploadService().enfileirar(
+          fotoOriginal: foto,
+          origem: origem,
+          alertaId: alertaId,
+          latitude: posicao?.latitude,
+          longitude: posicao?.longitude,
+        );
+      } catch (e) {
+        debugPrint('⚠️ [SosDisparoService] Falha ao enfileirar a foto do SOS: $e');
+      }
+    }
+
+    return SosDispatchNativeService().executarComServicoAtivo(() async {
+      final String? uid = await FirebaseAuthService().aguardarUidPronto();
+      if (uid == null) {
+        debugPrint('📵 [SosDisparoService] Foto do SOS ($origem) sem sessão — na fila para depois.');
+        await enfileirar();
+        return false;
+      }
+
+      UploadTask? tarefa;
+      String fotoUrl;
+      try {
+        fotoUrl = await _uploadFotoParaStorage(foto, uid, aoIniciar: (t) => tarefa = t)
+            .timeout(restante());
+      } catch (e) {
+        debugPrint('⚠️ [SosDisparoService] Upload da foto do SOS não concluído em '
+            '${_limiteFoto.inSeconds}s — na fila do RetryUploadService: $e');
+        try {
+          await tarefa?.cancel();
+        } catch (_) {}
+        await enfileirar();
+        return false;
+      }
+
+      if (alertaId != null) await HistoricoAlertasService().anexarFoto(alertaId, fotoUrl: fotoUrl);
+      final atual = alertaId != null ? _posicaoDoAlerta[alertaId] : null;
+      final confirmado = await FirebaseSyncService().dispararAlertaSosFoto(
+        fotoUrl: fotoUrl,
+        origem: origem,
+        alertaId: alertaId,
+        latitude: atual?.latitude,
+        longitude: atual?.longitude,
+        precisao: atual?.accuracy,
+        limite: restante(),
+      );
+      debugPrint('☁️ [SosDisparoService] Foto do SOS ($origem) — confirmada a tempo: $confirmado');
+      return confirmado;
+    });
+  }
+
   /// Reenvia uma foto de SOS que ficou pendente na fila de retry local
   /// (ver [RetryUploadService]) — mesma lógica de upload+despacho de
   /// [dispararFotoCapturada], mas a partir de um arquivo já copiado para
@@ -371,6 +540,9 @@ class SosDisparoService {
   Future<bool> tentarReenviarFotoEnfileirada({
     required String fotoPathLocal,
     required String origem,
+    String? alertaId,
+    double? latitude,
+    double? longitude,
   }) async {
     final String? uid = FirebaseAuthService().uidAtual;
     if (uid == null) {
@@ -386,12 +558,25 @@ class SosDisparoService {
       return false;
     }
 
+    if (alertaId != null) await HistoricoAlertasService().anexarFoto(alertaId, fotoUrl: fotoUrl);
+
     try {
-      final String linkFotoParaSms = await _linkCurtoParaSms(fotoUrl);
-      await Future.wait([
-        _emergencyAlertService.enviarSmsComLinkDaFoto(linkFotoParaSms),
-        FirebaseSyncService().dispararAlertaSosFoto(fotoUrl: fotoUrl, origem: origem),
-      ]);
+      final nuvem = FirebaseSyncService().dispararAlertaSosFoto(
+        fotoUrl: fotoUrl,
+        origem: origem,
+        alertaId: alertaId,
+        latitude: latitude,
+        longitude: longitude,
+      );
+      if (Platform.isIOS) {
+        await nuvem;
+      } else {
+        final String linkFotoParaSms = await _linkCurtoParaSms(fotoUrl);
+        await Future.wait([
+          _emergencyAlertService.enviarSmsComLinkDaFoto(linkFotoParaSms),
+          nuvem,
+        ]);
+      }
       debugPrint('✅ [SosDisparoService] Retry de upload ($origem) concluído com sucesso: $fotoUrl');
       return true;
     } catch (e) {
@@ -444,13 +629,19 @@ class SosDisparoService {
     return fotoUrlLongo;
   }
 
-  Future<String> _uploadFotoParaStorage(XFile foto, String uid) async {
+  Future<String> _uploadFotoParaStorage(
+    XFile foto,
+    String uid, {
+    void Function(UploadTask tarefa)? aoIniciar,
+  }) async {
     final nomeArquivo = '${DateTime.now().millisecondsSinceEpoch}.jpg';
     final ref = FirebaseStorage.instance.ref('sos_fotos/$uid/$nomeArquivo');
-    await ref.putFile(
+    final tarefa = ref.putFile(
       File(foto.path),
       SettableMetadata(contentType: 'image/jpeg'),
     );
+    aoIniciar?.call(tarefa);
+    await tarefa;
     return ref.getDownloadURL();
   }
 

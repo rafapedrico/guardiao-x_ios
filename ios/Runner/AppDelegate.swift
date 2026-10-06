@@ -56,6 +56,117 @@ import WidgetKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "Rastreamento") {
       RastreamentoPlugin.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SosDispatch") {
+      SosDispatchPlugin.register(with: registrar)
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ProtecaoArquivo") {
+      ProtecaoArquivoPlugin.register(with: registrar)
+    }
+  }
+}
+
+/// Canal "com.example.security_check_app/sos_dispatch" (ver
+/// lib/services/sos_dispatch_native_service.dart): no Android é o
+/// Foreground Service do envio do SOS; aqui é uma background task do iOS
+/// (`beginBackgroundTask`), que dá ao app tempo extra para terminar o envio
+/// da localização e da foto se ele for para o segundo plano no meio. Envios
+/// simultâneos (localização e foto) dividem a mesma task: ela termina
+/// quando o último `parar` chega, ou quando o iOS avisa que o tempo acabou.
+final class SosDispatchPlugin: NSObject, FlutterPlugin {
+  private var canal: FlutterMethodChannel?
+  private var tarefa: UIBackgroundTaskIdentifier = .invalid
+  private var envios = 0
+
+  static func register(with registrar: FlutterPluginRegistrar) {
+    let instancia = SosDispatchPlugin()
+    let canal = FlutterMethodChannel(
+      name: "com.example.security_check_app/sos_dispatch", binaryMessenger: registrar.messenger())
+    instancia.canal = canal
+    canal.setMethodCallHandler { [weak instancia] chamada, resultado in
+      guard let instancia = instancia else {
+        resultado(nil)
+        return
+      }
+      switch chamada.method {
+      case "iniciar":
+        instancia.iniciar()
+        resultado(nil)
+      case "parar":
+        instancia.parar()
+        resultado(nil)
+      default:
+        resultado(FlutterMethodNotImplemented)
+      }
+    }
+    registrar.publish(instancia)
+  }
+
+  func detachFromEngine(for registrar: FlutterPluginRegistrar) {
+    canal?.setMethodCallHandler(nil)
+    canal = nil
+    encerrarTarefa()
+  }
+
+  private func iniciar() {
+    envios += 1
+    guard tarefa == .invalid else { return }
+    tarefa = UIApplication.shared.beginBackgroundTask(withName: "envio_sos") { [weak self] in
+      self?.encerrarTarefa()
+    }
+  }
+
+  private func parar() {
+    envios = max(0, envios - 1)
+    if envios == 0 { encerrarTarefa() }
+  }
+
+  private func encerrarTarefa() {
+    envios = 0
+    guard tarefa != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(tarefa)
+    tarefa = .invalid
+  }
+}
+
+/// Canal "guardiaox/protecao_arquivo" (ver
+/// lib/services/protecao_arquivo_service.dart): aplica
+/// `FileProtectionType.complete` aos arquivos sensíveis (banco SQLite com o
+/// PIN e o histórico de alertas, cópias das fotos do SOS). Caminhos que não
+/// existem são ignorados; para uma pasta, os arquivos criados nela depois
+/// herdam a mesma proteção.
+final class ProtecaoArquivoPlugin: NSObject, FlutterPlugin {
+  private var canal: FlutterMethodChannel?
+
+  static func register(with registrar: FlutterPluginRegistrar) {
+    let instancia = ProtecaoArquivoPlugin()
+    let canal = FlutterMethodChannel(
+      name: "guardiaox/protecao_arquivo", binaryMessenger: registrar.messenger())
+    instancia.canal = canal
+    canal.setMethodCallHandler { chamada, resultado in
+      guard chamada.method == "proteger",
+            let argumentos = chamada.arguments as? [String: Any],
+            let caminhos = argumentos["caminhos"] as? [String] else {
+        resultado(FlutterMethodNotImplemented)
+        return
+      }
+      let gerenciador = FileManager.default
+      var falhas: [String] = []
+      for caminho in caminhos where gerenciador.fileExists(atPath: caminho) {
+        do {
+          try gerenciador.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: caminho)
+        } catch {
+          falhas.append(caminho)
+        }
+      }
+      resultado(falhas.isEmpty ? nil : FlutterError(
+        code: "falha_protecao", message: "Sem proteção: \(falhas.joined(separator: ", "))", details: nil))
+    }
+    registrar.publish(instancia)
+  }
+
+  func detachFromEngine(for registrar: FlutterPluginRegistrar) {
+    canal?.setMethodCallHandler(nil)
+    canal = nil
   }
 }
 

@@ -24,6 +24,7 @@ class CameraCapturaScreen extends StatefulWidget {
   const CameraCapturaScreen({
     super.key,
     this.origemUnificada,
+    this.alertaId,
     this.aoResolverAbertura,
     this.limiteAbertura,
   });
@@ -41,6 +42,11 @@ class CameraCapturaScreen extends StatefulWidget {
   /// desta unificação), mantém o comportamento histórico inalterado: SMS
   /// de texto + `SystemNavigator.pop()` no swipe.
   final String? origemUnificada;
+
+  /// SOS do iOS a que esta foto pertence ([SosWidgetFluxoService]): a foto
+  /// entra na mesma entrada do Histórico e a tela vermelha diz o que de fato
+  /// foi confirmado (localização e/ou foto).
+  final String? alertaId;
 
   /// Chamado UMA vez: `true` quando o preview da câmera já está na tela,
   /// `false` quando a câmera não vai abrir (permissão negada, erro, ou
@@ -65,6 +71,9 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
   Timer? _timerLimiteAbertura;
   bool _aberturaResolvida = false;
   bool _envioIniciado = false;
+
+  /// Resultado do envio, para a frase da tela vermelha.
+  bool _fotoConfirmada = false;
 
   /// Avisa [CameraCapturaScreen.aoResolverAbertura] uma única vez.
   void _resolverAbertura(bool abriu) {
@@ -318,7 +327,12 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
       // fallback automático para SMS de texto se não houver sessão
       // autenticada (ver SosDisparoService).
       if (foto != null) {
-        await SosDisparoService().dispararFotoCapturada(foto, origem: origemUnificada);
+        if (Platform.isIOS) {
+          _fotoConfirmada = await SosDisparoService()
+              .dispararFotoDoSos(foto, origem: origemUnificada, alertaId: widget.alertaId);
+        } else {
+          await SosDisparoService().dispararFotoCapturada(foto, origem: origemUnificada);
+        }
       }
     } else {
       // Fluxo HISTÓRICO (timeout do cronômetro de check-in, fora do
@@ -534,6 +548,16 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
     );
   }
 
+  /// Frase da tela vermelha conforme o que o servidor confirmou: foto e
+  /// localização, só a localização, ou nada ainda (sem conexão). Sem
+  /// [CameraCapturaScreen.alertaId] (fluxos antigos), a frase de sempre.
+  String _fraseTelaVermelha(AppLocalizations l10n) {
+    final alertaId = widget.alertaId;
+    if (alertaId == null) return l10n.mensagemEnviadaAviso;
+    if (!SosDisparoService().localizacaoConfirmada(alertaId)) return l10n.mensagemAvisoSemConexao;
+    return _fotoConfirmada ? l10n.mensagemEnviadaAviso : l10n.mensagemEnviadaAvisoSemFoto;
+  }
+
   Widget _buildTelaDissuasao() {
     return GestureDetector(
       onVerticalDragEnd: (details) {
@@ -563,14 +587,17 @@ class _CameraCapturaScreenState extends State<CameraCapturaScreen>
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              AppLocalizations.of(context)!.mensagemEnviadaAviso,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                height: 1.35,
+            ValueListenableBuilder<int>(
+              valueListenable: SosDisparoService().confirmacoes,
+              builder: (context, _, __) => Text(
+                _fraseTelaVermelha(AppLocalizations.of(context)!),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  height: 1.35,
+                ),
               ),
             ),
             const SizedBox(height: 48),

@@ -10,11 +10,12 @@ import '../../services/database_helper.dart';
 import '../../services/wallpaper_service.dart';
 import '../../services/location_service.dart';
 import '../../services/emergency_alert_service.dart';
-import '../../services/firebase_sync_service.dart';
 import '../../services/alarme_service.dart';
 import '../../services/background_location_heartbeat_service.dart';
 import '../../services/captura_dissuasao_service.dart';
+import '../../services/historico_alertas_service.dart';
 import '../../services/sos_disparo_service.dart';
+import '../../services/sos_widget_fluxo_service.dart';
 import '../cronometro_disparado_screen.dart' show chaveCronometroFluxoResolvido;
 import '../../widgets/confirmacao_alerta_emergencia.dart';
 import '../../widgets/pin_dialog.dart';
@@ -32,7 +33,6 @@ class SegurancaTab extends StatefulWidget {
 
 class _SegurancaTabState extends State<SegurancaTab> {
   final DatabaseHelper _db = DatabaseHelper();
-  final EmergencyAlertService _emergencyAlertService = EmergencyAlertService();
   final AlarmeService _alarmeService = AlarmeService();
 
   // Controlador para o campo de Anotações/Dica de Contexto
@@ -330,15 +330,18 @@ class _SegurancaTabState extends State<SegurancaTab> {
     // Registra no histórico ('seguranca') a ativação do cronômetro de
     // check-in, tornando a ação 100% transparente e auditável.
     if (mounted) {
+      // Evento do cronômetro na área protegida do Histórico, com a posição.
       final l10n = AppLocalizations.of(context)!;
-      _db.inserirEventoHistorico(
-        titulo: l10n.historicoCronometroAtivadoTitulo,
-        descricao: l10n.historicoCronometroAtivadoDescricao(
-          _horaSelecionada.toString().padLeft(2, '0'),
-          _minutoSelecionada.toString().padLeft(2, '0'),
-        ),
-        categoria: 'seguranca',
+      final duracao = l10n.historicoCronometroAtivadoDescricao(
+        _horaSelecionada.toString().padLeft(2, '0'),
+        _minutoSelecionada.toString().padLeft(2, '0'),
       );
+      final texto = _contextoController.text.trim();
+      unawaited(HistoricoAlertasService().registrarEvento(
+        tipo: TipoAlertaHistorico.cronometroAtivado,
+        contexto: texto.isEmpty ? duracao : '$duracao\n$texto',
+        posicao: _locationService.ultimaPosicao,
+      ));
     }
 
     // Regra de negócio 2 e 3 (Captura Proativa + Loop de Atualização):
@@ -496,14 +499,14 @@ class _SegurancaTabState extends State<SegurancaTab> {
       // considerar o prazo vencido.
       BackgroundLocationHeartbeatService().confirmarCheckinSeguro();
 
+      final posicao = _locationService.ultimaPosicao;
       _pararTimer();
+      unawaited(HistoricoAlertasService().registrarEvento(
+        tipo: TipoAlertaHistorico.cronometroDesarmado,
+        posicao: posicao,
+      ));
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        _db.inserirEventoHistorico(
-          titulo: l10n.historicoCheckinDesarmadoTitulo,
-          descricao: l10n.historicoCheckinDesarmadoDescricao,
-          categoria: 'seguranca',
-        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.segurancaCheckinDesarmado), backgroundColor: Colors.green),
         );
@@ -636,9 +639,12 @@ class _SegurancaTabState extends State<SegurancaTab> {
     final l10n = AppLocalizations.of(context)!;
     _abrirConfirmacaoAlertaEnviado();
     try {
-      await _emergencyAlertService.dispararAlertaTentativaDesarmeIncorreto(
+      // Nuvem primeiro (id fixo, status real no Histórico), depois o SMS
+      // (só Android) — ver HistoricoAlertasService.dispararAlertaCronometro.
+      await HistoricoAlertasService().dispararAlertaCronometro(
+        tipo: TipoAlertaHistorico.tentativaDesarmeIncorreto,
         motivo: l10n.historicoCronometroPinIncorretoMotivo,
-        posicaoEmMemoria: _locationService.ultimaPosicao,
+        posicao: _locationService.ultimaPosicao,
       );
     } catch (e) {
       debugPrint('⚠️ Falha ao executar disparo de emergência: $e');
@@ -700,14 +706,8 @@ class _SegurancaTabState extends State<SegurancaTab> {
     // texto certo ("3 vezes", `l10n.historicoCronometroPinIncorretoMotivo`,
     // ver [_executarDisparoDeEmergencia]). Passar o mesmo motivo aqui
     // também deixa Push e SMS consistentes entre si para o mesmo evento.
-    try {
-      final l10n = AppLocalizations.of(context)!;
-      await FirebaseSyncService().dispararAlertaTentativaDesarmeIncorreto(
-        motivo: l10n.historicoCronometroPinIncorretoMotivo,
-      );
-    } catch (e) {
-      debugPrint('⚠️ [PIN INCORRETO 3x] Falha ao disparar alerta prioritário na nuvem: $e');
-    }
+    // O envio à nuvem (primeiro, aguardado) e ao Histórico acontece em
+    // [_executarDisparoDeEmergencia], uma única vez por ciclo.
 
     // Reaproveita o mesmo guard de disparo único por ciclo
     // ([_disparoJaExecutadoNesteCiclo]), que também fecha o diálogo de
@@ -720,73 +720,37 @@ class _SegurancaTabState extends State<SegurancaTab> {
   // ==========================================================
 
 
-  /// Exibe um diálogo de confirmação simples ("Confirmar SOS?") antes de
-  /// disparar o alerta de emergência manualmente. Diferente do gatilho
-  /// físico (Volume+ segurado por 3s, que dispara IMEDIATAMENTE sem
-  /// diálogo, pois pode ocorrer com a tela apagada), o botão SOS dentro
-  /// do app SEMPRE pede essa confirmação, já que o usuário está olhando
-  /// a tela e pode ter tocado por engano. O diálogo permanece aberto até
-  /// o usuário decidir (sem timeout automático).
+  /// Botão SOS da aba Segurança: o envio começa no toque, sem confirmação,
+  /// pelo MESMO pipeline do Widget SOS ([SosWidgetFluxoService]) — tela
+  /// preta com a localização exata enviada aos contatos, os avisos
+  /// "Localização enviada com sucesso"/"Abrindo a câmera", a câmera, a foto
+  /// e a tela vermelha. Sem sessão, o fluxo abre a SosSemLoginScreen. A
+  /// proteção contra toque duplo fica no fluxo (tela preta já na tela,
+  /// deduplicação do disparo e câmera já aberta).
+  ///
+  /// ÚNICA trava do Plano Free (reespecificação do usuário, 2026-09-04):
+  /// fora dos 10 dias ativos, o aviso de sempre aparece e nada é enviado.
   Future<void> _confirmarEDispararSosManual() async {
-    // ÚNICA trava do Plano Free (reespecificação do usuário, 2026-09-04):
-    // dentro dos 10 dias ativos do mês (ou Premium), TODOS os recursos
-    // são liberados; fora deles, NENHUMA mensagem é enviada. Checado
-    // ANTES de exibir o diálogo de confirmação — fora da janela ativa,
-    // exibe o modal de upsell e interrompe o fluxo aqui, sem abrir a
-    // câmera nem disparar SMS/Push (o disparo em si já seria bloqueado
-    // mais abaixo em EmergencyAlertService/FirebaseSyncService/
-    // CapturaDissuasaoService de qualquer forma — este precheck só evita
-    // a UI de "SOS enviado" enganosa).
+    if (Platform.isIOS) {
+      // A tela preta sobe no toque; a janela do Plano Free é lida em
+      // seguida e, se bloqueada, a tela preta sai e o aviso de sempre abre.
+      SosWidgetFluxoService().iniciar(
+        origemAlerta: SosWidgetFluxoService.origemBotaoApp,
+        aoPlanoBloqueado: () async {
+          if (mounted) await garantirRecursoLiberadoOuExibirUpsell(context);
+        },
+      );
+      return;
+    }
     if (!await garantirRecursoLiberadoOuExibirUpsell(context)) return;
     if (!mounted) return;
-
-    final bool? confirmou = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(AppLocalizations.of(context)!.segurancaConfirmarSosTitulo),
-          content: Text(Platform.isIOS
-              ? AppLocalizations.of(context)!.segurancaConfirmarSosConteudoIos
-              : AppLocalizations.of(context)!.segurancaConfirmarSosConteudo),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(AppLocalizations.of(context)!.cancelar),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(AppLocalizations.of(context)!.segurancaConfirmarSosBotao, style: const TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmou != true || !mounted) return;
-
     try {
-      // P1 (SMS + nuvem/Push) e P2 (abre a câmera) disparam EM
-      // PARALELO — P1 nunca deve atrasar o obturador (câmera física
-      // ~3s: nenhuma espera de rede/GPS entre o toque e a câmera
-      // abrindo). Também não exibimos mais nenhuma faixa/SnackBar de
-      // aviso por cima do botão/câmera: a tela vermelha de dissuasão
-      // exibida após a foto já confirma visualmente o disparo.
       unawaited(SosDisparoService().executarP1LocalizacaoImediata(origem: 'sos_manual'));
-      // P2: abre a câmera (Recurso de Captura e Dissuasão) — checa a
-      // mesma janela de 10 dias ativos internamente (ver
-      // CapturaDissuasaoService); o precheck no topo deste método já
-      // garante que chegamos aqui liberados, mas a checagem interna é
-      // mantida como segunda linha de defesa.
       await CapturaDissuasaoService().abrirCapturaSePermitido(origemUnificada: 'sos_manual');
     } catch (e) {
       debugPrint('⚠️ Falha ao disparar SOS manual: $e');
     }
   }
-
-
-
 
   String _formatarTempo(int totalSegundos) {
     int horas = totalSegundos ~/ 3600;

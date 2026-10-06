@@ -42,6 +42,7 @@ import 'services/premium_purchase_service.dart';
 import 'services/rastreamento_continuo_service.dart';
 import 'services/relatorio_falha_entrega_service.dart';
 import 'services/retry_upload_service.dart';
+import 'services/historico_alertas_service.dart';
 import 'services/rotina_alarme_service.dart';
 import 'services/sessao_revogada_service.dart';
 import 'services/sos_deep_link_service.dart';
@@ -726,6 +727,11 @@ Future<void> iniciarServicosPosLoginOuDashboard() async {
   // Resiliência offline do P2 do SOS (ver RetryUploadService): reagenda o
   // retry periódico e tenta drenar a fila imediatamente.
   etapa('RetryUpload', RetryUploadService().iniciar);
+
+  // Histórico dos alertas enviados: importa do Firestore, a cada sessão, os
+  // alertas da conta que ainda não estão no aparelho (reinstalação, troca de
+  // aparelho, alertas disparados pelo servidor com o app fechado).
+  etapa('HistoricoAlertas', HistoricoAlertasService().iniciar);
 
   // Varredura de fallback do relatório de falha de 48h (ver
   // RelatorioFalhaEntregaService) — silenciosa, sem esperar.

@@ -9,8 +9,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../services/alarme_service.dart';
 import '../services/background_location_heartbeat_service.dart';
 import '../services/database_helper.dart';
-import '../services/emergency_alert_service.dart';
-import '../services/firebase_sync_service.dart';
+import '../services/historico_alertas_service.dart';
 import '../services/l10n_headless_service.dart';
 import '../services/location_service.dart';
 import '../services/rotina_alarme_service.dart';
@@ -344,11 +343,8 @@ class _CronometroDisparadoScreenState extends State<CronometroDisparadoScreen>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(chaveCronometroFluxoResolvido, true);
 
-      final l10n = await L10nHeadlessService.obter();
-      await DatabaseHelper().inserirEventoHistorico(
-        titulo: l10n.historicoCheckinDesarmadoTitulo,
-        descricao: l10n.historicoCheckinDesarmadoDescricao,
-        categoria: 'seguranca',
+      await HistoricoAlertasService().registrarEvento(
+        tipo: TipoAlertaHistorico.cronometroDesarmado,
       );
     } catch (e) {
       debugPrint('⚠️ Falha ao confirmar desarme do cronômetro: $e');
@@ -363,7 +359,7 @@ class _CronometroDisparadoScreenState extends State<CronometroDisparadoScreen>
     } catch (e) {
       debugPrint('⚠️ Falha ao montar motivo de PIN incorreto: $e');
     }
-    await _dispararAlerta(motivo: motivo);
+    await _dispararAlerta(motivo: motivo, tipo: TipoAlertaHistorico.tentativaDesarmeIncorreto);
   }
 
   Future<void> _aoEsgotarTempoLimite() async {
@@ -383,7 +379,10 @@ class _CronometroDisparadoScreenState extends State<CronometroDisparadoScreen>
   /// na tela — mesma ordem/serviços já usados por
   /// `AlarmeDisparadoScreen._dispararAlertaDeFalhaDeDesarme` +
   /// `_finalizarComConfirmacao`.
-  Future<void> _dispararAlerta({String? motivo}) async {
+  Future<void> _dispararAlerta({
+    String? motivo,
+    String tipo = TipoAlertaHistorico.cronometroExpirado,
+  }) async {
     if (_alertaJaProcessado) return;
     _alertaJaProcessado = true;
 
@@ -485,21 +484,13 @@ class _CronometroDisparadoScreenState extends State<CronometroDisparadoScreen>
     // 3. Dispara o alerta (nuvem primeiro e aguardada, depois o fluxo
     // local completo — SMS nativo + backend, já com o motivo/localização
     // e o registro automático no histórico, ver [EmergencyAlertService]).
-    debugPrint('☁️ [TIMEOUT] Enviando Push/Firestore (FirebaseSyncService)...');
+    debugPrint('☁️ [TIMEOUT] Enviando alerta (nuvem primeiro, Histórico com status real)...');
     try {
-      final enviado = await FirebaseSyncService().dispararAlertaTentativaDesarmeIncorreto(
+      await HistoricoAlertasService().dispararAlertaCronometro(
+        tipo: tipo,
         motivo: motivo,
+        posicao: LocationService().ultimaPosicao,
       );
-      debugPrint('☁️ [TIMEOUT] Push/Firestore -> enviado=$enviado');
-    } catch (e) {
-      debugPrint('⚠️ [TIMEOUT] Falha ao disparar alerta prioritário na nuvem: $e');
-    }
-    debugPrint('📡 [TIMEOUT] Disparando EmergencyAlertService (GPS + SMS + histórico local)...');
-    try {
-      await EmergencyAlertService().dispararAlertaTentativaDesarmeIncorreto(
-        motivo: motivo,
-      );
-      debugPrint('📡 [TIMEOUT] EmergencyAlertService concluído.');
     } catch (e) {
       debugPrint('⚠️ [TIMEOUT] Falha ao disparar alerta de emergência do cronômetro: $e');
     }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import '../main.dart' show iniciarServicosPosLoginOuDashboard;
 import '../services/alertas_recebidos_service.dart';
+import '../services/area_protegida_historico_service.dart';
 import '../services/battery_optimization_service.dart';
 import '../services/sms_permission_service.dart';
 import '../services/sos_widget_status_service.dart';
@@ -104,6 +105,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _aoSelecionarAba(int indice) {
+    // Saiu da aba Histórico: a área protegida volta a pedir o PIN.
+    if (indice != 3) AreaProtegidaHistoricoService().bloquear();
     setState(() {
       _indiceAbaAtual = indice;
       _mostrandoInicio = false;

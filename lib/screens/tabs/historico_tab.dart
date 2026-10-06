@@ -3,11 +3,14 @@ import 'package:intl/intl.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/alertas_recebidos_service.dart';
+import '../../services/area_protegida_historico_service.dart';
 import '../../services/database_helper.dart';
+import '../../services/historico_alertas_service.dart';
 import '../../services/wallpaper_service.dart';
 import '../../widgets/pin_dialog.dart';
 import '../../widgets/texto_com_links.dart';
 import '../alerta_recebido_screen.dart';
+import '../detalhe_alerta_enviado_screen.dart';
 
 /// Tela de Histórico Geral: mescla os eventos administrativos locais
 /// (tabela 'historico') com os alertas de emergência de TERCEIROS
@@ -146,6 +149,7 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
     // ao `WidgetsBindingObserver` abaixo, que só cobre o app
     // minimizado/reaberto.
     DatabaseHelper.historicoAtualizadoNotifier.addListener(_aoHistoricoAtualizado);
+    _areaProtegida.liberado.addListener(_aoMudarLiberacao);
     _carregarHistorico();
     _atualizarStatusAuditoria();
   }
@@ -154,7 +158,33 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     DatabaseHelper.historicoAtualizadoNotifier.removeListener(_aoHistoricoAtualizado);
+    _areaProtegida.liberado.removeListener(_aoMudarLiberacao);
+    // Saiu da aba Histórico: a área protegida volta a pedir o PIN.
+    _areaProtegida.bloquear();
     super.dispose();
+  }
+
+  final AreaProtegidaHistoricoService _areaProtegida = AreaProtegidaHistoricoService();
+
+  void _aoMudarLiberacao() {
+    if (mounted) _atualizarStatusAuditoria();
+  }
+
+  /// Pede o PIN de novo (com o mesmo limite de tentativas da área) antes de
+  /// apagar uma entrada protegida. `true` só com o PIN correto.
+  Future<bool> _confirmarComPin() async {
+    final config = await _dbAuditoria.getUserConfig();
+    if (!mounted) return false;
+    var confirmado = false;
+    await exibirDialogoPin(
+      context: context,
+      pinEsperado: config?['pin_real'] as String?,
+      mostrarBotaoCancelar: true,
+      mensagemSucesso: AppLocalizations.of(context)!.historicoPinConfirmado,
+      controleTentativas: _areaProtegida,
+      aoConfirmarPinCorreto: () async => confirmado = true,
+    );
+    return confirmado;
   }
 
   void _aoHistoricoAtualizado() {
@@ -191,7 +221,7 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
 
   Future<void> _atualizarStatusAuditoria() async {
     final config = await _dbAuditoria.getUserConfig();
-    final liberado = await _dbAuditoria.auditoriaDesbloqueadaNaSessao();
+    final liberado = _areaProtegida.liberado.value;
     if (!mounted) return;
 
     setState(() {
@@ -204,19 +234,25 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
       final eventos = await _dbAuditoria.getEventosSensiveis();
       if (!mounted) return;
       setState(() => _eventosSensiveis = eventos);
+    } else if (_eventosSensiveis.isNotEmpty) {
+      setState(() => _eventosSensiveis = []);
     }
   }
 
   /// Abre o teclado numérico ([exibirDialogoPin]) pedindo o mesmo PIN de
   /// 4 dígitos cadastrado em Configurações. Só ao confirmar o PIN correto
   /// é que os "Alertas Enviados" são liberados para esta sessão do app —
-  /// ver [DatabaseHelper.desbloquearAuditoria].
+  /// ver [AreaProtegidaHistoricoService] (validade da liberação e bloqueio
+  /// após 3 PINs errados).
   Future<void> _desbloquearComPin() async {
     await exibirDialogoPin(
       context: context,
       pinEsperado: _pinReal,
+      mostrarBotaoCancelar: true,
+      mensagemSucesso: AppLocalizations.of(context)!.historicoPinConfirmado,
+      controleTentativas: _areaProtegida,
       aoConfirmarPinCorreto: () async {
-        await _dbAuditoria.desbloquearAuditoria();
+        _areaProtegida.liberar();
         if (!mounted) return;
         await _atualizarStatusAuditoria();
       },
@@ -265,7 +301,7 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
   }
 
   Future<void> _bloquearNovamenteAuditoria() async {
-    await _dbAuditoria.bloquearAuditoriaNovamente();
+    _areaProtegida.bloquear();
     if (!mounted) return;
     await _atualizarStatusAuditoria();
     if (!mounted) return;
@@ -278,11 +314,13 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
     );
   }
 
-  Future<void> _excluirEventoSensivel(int id) async {
+  Future<void> _excluirEventoSensivel(Map<String, dynamic> evento) async {
+    final id = evento['id'] as int;
     await _dbAuditoria.deletarEventoHistorico(id);
+    await HistoricoAlertasService().apagarFotoLocal(evento['foto_local'] as String?);
     if (!mounted) return;
     setState(() {
-      _eventosSensiveis.removeWhere((e) => e['id'] == id);
+      _eventosSensiveis = _eventosSensiveis.where((e) => e['id'] != id).toList();
     });
   }
 
@@ -438,7 +476,13 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
         await _dbHelper.limparHistoricoPorCategoria('sistema');
         break;
       case _categoriaEnviados:
+        // Área protegida: apagar pede o PIN de novo.
+        if (!await _confirmarComPin()) return;
+        final eventos = await _dbAuditoria.getEventosSensiveis();
         await _dbAuditoria.limparHistoricoPorCategoria('critico');
+        for (final evento in eventos) {
+          await HistoricoAlertasService().apagarFotoLocal(evento['foto_local'] as String?);
+        }
         if (mounted) setState(() => _eventosSensiveis = []);
         return;
       case 'todos':
@@ -979,13 +1023,28 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
             itemBuilder: (context, index) {
               final evento = _eventosSensiveis[index];
               final id = evento['id'] as int;
-              final titulo = evento['titulo'] as String? ?? '';
-              final descricao = evento['descricao'] as String? ?? '';
               final timestamp = evento['timestamp'] as String? ?? '';
+              final tipo = evento['tipo'] as String?;
+              final l10n = AppLocalizations.of(context)!;
+              final estruturado = tipo != null;
+              final titulo = estruturado
+                  ? HistoricoAlertasService.tituloDoTipo(l10n, tipo)
+                  : (evento['titulo'] as String? ?? '');
+              final status = StatusAlertaVisual.de(l10n, evento['status'] as String?);
+              final temFoto = ((evento['foto_local'] as String?) ?? (evento['foto_url'] as String?)) != null;
+              final descricao = estruturado
+                  ? [
+                      if (status != null) status.rotulo,
+                      if (evento['latitude'] != null) l10n.historicoComLocalizacao,
+                      if (temFoto) l10n.historicoComFoto,
+                    ].join(' · ')
+                  : (evento['descricao'] as String? ?? '');
 
               return Dismissible(
                 key: ValueKey('critico_$id'),
                 direction: DismissDirection.endToStart,
+                // Apagar uma entrada protegida pede o PIN de novo.
+                confirmDismiss: (_) => _confirmarComPin(),
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -996,7 +1055,7 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
                   ),
                   child: const Icon(Icons.delete_outline, color: Colors.white),
                 ),
-                onDismissed: (_) => _excluirEventoSensivel(id),
+                onDismissed: (_) => _excluirEventoSensivel(evento),
                 child: Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(
@@ -1004,9 +1063,17 @@ class _HistoricoTabState extends State<HistoricoTab> with WidgetsBindingObserver
                     side: BorderSide(color: Colors.grey.shade200),
                   ),
                   child: ListTile(
+                    onTap: estruturado
+                        ? () => Navigator.of(context).push(MaterialPageRoute<void>(
+                              builder: (_) => DetalheAlertaEnviadoScreen(evento: evento),
+                            ))
+                        : null,
                     leading: CircleAvatar(
-                      backgroundColor: Colors.red.shade50,
-                      child: Icon(Icons.shield_outlined, color: Colors.red.shade400),
+                      backgroundColor: (status?.cor ?? Colors.red.shade400).withOpacity(0.12),
+                      child: Icon(
+                        temFoto ? Icons.photo_camera : (status?.icone ?? Icons.shield_outlined),
+                        color: status?.cor ?? Colors.red.shade400,
+                      ),
                     ),
                     title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
                     // Coordenadas GPS e o link da foto (quando presentes no

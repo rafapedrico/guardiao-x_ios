@@ -30,9 +30,11 @@ class CapturaDissuasaoService {
   /// [planoJaVerificado]: o chamador já leu a janela do Plano Free (Widget
   /// SOS, que compartilha uma única leitura com o envio da localização).
   /// [aoResolverAbertura]/[limiteAbertura]: repassados à
-  /// [CameraCapturaScreen] (tela preta do Widget SOS).
+  /// [CameraCapturaScreen] (tela preta do Widget SOS). [alertaId]: o SOS
+  /// a que a foto pertence (mesma entrada do Histórico).
   Future<bool> abrirCapturaSePermitido({
     String? origemUnificada,
+    String? alertaId,
     bool planoJaVerificado = false,
     ValueChanged<bool>? aoResolverAbertura,
     Duration? limiteAbertura,
@@ -93,6 +95,7 @@ class CapturaDissuasaoService {
         MaterialPageRoute(
           builder: (_) => CameraCapturaScreen(
             origemUnificada: origemUnificada,
+            alertaId: alertaId,
             aoResolverAbertura: aoResolverAbertura,
             limiteAbertura: limiteAbertura,
           ),

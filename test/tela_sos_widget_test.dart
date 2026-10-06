@@ -26,13 +26,19 @@ void main() {
     await tester.pump();
     expect(find.text('Alerta acionado. Enviando sua localização…'), findsOneWidget);
 
-    etapa.value = EtapaTelaSosWidget.falhaTentandoNovamente;
-    await tester.pump();
-    expect(find.text('Falha ao enviar a localização. Tentando novamente…'), findsOneWidget);
-
     etapa.value = EtapaTelaSosWidget.localizacaoEnviada;
     await tester.pump();
-    expect(find.text('Localização enviada. Abrindo a câmera'), findsOneWidget);
+    expect(find.text('Localização enviada com sucesso'), findsOneWidget);
+
+    etapa.value = EtapaTelaSosWidget.semConexao;
+    await tester.pump();
+    expect(
+        find.text('Sem conexão. Seu alerta será enviado automaticamente assim que houver sinal'),
+        findsOneWidget);
+
+    etapa.value = EtapaTelaSosWidget.abrindoCamera;
+    await tester.pump();
+    expect(find.text('Abrindo a câmera'), findsOneWidget);
 
     etapa.value = EtapaTelaSosWidget.cameraIndisponivel;
     await tester.pump();

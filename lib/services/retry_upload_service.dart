@@ -78,6 +78,7 @@ class RetryUploadService {
     required String origem,
     double? latitude,
     double? longitude,
+    String? alertaId,
   }) async {
     try {
       final diretorioPermanente = await getApplicationDocumentsDirectory();
@@ -90,6 +91,7 @@ class RetryUploadService {
         origem: origem,
         latitude: latitude,
         longitude: longitude,
+        alertaId: alertaId,
       );
       debugPrint('💾 [RetryUploadService] Upload de foto SOS ($origem) enfileirado para retry: $destino');
     } catch (e) {
@@ -131,6 +133,9 @@ class RetryUploadService {
         final bool sucesso = await SosDisparoService().tentarReenviarFotoEnfileirada(
           fotoPathLocal: fotoPath,
           origem: origem,
+          alertaId: item['alerta_id'] as String?,
+          latitude: (item['latitude'] as num?)?.toDouble(),
+          longitude: (item['longitude'] as num?)?.toDouble(),
         );
 
         if (sucesso) {
