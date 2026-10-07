@@ -108,3 +108,21 @@ Sem contato de emergência: o "+" fica cinza e leva a Configurações.
    atualizada a cada ~60 s até o fim da tolerância; fora da janela, não.
 6. Histórico protegido: confirmação, alertas por PIN errado e por tempo
    esgotado, com status e localização.
+
+## 8. Alinhamento com o Android (conferir no Firestore)
+
+1. SOS: `usuarios/{uid}/alertas/{alertaId}` com `tipo: sos_fisico`,
+   `alertaId` e `contextoPersonalizado`; foto em `{alertaId}_foto`.
+2. Com GPS impreciso no toque, a posição precisa chega em
+   `alertas/{alertaId}/atualizacoes_localizacao/{auto}`; o alerta original
+   não muda. (Precisa da regra de criação nessa subcoleção no servidor.)
+3. Cronômetro: `cronometro_expirado` (tempo) ou `tentativa_desarme_incorreto`
+   (3 PINs), com o texto do cronômetro em `contextoPersonalizado`.
+4. Despertador: `despertador_expirado` por tempo ou por 3 PINs (o `motivo`
+   diz qual), com o texto do despertador; tentativa de apagar/pausar com PIN
+   errado: `tentativa_desarme_incorreto`.
+5. `alarmes_agendados/{uid}_{id}` sempre com `cicloEpochMs` e `pausadoAte`
+   (nulo sem pausa). Pausar por hoje: o doc passa para a próxima ocorrência,
+   PENDENTE, com `pausadoAte` = 00h00 de amanhã.
+6. Trocar o som em Configurações grava `usuarios/{uid}.somAlerta = "som_N"`.
+7. Termos e Privacidade: seção 8, retenção de 30 dias.
