@@ -1445,5 +1445,53 @@
   "sosAbrindoCamera": "Abrindo a câmera",
   "sosCameraIndisponivelSemConexao": "Câmera indisponível — seu alerta será enviado aos seus contatos assim que houver sinal",
   "mensagemEnviadaAvisoSemFoto": "ATENÇÃO, UMA MENSAGEM FOI ENVIADA AOS FAMILIARES COM SUA LOCALIZAÇÃO. ESTA OPERAÇÃO NÃO PODE SER DESFEITA.",
-  "mensagemAvisoSemConexao": "ATENÇÃO, SEU ALERTA SERÁ ENVIADO AOS FAMILIARES ASSIM QUE HOUVER CONEXÃO."
+  "mensagemAvisoSemConexao": "ATENÇÃO, SEU ALERTA SERÁ ENVIADO AOS FAMILIARES ASSIM QUE HOUVER CONEXÃO.",
+  "despertadorDesativarAcao": "Desativar despertador",
+  "despertadorPararSomAcao": "Parar som",
+  "despertadorNotifCorpo": "Toque em \"Desativar despertador\" e digite seu PIN. Sem confirmação dentro da tolerância, seus contatos de emergência serão avisados.",
+  "despertadorAvisoReagendarTitulo": "Abra o Guardião-X",
+  "despertadorAvisoReagendarCorpo": "Abra o app para manter o despertador \"{etiqueta}\" das {horario} agendado.",
+  "@despertadorAvisoReagendarCorpo": {
+    "placeholders": {
+      "etiqueta": {
+        "type": "String"
+      },
+      "horario": {
+        "type": "String"
+      }
+    }
+  },
+  "despertadorDesativadoTitulo": "Despertador desativado (pausado)",
+  "despertadorDesativadoCorpo": "\"{etiqueta}\" foi confirmado com o PIN correto. Nenhum alerta foi enviado.",
+  "@despertadorDesativadoCorpo": {
+    "placeholders": {
+      "etiqueta": {
+        "type": "String"
+      }
+    }
+  },
+  "despertadorAlertaEnviadoTitulo": "Alerta enviado",
+  "despertadorAlertaEnviadoCorpo": "Um alerta de emergência foi enviado aos seus contatos cadastrados.",
+  "despertadorTelaInstrucao": "Digite seu PIN para desligar o despertador. Tempo restante: {tempo}",
+  "@despertadorTelaInstrucao": {
+    "placeholders": {
+      "tempo": {
+        "type": "String"
+      }
+    }
+  },
+  "despertadorSemContatoTitulo": "Cadastre um contato de emergência",
+  "despertadorSemContatoConteudo": "O despertador avisa seus contatos de emergência se você não confirmar a tempo. Cadastre ao menos um contato em Configurações para criar um despertador.",
+  "despertadorAbrirConfiguracoes": "Abrir Configurações",
+  "despertadorDefinaPin": "Defina um PIN em Configurações para confirmar esta ação.",
+  "despertadorTentativaApagarMotivo": "PIN digitado incorretamente 3 vezes seguidas ao tentar {acao} um despertador.",
+  "@despertadorTentativaApagarMotivo": {
+    "placeholders": {
+      "acao": {
+        "type": "String"
+      }
+    }
+  },
+  "despertadorApagarBotao": "Apagar",
+  "familiaAcaoReativar": "reativar"
 }

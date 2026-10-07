@@ -150,13 +150,102 @@ class AlarmeAgendadoCloudService {
   /// `RotinaAlarmeService.confirmarCheckinRotina`), avisando a nuvem que
   /// o usuário está a salvo antes mesmo de a Cloud Function agendada
   /// rodar novamente e checar o prazo.
-  Future<void> marcarConfirmadoSeguro(String idAlarme) async {
+  /// Ciclo do despertador de check-in ([modelo] traz a ocorrência ALVO —
+  /// ver `CicloDespertador.alvo` — em `cicloEpochMs`):
+  ///   - mesma ocorrência do documento: só atualiza posição, contatos e
+  ///     textos — nunca o status;
+  ///   - documento PENDENTE de outra ocorrência: se o prazo ainda não passou,
+  ///     a ocorrência atual continua sendo acompanhada (só a posição é
+  ///     atualizada); com o prazo vencido, é o servidor quem resolve — nada
+  ///     muda aqui. Exceção: horário do alarme editado (outro hora:minuto),
+  ///     que troca a ocorrência na hora;
+  ///   - CONFIRMADO_SEGURA/ALERTA_DISPARADO (ocorrência anterior resolvida):
+  ///     arma a nova como PENDENTE;
+  ///   - PAUSADO: continua pausado até `pausadoAte`; depois, arma;
+  ///   - CANCELADO (alarme desligado e religado) ou sem documento: arma.
+  /// [forcarNovoCiclo]: arma a nova ocorrência em qualquer caso.
+  Future<void> sincronizarCicloDespertador(
+    AlarmeAgendadoModel modelo, {
+    bool forcarNovoCiclo = false,
+  }) async {
+    if (!_firebaseDisponivel) return;
+    final ciclo = modelo.cicloEpochMs;
+    if (ciclo == null) return registrarAlarmeAgendado(modelo);
+    try {
+      final doc = _documento(modelo.idAlarme);
+      final snapshot = await doc.get().timeout(_timeoutFirestore);
+      final dados = snapshot.data();
+      if (!snapshot.exists || dados == null || forcarNovoCiclo) {
+        await doc.set(modelo.toFirestore()).timeout(_timeoutFirestore);
+        return;
+      }
+
+      final dataDoc = (dados['dataHoraDisparo'] as Timestamp?)?.toDate();
+      final cicloDoc = (dados['cicloEpochMs'] as num?)?.toInt() ?? dataDoc?.millisecondsSinceEpoch;
+      final status = AlarmeAgendadoStatus.fromFirestore(dados['status'] as String?);
+      final atualizaveis = <String, dynamic>{
+        if (modelo.ultimaLocalizacao != null) 'ultimaLocalizacao': modelo.ultimaLocalizacao!.toMap(),
+        'contatosEmergencia': modelo.contatosEmergencia,
+        'etiqueta': modelo.etiqueta,
+        'contextoPersonalizado': modelo.contextoPersonalizado,
+      };
+
+      Future<void> soAtualizar() =>
+          doc.set(atualizaveis, SetOptions(merge: true)).timeout(_timeoutFirestore);
+      Future<void> armar() => doc.set(modelo.toFirestore()).timeout(_timeoutFirestore);
+
+      if (cicloDoc == ciclo) return soAtualizar();
+
+      switch (status) {
+        case AlarmeAgendadoStatus.pendente:
+          final horarioEditado = dataDoc != null &&
+              (dataDoc.hour != modelo.dataHoraDisparo.hour ||
+                  dataDoc.minute != modelo.dataHoraDisparo.minute);
+          if (horarioEditado) return armar();
+          final prazoDoc = (dados['prazoFinalEpochMs'] as num?)?.toInt() ?? 0;
+          if (prazoDoc > DateTime.now().millisecondsSinceEpoch) return soAtualizar();
+          return;
+        case AlarmeAgendadoStatus.pausado:
+          final ate = (dados['pausadoAte'] as Timestamp?)?.toDate();
+          if (ate != null && DateTime.now().isBefore(ate)) return;
+          return armar();
+        case AlarmeAgendadoStatus.confirmadoSeguro:
+        case AlarmeAgendadoStatus.alertaDisparado:
+        case AlarmeAgendadoStatus.cancelado:
+          return armar();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [AlarmeAgendadoCloudService] Falha ao sincronizar o ciclo do despertador '
+          '#${modelo.idAlarme}: $e');
+    }
+  }
+
+  /// Status da ocorrência [ciclo] na nuvem; `null` se o documento já
+  /// acompanha outra ocorrência (ou não pôde ser lido).
+  Future<AlarmeAgendadoStatus?> statusDaOcorrencia(String idAlarme, int ciclo) async {
+    if (!_firebaseDisponivel) return null;
+    try {
+      final snapshot = await _documento(idAlarme).get().timeout(_timeoutFirestore);
+      final dados = snapshot.data();
+      if (dados == null) return null;
+      final cicloDoc = (dados['cicloEpochMs'] as num?)?.toInt() ??
+          (dados['dataHoraDisparo'] as Timestamp?)?.toDate().millisecondsSinceEpoch;
+      if (cicloDoc != ciclo) return null;
+      return AlarmeAgendadoStatus.fromFirestore(dados['status'] as String?);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// [cicloEpochMs]: a ocorrência confirmada (despertador de check-in).
+  Future<void> marcarConfirmadoSeguro(String idAlarme, {int? cicloEpochMs}) async {
     if (!_firebaseDisponivel) return;
     try {
       await _documento(idAlarme).set(
         {
           'status': AlarmeAgendadoStatus.confirmadoSeguro.valorFirestore,
           'confirmadoEm': FieldValue.serverTimestamp(),
+          if (cicloEpochMs != null) 'cicloEpochMs': cicloEpochMs,
         },
         SetOptions(merge: true),
       ).timeout(_timeoutFirestore);
@@ -186,13 +275,17 @@ class AlarmeAgendadoCloudService {
   /// tira o documento da consulta da function e resolve o duplo envio —
   /// mesmo espírito de [marcarConfirmadoSeguro], só que para o outro
   /// desfecho possível do ciclo.
-  Future<void> marcarAlertaDisparado(String idAlarme) async {
+  /// [eventoId]: id do alerta já enviado pelo app para esta ocorrência —
+  /// o servidor não manda um segundo alerta.
+  Future<void> marcarAlertaDisparado(String idAlarme, {int? cicloEpochMs, String? eventoId}) async {
     if (!_firebaseDisponivel) return;
     try {
       await _documento(idAlarme).set(
         {
           'status': AlarmeAgendadoStatus.alertaDisparado.valorFirestore,
           'alertaDisparadoEm': FieldValue.serverTimestamp(),
+          if (cicloEpochMs != null) 'cicloEpochMs': cicloEpochMs,
+          if (eventoId != null) 'eventoId': eventoId,
         },
         SetOptions(merge: true),
       ).timeout(_timeoutFirestore);
@@ -240,13 +333,16 @@ class AlarmeAgendadoCloudService {
   /// agendada). Revertido para PENDENTE (com timestamp novo) somente
   /// quando o usuário reativa o alarme — ver
   /// [sinalizarNovoCiclo]/`RotinaAlarmeService.despausarAlarme`.
-  Future<void> marcarPausado(String idAlarme) async {
+  /// [pausadoAte]: fim da pausa (00:00 do dia seguinte, "pausado por
+  /// hoje"); depois dele a próxima ocorrência volta a ser armada.
+  Future<void> marcarPausado(String idAlarme, {DateTime? pausadoAte}) async {
     if (!_firebaseDisponivel) return;
     try {
       await _documento(idAlarme).set(
         {
           'status': AlarmeAgendadoStatus.pausado.valorFirestore,
           'pausadoEm': FieldValue.serverTimestamp(),
+          if (pausadoAte != null) 'pausadoAte': Timestamp.fromDate(pausadoAte),
         },
         SetOptions(merge: true),
       ).timeout(_timeoutFirestore);

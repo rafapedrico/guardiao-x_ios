@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "カメラを起動しています",
   "sosCameraIndisponivelSemConexao": "カメラを使用できません — 電波が戻りしだいアラートを連絡先に送信します",
   "mensagemEnviadaAvisoSemFoto": "注意、現在地を含むメッセージが家族に送信されました。この操作は取り消せません。",
-  "mensagemAvisoSemConexao": "注意、接続が戻りしだいアラートを家族に送信します。"
+  "mensagemAvisoSemConexao": "注意、接続が戻りしだいアラートを家族に送信します。",
+  "despertadorDesativarAcao": "アラームを解除",
+  "despertadorPararSomAcao": "音を止める",
+  "despertadorNotifCorpo": "「アラームを解除」をタップして PIN を入力してください。猶予時間内に確認しないと、緊急連絡先に通知されます。",
+  "despertadorAvisoReagendarTitulo": "Guardian-X を開いてください",
+  "despertadorAvisoReagendarCorpo": "{horario} のアラーム「{etiqueta}」の予定を保つためにアプリを開いてください。",
+  "despertadorDesativadoTitulo": "アラームを解除しました（一時停止）",
+  "despertadorDesativadoCorpo": "「{etiqueta}」は正しい PIN で確認されました。アラートは送信されていません。",
+  "despertadorAlertaEnviadoTitulo": "アラートを送信しました",
+  "despertadorAlertaEnviadoCorpo": "登録済みの連絡先に緊急アラートを送信しました。",
+  "despertadorTelaInstrucao": "PIN を入力してアラームを止めてください。残り時間：{tempo}",
+  "despertadorSemContatoTitulo": "緊急連絡先を登録してください",
+  "despertadorSemContatoConteudo": "時間内に確認しないと、アラームは緊急連絡先に通知します。アラームを作成するには設定で連絡先を 1 件以上登録してください。",
+  "despertadorAbrirConfiguracoes": "設定を開く",
+  "despertadorDefinaPin": "この操作を確認するには設定で PIN を設定してください。",
+  "despertadorTentativaApagarMotivo": "アラームを{acao}しようとして PIN を 3 回続けて間違えました。",
+  "despertadorApagarBotao": "削除",
+  "familiaAcaoReativar": "再開"
 }

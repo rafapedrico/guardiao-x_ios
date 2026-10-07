@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "कैमरा खुल रहा है",
   "sosCameraIndisponivelSemConexao": "कैमरा उपलब्ध नहीं — सिग्नल मिलते ही आपका अलर्ट आपके संपर्कों को भेजा जाएगा",
   "mensagemEnviadaAvisoSemFoto": "ध्यान दें, आपके स्थान के साथ परिवार को एक संदेश भेजा गया है। इस कार्रवाई को पूर्ववत नहीं किया जा सकता।",
-  "mensagemAvisoSemConexao": "ध्यान दें, कनेक्शन मिलते ही आपका अलर्ट परिवार को भेज दिया जाएगा।"
+  "mensagemAvisoSemConexao": "ध्यान दें, कनेक्शन मिलते ही आपका अलर्ट परिवार को भेज दिया जाएगा।",
+  "despertadorDesativarAcao": "अलार्म बंद करें",
+  "despertadorPararSomAcao": "आवाज़ रोकें",
+  "despertadorNotifCorpo": "\"अलार्म बंद करें\" पर टैप करें और अपना PIN डालें। सहनशीलता समय में पुष्टि न होने पर आपके आपातकालीन संपर्कों को सूचित किया जाएगा।",
+  "despertadorAvisoReagendarTitulo": "Guardian-X खोलें",
+  "despertadorAvisoReagendarCorpo": "{horario} का अलार्म \"{etiqueta}\" शेड्यूल रखने के लिए ऐप खोलें।",
+  "despertadorDesativadoTitulo": "अलार्म बंद किया गया (रोका गया)",
+  "despertadorDesativadoCorpo": "\"{etiqueta}\" की सही PIN से पुष्टि हुई। कोई अलर्ट नहीं भेजा गया।",
+  "despertadorAlertaEnviadoTitulo": "अलर्ट भेजा गया",
+  "despertadorAlertaEnviadoCorpo": "आपके पंजीकृत संपर्कों को आपातकालीन अलर्ट भेजा गया।",
+  "despertadorTelaInstrucao": "अलार्म बंद करने के लिए अपना PIN डालें। शेष समय: {tempo}",
+  "despertadorSemContatoTitulo": "आपातकालीन संपर्क जोड़ें",
+  "despertadorSemContatoConteudo": "समय पर पुष्टि न करने पर अलार्म आपके आपातकालीन संपर्कों को सूचित करता है। अलार्म बनाने के लिए सेटिंग्स में कम से कम एक संपर्क जोड़ें।",
+  "despertadorAbrirConfiguracoes": "सेटिंग्स खोलें",
+  "despertadorDefinaPin": "इस कार्रवाई की पुष्टि के लिए सेटिंग्स में PIN सेट करें।",
+  "despertadorTentativaApagarMotivo": "अलार्म को {acao} करने की कोशिश में लगातार 3 बार गलत PIN डाला गया।",
+  "despertadorApagarBotao": "हटाएं",
+  "familiaAcaoReativar": "फिर से चालू करना"
 }

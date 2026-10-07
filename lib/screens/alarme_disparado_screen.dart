@@ -28,7 +28,11 @@ import 'package:audioplayers/audioplayers.dart';
 class AlarmeDisparadoScreen extends StatefulWidget {
   // --- ADICIONADO: Parâmetro para saber se o app já estava aberto ---
   final bool veioDoForeground;
-  const AlarmeDisparadoScreen({super.key, this.veioDoForeground = false});
+
+  /// Alarme que tocou, vindo do payload da notificação. Sem ele, a tela
+  /// usa o de `ultimo_disparo_epoch` mais recente.
+  final int? idAlarme;
+  const AlarmeDisparadoScreen({super.key, this.veioDoForeground = false, this.idAlarme});
   // ------------------------------------------------------------------
 
   @override
@@ -145,6 +149,7 @@ class _AlarmeDisparadoScreenState extends State<AlarmeDisparadoScreen>
 
     _instanciaGraficaAberta = true;
     _instanciaAbertaDesde = DateTime.now();
+    _idAlarmeAtual = widget.idAlarme;
 
     // Camada extra de resiliência (Firebase): enquanto esta tela estiver
     // aberta (alarme de rotina disparado, aguardando confirmação de PIN),
@@ -534,7 +539,7 @@ class _AlarmeDisparadoScreenState extends State<AlarmeDisparadoScreen>
       _idAlarmeAtual = idAlarme;
 
       final config = await DatabaseHelper().getUserConfig();
-      final pinReal = config?['pin_real'] as String? ?? '1234';
+      final pinReal = config?['pin_real'] as String?;
 
       if (!mounted) return;
 

@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "正在打开相机",
   "sosCameraIndisponivelSemConexao": "相机不可用——有信号后会把你的警报发送给联系人",
   "mensagemEnviadaAvisoSemFoto": "注意，已向家人发送包含你位置的消息。此操作无法撤销。",
-  "mensagemAvisoSemConexao": "注意，有网络后会立即把你的警报发送给家人。"
+  "mensagemAvisoSemConexao": "注意，有网络后会立即把你的警报发送给家人。",
+  "despertadorDesativarAcao": "关闭闹钟",
+  "despertadorPararSomAcao": "停止声音",
+  "despertadorNotifCorpo": "点按“关闭闹钟”并输入 PIN。如在容许时间内未确认，将通知你的紧急联系人。",
+  "despertadorAvisoReagendarTitulo": "打开 Guardian-X",
+  "despertadorAvisoReagendarCorpo": "打开应用以保持 {horario} 的闹钟“{etiqueta}”处于已安排状态。",
+  "despertadorDesativadoTitulo": "闹钟已关闭（已暂停）",
+  "despertadorDesativadoCorpo": "“{etiqueta}”已用正确 PIN 确认。未发送任何警报。",
+  "despertadorAlertaEnviadoTitulo": "警报已发送",
+  "despertadorAlertaEnviadoCorpo": "已向你登记的联系人发送紧急警报。",
+  "despertadorTelaInstrucao": "输入 PIN 以关闭闹钟。剩余时间：{tempo}",
+  "despertadorSemContatoTitulo": "添加紧急联系人",
+  "despertadorSemContatoConteudo": "如果你未及时确认，闹钟会通知你的紧急联系人。请先在设置中添加至少一位联系人再创建闹钟。",
+  "despertadorAbrirConfiguracoes": "打开设置",
+  "despertadorDefinaPin": "请在设置中设置 PIN 以确认此操作。",
+  "despertadorTentativaApagarMotivo": "尝试{acao}闹钟时连续 3 次输错 PIN。",
+  "despertadorApagarBotao": "删除",
+  "familiaAcaoReativar": "重新启用"
 }

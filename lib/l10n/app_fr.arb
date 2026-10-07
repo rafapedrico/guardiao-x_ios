@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "Ouverture de l'appareil photo",
   "sosCameraIndisponivelSemConexao": "Appareil photo indisponible — votre alerte sera envoyée à vos contacts dès qu'il y aura du réseau",
   "mensagemEnviadaAvisoSemFoto": "ATTENTION, UN MESSAGE A ÉTÉ ENVOYÉ À LA FAMILLE AVEC VOTRE POSITION. CETTE OPÉRATION EST IRRÉVERSIBLE.",
-  "mensagemAvisoSemConexao": "ATTENTION, VOTRE ALERTE SERA ENVOYÉE À LA FAMILLE DÈS QU'IL Y AURA UNE CONNEXION."
+  "mensagemAvisoSemConexao": "ATTENTION, VOTRE ALERTE SERA ENVOYÉE À LA FAMILLE DÈS QU'IL Y AURA UNE CONNEXION.",
+  "despertadorDesativarAcao": "Désactiver le réveil",
+  "despertadorPararSomAcao": "Arrêter le son",
+  "despertadorNotifCorpo": "Touchez « Désactiver le réveil » et saisissez votre PIN. Sans confirmation dans le délai de tolérance, vos contacts d'urgence seront avertis.",
+  "despertadorAvisoReagendarTitulo": "Ouvrez Guardian-X",
+  "despertadorAvisoReagendarCorpo": "Ouvrez l'app pour garder le réveil « {etiqueta} » de {horario} programmé.",
+  "despertadorDesativadoTitulo": "Réveil désactivé (en pause)",
+  "despertadorDesativadoCorpo": "« {etiqueta} » a été confirmé avec le bon PIN. Aucune alerte n'a été envoyée.",
+  "despertadorAlertaEnviadoTitulo": "Alerte envoyée",
+  "despertadorAlertaEnviadoCorpo": "Une alerte d'urgence a été envoyée à vos contacts enregistrés.",
+  "despertadorTelaInstrucao": "Saisissez votre PIN pour éteindre le réveil. Temps restant : {tempo}",
+  "despertadorSemContatoTitulo": "Ajoutez un contact d'urgence",
+  "despertadorSemContatoConteudo": "Le réveil avertit vos contacts d'urgence si vous ne confirmez pas à temps. Ajoutez au moins un contact dans Réglages pour créer un réveil.",
+  "despertadorAbrirConfiguracoes": "Ouvrir les Réglages",
+  "despertadorDefinaPin": "Définissez un PIN dans Réglages pour confirmer cette action.",
+  "despertadorTentativaApagarMotivo": "PIN saisi incorrectement 3 fois de suite en essayant de {acao} un réveil.",
+  "despertadorApagarBotao": "Supprimer",
+  "familiaAcaoReativar": "réactiver"
 }

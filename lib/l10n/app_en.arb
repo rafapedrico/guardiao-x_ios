@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "Opening the camera",
   "sosCameraIndisponivelSemConexao": "Camera unavailable — your alert will be sent to your contacts as soon as there is signal",
   "mensagemEnviadaAvisoSemFoto": "WARNING, A MESSAGE WAS SENT TO YOUR FAMILY WITH YOUR LOCATION. THIS CANNOT BE UNDONE.",
-  "mensagemAvisoSemConexao": "WARNING, YOUR ALERT WILL BE SENT TO YOUR FAMILY AS SOON AS THERE IS A CONNECTION."
+  "mensagemAvisoSemConexao": "WARNING, YOUR ALERT WILL BE SENT TO YOUR FAMILY AS SOON AS THERE IS A CONNECTION.",
+  "despertadorDesativarAcao": "Turn off alarm",
+  "despertadorPararSomAcao": "Stop sound",
+  "despertadorNotifCorpo": "Tap \"Turn off alarm\" and enter your PIN. Without confirmation within the tolerance, your emergency contacts will be alerted.",
+  "despertadorAvisoReagendarTitulo": "Open Guardian-X",
+  "despertadorAvisoReagendarCorpo": "Open the app to keep the \"{etiqueta}\" alarm at {horario} scheduled.",
+  "despertadorDesativadoTitulo": "Alarm turned off (paused)",
+  "despertadorDesativadoCorpo": "\"{etiqueta}\" was confirmed with the correct PIN. No alert was sent.",
+  "despertadorAlertaEnviadoTitulo": "Alert sent",
+  "despertadorAlertaEnviadoCorpo": "An emergency alert was sent to your registered contacts.",
+  "despertadorTelaInstrucao": "Enter your PIN to turn off the alarm. Time left: {tempo}",
+  "despertadorSemContatoTitulo": "Add an emergency contact",
+  "despertadorSemContatoConteudo": "The alarm alerts your emergency contacts if you don't confirm in time. Add at least one contact in Settings to create an alarm.",
+  "despertadorAbrirConfiguracoes": "Open Settings",
+  "despertadorDefinaPin": "Set a PIN in Settings to confirm this action.",
+  "despertadorTentativaApagarMotivo": "PIN entered incorrectly 3 times in a row while trying to {acao} an alarm.",
+  "despertadorApagarBotao": "Delete",
+  "familiaAcaoReativar": "reactivate"
 }

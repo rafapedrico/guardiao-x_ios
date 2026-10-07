@@ -43,6 +43,7 @@ import 'services/rastreamento_continuo_service.dart';
 import 'services/relatorio_falha_entrega_service.dart';
 import 'services/retry_upload_service.dart';
 import 'services/historico_alertas_service.dart';
+import 'services/despertador_ios_service.dart';
 import 'services/rotina_alarme_service.dart';
 import 'services/sessao_revogada_service.dart';
 import 'services/sos_deep_link_service.dart';
@@ -458,14 +459,28 @@ Future<void> _inicializarNotificacoesEAbrirAlertaPendente() async {
   // `RotinaAlarmeService.confirmarCheckinRotina`). Mais relevante no
   // iOS, onde este toque é o ÚNICO caminho para o cold start desse
   // fluxo (sem a `RotinaCheckinAlarmActivity` nativa do Android).
-  final idAlarmeCheckinPendente = NotificacaoService.consumirIdAlarmeCheckinPendente();
+  // iOS: o toque numa notificação do despertador abre a tela dele com o
+  // idAlarme e a ocorrência do payload (ver DespertadorIosService).
+  if (Platform.isIOS) {
+    final despertador = NotificacaoService.consumirDespertadorPendente();
+    final idLegado = NotificacaoService.consumirIdAlarmeCheckinPendente();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (despertador != null) {
+        unawaited(DespertadorIosService().abrirPorPayload(despertador, tecladoDireto: true));
+      } else if (idLegado != null) {
+        unawaited(DespertadorIosService().abrirOcorrenciaEmAndamento(idLegado, tecladoDireto: true));
+      }
+    });
+  }
+  final idAlarmeCheckinPendente =
+      Platform.isIOS ? null : NotificacaoService.consumirIdAlarmeCheckinPendente();
   if (idAlarmeCheckinPendente != null) {
     debugPrint('📬 [main] Cold start via toque em check-in de rotina '
         '#$idAlarmeCheckinPendente — abrindo direto, sem login.');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
         appNavigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AlarmeDisparadoScreen()),
+          MaterialPageRoute(builder: (_) => AlarmeDisparadoScreen(idAlarme: idAlarmeCheckinPendente)),
           (route) => false,
         );
       } catch (e) {
@@ -720,6 +735,11 @@ Future<void> iniciarServicosPosLoginOuDashboard() async {
     await etapaAssincrona('AlarmManager', AlarmeService.inicializar);
   }
   await etapaAssincrona('Notificacoes', NotificacaoService.inicializar);
+  // Despertador de check-in do iOS: reagenda o toque (AlarmKit ou
+  // notificações), abre a tela se o app foi aberto pelo alarme.
+  if (Platform.isIOS) {
+    etapa('DespertadorIos', () => unawaited(DespertadorIosService().iniciar()));
+  }
   if (Platform.isAndroid) {
     await etapaAssincrona('VolumeSos', VolumeSosService().iniciarMonitoramento);
   }

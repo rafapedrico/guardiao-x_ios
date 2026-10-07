@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "Abriendo la cámara",
   "sosCameraIndisponivelSemConexao": "Cámara no disponible — tu alerta se enviará a tus contactos en cuanto haya señal",
   "mensagemEnviadaAvisoSemFoto": "ATENCIÓN, SE ENVIÓ UN MENSAJE A TU FAMILIA CON TU UBICACIÓN. ESTA OPERACIÓN NO SE PUEDE DESHACER.",
-  "mensagemAvisoSemConexao": "ATENCIÓN, TU ALERTA SE ENVIARÁ A TU FAMILIA EN CUANTO HAYA CONEXIÓN."
+  "mensagemAvisoSemConexao": "ATENCIÓN, TU ALERTA SE ENVIARÁ A TU FAMILIA EN CUANTO HAYA CONEXIÓN.",
+  "despertadorDesativarAcao": "Desactivar despertador",
+  "despertadorPararSomAcao": "Detener sonido",
+  "despertadorNotifCorpo": "Toca \"Desactivar despertador\" e ingresa tu PIN. Sin confirmación dentro de la tolerancia, se avisará a tus contactos de emergencia.",
+  "despertadorAvisoReagendarTitulo": "Abre Guardián-X",
+  "despertadorAvisoReagendarCorpo": "Abre la app para mantener programado el despertador \"{etiqueta}\" de las {horario}.",
+  "despertadorDesativadoTitulo": "Despertador desactivado (en pausa)",
+  "despertadorDesativadoCorpo": "\"{etiqueta}\" se confirmó con el PIN correcto. No se envió ninguna alerta.",
+  "despertadorAlertaEnviadoTitulo": "Alerta enviada",
+  "despertadorAlertaEnviadoCorpo": "Se envió una alerta de emergencia a tus contactos registrados.",
+  "despertadorTelaInstrucao": "Ingresa tu PIN para apagar el despertador. Tiempo restante: {tempo}",
+  "despertadorSemContatoTitulo": "Registra un contacto de emergencia",
+  "despertadorSemContatoConteudo": "El despertador avisa a tus contactos de emergencia si no confirmas a tiempo. Registra al menos un contacto en Configuración para crear un despertador.",
+  "despertadorAbrirConfiguracoes": "Abrir Configuración",
+  "despertadorDefinaPin": "Define un PIN en Configuración para confirmar esta acción.",
+  "despertadorTentativaApagarMotivo": "PIN ingresado incorrectamente 3 veces seguidas al intentar {acao} un despertador.",
+  "despertadorApagarBotao": "Borrar",
+  "familiaAcaoReativar": "reactivar"
 }

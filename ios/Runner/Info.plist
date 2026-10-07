@@ -48,6 +48,8 @@
 	     ACCESS_BACKGROUND_LOCATION do AndroidManifest.xml. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>O Guardião-X usa sua localização para enviá-la nos alertas de emergência aos seus contatos de confiança e para compartilhá-la com os contatos que você aprovou na aba Monitoramento.</string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>O Guardião-X usa os alarmes do iPhone para o Despertador de check-in tocar no horário com o som que você escolheu, mesmo no modo silencioso. Se você não confirmar com o seu PIN dentro da tolerância, seus contatos de emergência são avisados.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Com "Sempre", o Guardião-X mantém sua posição atualizada para os contatos que você aprovou na aba Monitoramento, mesmo com o app fechado, e deixa a última posição pronta para um alerta de emergência. Você pode pausar o compartilhamento a qualquer momento na aba Monitoramento.</string>
 	<key>NSMotionUsageDescription</key>

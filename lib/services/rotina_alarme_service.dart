@@ -10,9 +10,12 @@ import '../firebase_options.dart';
 import '../models/alarme_rotina.dart';
 import 'alarme_agendado_cloud_service.dart';
 import 'background_location_heartbeat_service.dart';
+import 'ciclo_despertador.dart';
 import 'database_helper.dart';
+import 'despertador_ios_service.dart';
 import 'emergency_alert_service.dart';
 import 'firebase_sync_service.dart';
+import 'historico_alertas_service.dart';
 import 'l10n_headless_service.dart';
 import 'notificacao_service.dart';
 import 'plano_ciclo_service.dart';
@@ -145,19 +148,11 @@ class RotinaAlarmeService {
     // agendamento nativo abaixo. A garantia real de disparo no iOS é da
     // Cloud Function `scheduledAlarmMonitor.js`, não deste agendamento —
     // ver documentação completa no método chamado.
-    unawaited(() async {
-      final l10n = await L10nHeadlessService.obter();
-      final etiqueta = AlarmeRotina.fromMap(alarmeMap).etiquetaExibida(l10n);
-      final minutosTolerancia = alarmeMap['minutos_tolerancia'] as int? ?? 10;
-      await NotificacaoService.agendarLembretesCheckinRotinaIOS(
-        idAlarme: id,
-        etiqueta: etiqueta,
-        hora: hora,
-        minuto: minuto,
-        diasSemanaCsv: diasSemanaCsv,
-        minutosTolerancia: minutosTolerancia,
-      );
-    }());
+    // iOS: o toque de verdade (AlarmKit no iOS 26+, notificações sensíveis
+    // ao tempo com o som escolhido nos anteriores) é reagendado para todas
+    // as próximas ocorrências — ver DespertadorIosService. No Android é um
+    // no-op.
+    if (Platform.isIOS) unawaited(DespertadorIosService().reagendar());
 
     final proximoDisparo = _calcularProximoDisparo(hora, minuto, diasSemanaCsv);
     if (proximoDisparo == null) {
@@ -275,6 +270,11 @@ class RotinaAlarmeService {
   /// se um alarme está dentro da janela de heartbeat (≤ 2h do disparo),
   /// sem duplicar/arriscar divergir da lógica de agendamento real.
   static DateTime? proximoDisparoPrevisto(Map<String, dynamic> alarmeMap) {
+    // Respeita "pausado por hoje": as ocorrências de hoje são puladas.
+    if (alarmeMap['id'] != null) {
+      final proximas = CicloDespertador.proximas({...alarmeMap, 'ativo': 1});
+      return proximas.isEmpty ? null : proximas.first.horario;
+    }
     final hora = alarmeMap['hora'] as int? ?? 0;
     final minuto = alarmeMap['minuto'] as int? ?? 0;
     final diasSemanaCsv = alarmeMap['dias_semana'] as String? ?? '';
@@ -373,6 +373,7 @@ class RotinaAlarmeService {
     // locais equivalentes (ver [NotificacaoService.cancelarLembretesCheckinRotinaIOS]).
     await NotificacaoService.cancelarNotificacaoCheckin(idAlarme);
     await _limparFlagsDeFaseFinal();
+    if (Platform.isIOS) unawaited(DespertadorIosService().reagendar());
     debugPrint('⏰ Alarme de rotina #$idAlarme cancelado.');
   }
 
@@ -398,8 +399,11 @@ class RotinaAlarmeService {
     // registrar o PRÓXIMO disparo (amanhã ou depois), o documento nasça
     // PENDENTE de novo em vez de herdar este CANCELADO de hoje — ver
     // [AlarmeAgendadoCloudService.sinalizarNovoCiclo].
-    unawaited(AlarmeAgendadoCloudService().marcarCancelado(idAlarme.toString()));
-    AlarmeAgendadoCloudService().sinalizarNovoCiclo(idAlarme.toString());
+    final agora = DateTime.now();
+    unawaited(AlarmeAgendadoCloudService().marcarPausado(
+      idAlarme.toString(),
+      pausadoAte: DateTime(agora.year, agora.month, agora.day + 1),
+    ));
 
     if (Platform.isAndroid) {
       await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
@@ -420,36 +424,13 @@ class RotinaAlarmeService {
       await _agendarNativo(idAlarme, proximoDisparo);
     }
 
-    // MIGRAÇÃO iOS — LIMITAÇÃO CONHECIDA: diferente do Android (que
-    // cancela e reagenda um disparo ÚNICO pro próximo dia válido, via
-    // [_agendarNativo] acima), os lembretes locais do iOS são
-    // notificações RECORRENTES semanais (ver
-    // [NotificacaoService.agendarLembretesCheckinRotinaIOS]) — o iOS não
-    // tem como "pular só uma ocorrência" de uma série recorrente.
-    // Rearmar a série aqui é necessário (senão o cancelamento acima
-    // apagaria os lembretes de TODAS as próximas semanas, não só o de
-    // hoje) — mas isso significa que o lembrete LOCAL de hoje pode
-    // continuar disparando no iOS mesmo com "pausar só por hoje"
-    // acionado. Sem risco de alerta falso: quem decide se o alerta de
-    // emergência real dispara é exclusivamente o status CANCELADO já
-    // gravado no Firestore acima
-    // (`AlarmeAgendadoCloudService.marcarCancelado`/
-    // `scheduledAlarmMonitor.js`), nunca a notificação local em si — só
-    // uma imperfeição cosmética (um lembrete a mais, sem consequência
-    // real).
-    unawaited(() async {
-      final l10n = await L10nHeadlessService.obter();
-      final etiqueta = AlarmeRotina.fromMap(alarmeMap).etiquetaExibida(l10n);
-      final minutosToleranciaIOS = alarmeMap['minutos_tolerancia'] as int? ?? 10;
-      await NotificacaoService.agendarLembretesCheckinRotinaIOS(
-        idAlarme: idAlarme,
-        etiqueta: etiqueta,
-        hora: hora,
-        minuto: minuto,
-        diasSemanaCsv: diasSemanaCsv,
-        minutosTolerancia: minutosToleranciaIOS,
-      );
-    }());
+    // iOS: cada ocorrência é agendada uma a uma (ver DespertadorIosService),
+    // então a de hoje sai de fato do agendamento — `alarme_pausado` com a
+    // data de hoje já foi gravado pelo chamador e `CicloDespertador.proximas`
+    // pula as ocorrências de hoje. Na nuvem, o documento fica PAUSADO com
+    // `pausadoAte` (00:00 de amanhã): o heartbeat não arma a ocorrência de
+    // hoje e o servidor não alerta por ela.
+    if (Platform.isIOS) unawaited(DespertadorIosService().reagendar());
 
     debugPrint(
         '⏸️ Alarme de rotina #$idAlarme pausado só por hoje — próximo disparo real: $proximoDisparo.');
@@ -712,13 +693,22 @@ class RotinaAlarmeService {
     }
   }
 
- static Future<void> confirmarCheckinRotina(int idAlarme) async {
+ static Future<void> confirmarCheckinRotina(int idAlarme, {int? cicloEpochMs}) async {
+    // Ocorrência confirmada: [cicloEpochMs] (iOS, vem da notificação/AlarmKit)
+    // ou, sem ele, a última que tocou (`ultimo_disparo_epoch`).
+    final ciclo = cicloEpochMs ??
+        ((await DatabaseHelper().buscarAlarmePorId(idAlarme))?['ultimo_disparo_epoch'] as int?);
+    if (ciclo != null) await CicloDespertador.marcarResolvido(idAlarme, ciclo);
+    if (Platform.isIOS && ciclo != null) {
+      await DespertadorIosService().resolverOcorrencia(idAlarme, ciclo);
+    }
     // NOVO (heartbeat/alerta na nuvem): melhor esforço, nunca bloqueia
     // nem lança exceção — avisa a coleção `alarmes_agendados` que o
     // usuário está seguro, independente do fluxo local abaixo (100%
     // intacto) continuar exatamente como antes. Ver
     // [AlarmeAgendadoCloudService.marcarConfirmadoSeguro].
-    unawaited(AlarmeAgendadoCloudService().marcarConfirmadoSeguro(idAlarme.toString()));
+    unawaited(AlarmeAgendadoCloudService()
+        .marcarConfirmadoSeguro(idAlarme.toString(), cicloEpochMs: ciclo));
     // Ciclo definitivamente concluído (êxito) — a PRÓXIMA ocorrência deste
     // mesmo id, reagendada logo abaixo, deve nascer PENDENTE de novo. Ver
     // [AlarmeAgendadoCloudService.sinalizarNovoCiclo].
@@ -777,9 +767,10 @@ class RotinaAlarmeService {
         ? AlarmeRotina.fromMap(dados).etiquetaExibida(l10n)
         : l10n.familiaEtiquetaPadrao;
 
-    await NotificacaoService.registrarEventoSistema(
-      titulo: l10n.historicoCheckinRotinaConfirmadoTitulo,
-      descricao: l10n.historicoCheckinRotinaConfirmadoDescricao(etiqueta),
+    // Área protegida do Histórico, com a posição do momento.
+    await HistoricoAlertasService().registrarEvento(
+      tipo: TipoAlertaHistorico.despertadorConfirmado,
+      contexto: l10n.historicoCheckinRotinaConfirmadoDescricao(etiqueta),
     );
 
     // Reagenda automaticamente a rotina do alarme para o próximo dia/período

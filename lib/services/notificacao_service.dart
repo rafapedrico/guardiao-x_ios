@@ -21,6 +21,7 @@ import '../screens/alerta_recebido_screen.dart';
 import '../screens/home_screen.dart';
 import '../widgets/monitoramento_decisao_dialog.dart';
 import 'database_helper.dart';
+import 'despertador_ios_service.dart';
 import 'firebase_auth_service.dart';
 import 'l10n_headless_service.dart';
 import 'monitoramento_service.dart';
@@ -159,6 +160,7 @@ class NotificacaoService {
       _labelAcaoAceitarMonitoramento = l10n.notifMonitAcaoAceitar;
       _labelAcaoRecusarMonitoramento = l10n.notifMonitAcaoRecusar;
       _labelAcaoPausarAlarme = l10n.notifPausarAlarmeAcao;
+      _labelAcaoDesativarDespertador = l10n.despertadorDesativarAcao;
       canalAlertaEnviadoNome = l10n.notifCanalAlertaEnviadoNome;
       canalAlertaEnviadoDescricao = l10n.notifCanalAlertaEnviadoDescricao;
     } catch (e) {
@@ -186,6 +188,24 @@ class NotificacaoService {
   /// fixas, definidas uma única vez, ao contrário das ações do Android),
   /// por isso carregado aqui como campo estático junto com os demais.
   static String _labelAcaoPausarAlarme = 'Pausar';
+
+  /// Ação "Desativar despertador" das notificações do despertador do iOS
+  /// (ver [agendarNotificacaoDespertador]): abre o app na tela do
+  /// despertador, com o teclado do PIN.
+  static String _labelAcaoDesativarDespertador = 'Desativar despertador';
+  static const String categoriaIosDespertador = 'despertador';
+  static const String acaoDesativarDespertadorId = 'desativar_despertador';
+
+  /// Payload `despertador:<idAlarme>:<ciclo>` de uma notificação do
+  /// despertador que abriu o app num cold start — consumido por `main.dart`
+  /// via [consumirDespertadorPendente].
+  static String? despertadorPendente;
+
+  static String? consumirDespertadorPendente() {
+    final payload = despertadorPendente;
+    despertadorPendente = null;
+    return payload;
+  }
 
   /// Ids das categorias de notificação do iOS ([DarwinNotificationCategory])
   /// — equivalente ao "canal" do Android só no sentido de agrupar as
@@ -254,6 +274,11 @@ class NotificacaoService {
 
   static void _capturarPayloadSolicitacaoPendente(String? payload, {String? actionId}) {
     if (payload == null) return;
+
+    if (payload.startsWith(DespertadorIosService.prefixoPayload)) {
+      despertadorPendente = payload;
+      return;
+    }
 
     if (!payload.startsWith('{')) {
       // Payload numérico (check-in) ou 'alarme_<id>' (janela final/alarme
@@ -508,6 +533,16 @@ class NotificacaoService {
       requestBadgePermission: false,
       requestSoundPermission: false,
       notificationCategories: [
+        DarwinNotificationCategory(
+          categoriaIosDespertador,
+          actions: [
+            DarwinNotificationAction.plain(
+              acaoDesativarDespertadorId,
+              _labelAcaoDesativarDespertador,
+              options: {DarwinNotificationActionOption.foreground},
+            ),
+          ],
+        ),
         DarwinNotificationCategory(
           _categoriaIosAlarmeCompleto,
           actions: [
@@ -1459,6 +1494,74 @@ class NotificacaoService {
 
   /// Cancela (remove) a notificação de check-in de rotina exibida para
   /// o [idAlarme] informado. Chamado tanto quando o usuário confirma o
+  /// Notificação do despertador do iOS (sem AlarmKit): sensível ao tempo,
+  /// com o som escolhido ([som], .caf em Library/Sounds), a ação
+  /// "Desativar despertador" e gatilho no fuso local. Em primeiro plano não
+  /// mostra banner nem toca (a própria tela do despertador já toca o som).
+  static Future<void> agendarNotificacaoDespertador({
+    required int id,
+    required DateTime quando,
+    required String titulo,
+    required String corpo,
+    required String payload,
+    String? som,
+  }) async {
+    if (!Platform.isIOS || !quando.isAfter(DateTime.now())) return;
+    await inicializar();
+    await _plugin.zonedSchedule(
+      id,
+      titulo,
+      corpo,
+      tz.TZDateTime.from(quando, tz.local),
+      NotificationDetails(
+        iOS: DarwinNotificationDetails(
+          sound: som,
+          presentSound: false,
+          presentBanner: false,
+          presentList: true,
+          interruptionLevel: InterruptionLevel.timeSensitive,
+          categoryIdentifier: categoriaIosDespertador,
+          threadIdentifier: 'despertador',
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: payload,
+    );
+  }
+
+  /// Notificações agendadas e ainda não entregues (iOS: limite de 64).
+  static Future<List<PendingNotificationRequest>> notificacoesPendentes() async {
+    await inicializar();
+    try {
+      return await _plugin.pendingNotificationRequests();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static Future<void> cancelarNotificacao(int id) async {
+    await inicializar();
+    await _plugin.cancel(id);
+  }
+
+  /// Aviso imediato, com banner (ex.: "Despertador desativado (pausado)").
+  static Future<void> exibirAvisoDespertador({
+    required int id,
+    required String titulo,
+    required String corpo,
+  }) async {
+    await inicializar();
+    await _plugin.show(
+      id,
+      titulo,
+      corpo,
+      NotificationDetails(
+        android: AndroidNotificationDetails(canalId, canalNome),
+        iOS: const DarwinNotificationDetails(interruptionLevel: InterruptionLevel.active),
+      ),
+    );
+  }
+
   /// Aviso informativo agendado localmente (sem servidor) — usado pelos
   /// avisos do botão SOS no Plano Free (ver `SosPlanoAvisoService`).
   /// [quando] no passado não agenda nada.
@@ -1747,6 +1850,22 @@ class NotificacaoService {
       return;
     }
 
+    // Despertador do iOS: toque na notificação ou em "Desativar
+    // despertador" abre a tela do despertador com o idAlarme e a ocorrência.
+    if (payload.startsWith(DespertadorIosService.prefixoPayload)) {
+      unawaited(DespertadorIosService().abrirPorPayload(payload, tecladoDireto: true));
+      return;
+    }
+    if (Platform.isIOS) {
+      // Lembretes antigos (antes do despertador por ocorrência): abre a
+      // ocorrência em andamento desse alarme, se houver.
+      final idLegado = int.tryParse(payload.replaceFirst('alarme_', ''));
+      if (idLegado != null) {
+        unawaited(DespertadorIosService().abrirOcorrenciaEmAndamento(idLegado, tecladoDireto: true));
+      }
+      return;
+    }
+
     final idAlarme = int.tryParse(payload.startsWith('alarme_')
         ? payload.replaceFirst('alarme_', '')
         : payload);
@@ -1796,7 +1915,7 @@ class NotificacaoService {
       });
     } else if (resposta.actionId == null) {
       appNavigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (context) => const AlarmeDisparadoScreen()),
+        MaterialPageRoute(builder: (context) => AlarmeDisparadoScreen(idAlarme: idAlarme)),
       );
     }
   }

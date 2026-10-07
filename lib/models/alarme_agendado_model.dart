@@ -160,6 +160,10 @@ class AlarmeAgendadoModel {
   final String etiqueta;
   final String contextoPersonalizado;
 
+  /// Ocorrência que este documento acompanha (horário em epoch ms, ver
+  /// `CicloDespertador`). `null` no cronômetro de check-in.
+  final int? cicloEpochMs;
+
   const AlarmeAgendadoModel({
     required this.idAlarme,
     required this.dataHoraDisparo,
@@ -170,6 +174,7 @@ class AlarmeAgendadoModel {
     this.contatosEmergencia = const [],
     this.etiqueta = '',
     this.contextoPersonalizado = '',
+    this.cicloEpochMs,
   });
 
   Map<String, dynamic> toFirestore() => {
@@ -183,6 +188,7 @@ class AlarmeAgendadoModel {
         'contatosEmergencia': contatosEmergencia,
         'etiqueta': etiqueta,
         'contextoPersonalizado': contextoPersonalizado,
+        if (cicloEpochMs != null) 'cicloEpochMs': cicloEpochMs,
       };
 
   factory AlarmeAgendadoModel.fromFirestore(
@@ -208,6 +214,7 @@ class AlarmeAgendadoModel {
               const [],
       etiqueta: (dados['etiqueta'] as String?) ?? '',
       contextoPersonalizado: (dados['contextoPersonalizado'] as String?) ?? '',
+      cicloEpochMs: (dados['cicloEpochMs'] as num?)?.toInt(),
     );
   }
 }

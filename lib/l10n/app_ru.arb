@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "Открываем камеру",
   "sosCameraIndisponivelSemConexao": "Камера недоступна — ваша тревога будет отправлена контактам, как только появится сигнал",
   "mensagemEnviadaAvisoSemFoto": "ВНИМАНИЕ, СЕМЬЕ ОТПРАВЛЕНО СООБЩЕНИЕ С ВАШИМ МЕСТОПОЛОЖЕНИЕМ. ЭТО ДЕЙСТВИЕ НЕЛЬЗЯ ОТМЕНИТЬ.",
-  "mensagemAvisoSemConexao": "ВНИМАНИЕ, ВАША ТРЕВОГА БУДЕТ ОТПРАВЛЕНА СЕМЬЕ, КАК ТОЛЬКО ПОЯВИТСЯ СВЯЗЬ."
+  "mensagemAvisoSemConexao": "ВНИМАНИЕ, ВАША ТРЕВОГА БУДЕТ ОТПРАВЛЕНА СЕМЬЕ, КАК ТОЛЬКО ПОЯВИТСЯ СВЯЗЬ.",
+  "despertadorDesativarAcao": "Выключить будильник",
+  "despertadorPararSomAcao": "Остановить звук",
+  "despertadorNotifCorpo": "Нажмите «Выключить будильник» и введите PIN. Без подтверждения в пределах допуска ваши экстренные контакты получат тревогу.",
+  "despertadorAvisoReagendarTitulo": "Откройте Guardian-X",
+  "despertadorAvisoReagendarCorpo": "Откройте приложение, чтобы будильник «{etiqueta}» на {horario} оставался запланированным.",
+  "despertadorDesativadoTitulo": "Будильник выключен (на паузе)",
+  "despertadorDesativadoCorpo": "«{etiqueta}» подтверждён верным PIN. Тревога не отправлялась.",
+  "despertadorAlertaEnviadoTitulo": "Тревога отправлена",
+  "despertadorAlertaEnviadoCorpo": "Экстренная тревога отправлена вашим сохранённым контактам.",
+  "despertadorTelaInstrucao": "Введите PIN, чтобы выключить будильник. Осталось: {tempo}",
+  "despertadorSemContatoTitulo": "Добавьте экстренный контакт",
+  "despertadorSemContatoConteudo": "Будильник предупреждает экстренные контакты, если вы не подтвердите вовремя. Добавьте хотя бы один контакт в Настройках, чтобы создать будильник.",
+  "despertadorAbrirConfiguracoes": "Открыть Настройки",
+  "despertadorDefinaPin": "Задайте PIN в Настройках, чтобы подтвердить это действие.",
+  "despertadorTentativaApagarMotivo": "PIN введён неверно 3 раза подряд при попытке {acao} будильник.",
+  "despertadorApagarBotao": "Удалить",
+  "familiaAcaoReativar": "включить снова"
 }

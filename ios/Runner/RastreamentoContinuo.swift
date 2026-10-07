@@ -583,6 +583,7 @@ final class RastreamentoContinuo: NSObject, CLLocationManagerDelegate {
       if forcar { concluirLeituras(false) }
       return
     }
+    gravarNoDespertadorSeNaJanela(local)
     guard monitoresAtivos || forcar else { return }
 
     if let motivo = motivoParaNaoGravar(local, forcar: forcar) {
@@ -615,6 +616,54 @@ final class RastreamentoContinuo: NSObject, CLLocationManagerDelegate {
       return "andou \(Int(distancia)) m (< 100 m) e gravou há \(Int(decorrido / 60)) min"
     }
     return nil
+  }
+
+  /// Despertador de check-in (ver DespertadorPlugin em AppDelegate.swift):
+  /// dentro da janela de um despertador (2 h antes até o fim da
+  /// tolerância), toda posição recebida — inclusive com o app reaberto pelo
+  /// sistema por mudança significativa ou visita — também sobrescreve
+  /// `alarmes_agendados/{doc}.ultimaLocalizacao`, no máximo a cada 60 s.
+  /// Fora da janela, nada vai para o despertador.
+  private func gravarNoDespertadorSeNaJanela(_ local: CLLocation) {
+    let agoraMs = Date().timeIntervalSince1970 * 1000
+    let janelas = defaults.array(forKey: DespertadorPlugin.chaveJanelas) as? [[String: Any]] ?? []
+    let documentos = janelas.compactMap { janela -> String? in
+      guard let doc = janela["doc"] as? String,
+            let inicio = (janela["inicioMs"] as? NSNumber)?.doubleValue,
+            let fim = (janela["fimMs"] as? NSNumber)?.doubleValue,
+            agoraMs >= inicio, agoraMs <= fim else { return nil }
+      return doc
+    }
+    guard !documentos.isEmpty else { return }
+    let chave = "gx_despertador_ultima_gravacao"
+    if let ultima = defaults.object(forKey: chave) as? Double, agoraMs - ultima < 55_000 { return }
+    defaults.set(agoraMs, forKey: chave)
+    let tarefa = UIApplication.shared.beginBackgroundTask(withName: "gx_despertador_posicao", expirationHandler: nil)
+    comToken(exigirContaConfigurada: false, { _, token, projeto in
+      let escritas: [[String: Any]] = documentos.map { doc in
+        [
+          "update": [
+            "name": "projects/\(projeto)/databases/(default)/documents/alarmes_agendados/\(doc)",
+            "fields": [
+              "ultimaLocalizacao": ["mapValue": ["fields": [
+                "lat": ["doubleValue": local.coordinate.latitude],
+                "lng": ["doubleValue": local.coordinate.longitude],
+              ]]],
+            ],
+          ],
+          "updateMask": ["fieldPaths": ["ultimaLocalizacao.lat", "ultimaLocalizacao.lng"]],
+          "updateTransforms": [["fieldPath": "ultimaLocalizacao.timestamp", "setToServerValue": "REQUEST_TIME"]],
+          "currentDocument": ["exists": true],
+        ]
+      }
+      self.commit(projeto: projeto, token: token, escritas: escritas) { ok, motivo in
+        self.registrar(origem: "despertador", gravou: ok, motivo: motivo, local: local)
+        if tarefa != .invalid { UIApplication.shared.endBackgroundTask(tarefa) }
+      }
+    }, falha: { motivo in
+      self.registrar(origem: "despertador", gravou: false, motivo: motivo, local: local)
+      if tarefa != .invalid { UIApplication.shared.endBackgroundTask(tarefa) }
+    })
   }
 
   private func marcarGravacao(latitude: Double, longitude: Double) {

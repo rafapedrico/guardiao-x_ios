@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "Apertura della fotocamera",
   "sosCameraIndisponivelSemConexao": "Fotocamera non disponibile — la tua allerta sarà inviata ai tuoi contatti appena c'è segnale",
   "mensagemEnviadaAvisoSemFoto": "ATTENZIONE, È STATO INVIATO UN MESSAGGIO ALLA FAMIGLIA CON LA TUA POSIZIONE. QUESTA OPERAZIONE NON PUÒ ESSERE ANNULLATA.",
-  "mensagemAvisoSemConexao": "ATTENZIONE, LA TUA ALLERTA SARÀ INVIATA ALLA FAMIGLIA APPENA C'È CONNESSIONE."
+  "mensagemAvisoSemConexao": "ATTENZIONE, LA TUA ALLERTA SARÀ INVIATA ALLA FAMIGLIA APPENA C'È CONNESSIONE.",
+  "despertadorDesativarAcao": "Disattiva sveglia",
+  "despertadorPararSomAcao": "Ferma suono",
+  "despertadorNotifCorpo": "Tocca \"Disattiva sveglia\" e inserisci il PIN. Senza conferma entro la tolleranza, i tuoi contatti di emergenza saranno avvisati.",
+  "despertadorAvisoReagendarTitulo": "Apri Guardian-X",
+  "despertadorAvisoReagendarCorpo": "Apri l'app per mantenere programmata la sveglia \"{etiqueta}\" delle {horario}.",
+  "despertadorDesativadoTitulo": "Sveglia disattivata (in pausa)",
+  "despertadorDesativadoCorpo": "\"{etiqueta}\" è stata confermata con il PIN corretto. Nessuna allerta è stata inviata.",
+  "despertadorAlertaEnviadoTitulo": "Allerta inviata",
+  "despertadorAlertaEnviadoCorpo": "Un'allerta di emergenza è stata inviata ai tuoi contatti registrati.",
+  "despertadorTelaInstrucao": "Inserisci il PIN per spegnere la sveglia. Tempo rimanente: {tempo}",
+  "despertadorSemContatoTitulo": "Aggiungi un contatto di emergenza",
+  "despertadorSemContatoConteudo": "La sveglia avvisa i tuoi contatti di emergenza se non confermi in tempo. Aggiungi almeno un contatto in Impostazioni per creare una sveglia.",
+  "despertadorAbrirConfiguracoes": "Apri Impostazioni",
+  "despertadorDefinaPin": "Imposta un PIN in Impostazioni per confermare questa azione.",
+  "despertadorTentativaApagarMotivo": "PIN inserito in modo errato 3 volte di seguito nel tentativo di {acao} una sveglia.",
+  "despertadorApagarBotao": "Elimina",
+  "familiaAcaoReativar": "riattivare"
 }

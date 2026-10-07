@@ -8,8 +8,9 @@ import '../../services/database_helper.dart';
 import '../../services/wallpaper_service.dart';
 import '../../services/rotina_alarme_service.dart';
 import '../../services/contatos_emergencia_service.dart';
-import '../../services/emergency_alert_service.dart';
-import '../../services/firebase_sync_service.dart';
+import '../../services/historico_alertas_service.dart';
+import '../../services/l10n_headless_service.dart';
+import '../../services/notificacao_service.dart';
 import '../../models/alarme_rotina.dart';
 import '../../widgets/pin_dialog.dart';
 import '../../widgets/plano_bloqueado_dialog.dart';
@@ -39,6 +40,9 @@ class FamiliaTabState extends State<FamiliaTab> with WidgetsBindingObserver {
   bool _carregandoContatos = true;
   List<Map<String, dynamic>> _contatosEmergencia = [];
   Map<int, bool> _pausadoHojeMap = {};
+
+  /// Linhas de `alarmes_rotina` por id (para a próxima ocorrência real).
+  Map<int, Map<String, dynamic>> _mapasAlarmes = {};
 
   // 🟢 TRAVA ADICIONADA AQUI (Impede o clique duplo/concorrência)
   bool _processandoDespausa = false;
@@ -100,6 +104,7 @@ class FamiliaTabState extends State<FamiliaTab> with WidgetsBindingObserver {
 
       final alarmesAtualizados = <AlarmeRotina>[];
       final pausadoHojeMap = <int, bool>{};
+      final mapas = <int, Map<String, dynamic>>{};
       final dataHoje = _obterDataHojeFormatada();
 
       for (var mapa in dados) {
@@ -107,6 +112,7 @@ class FamiliaTabState extends State<FamiliaTab> with WidgetsBindingObserver {
         if (alarme.id != null) {
           final String estadoPausaNoBanco = mapa['alarme_pausado']?.toString() ?? '0';
           pausadoHojeMap[alarme.id!] = (estadoPausaNoBanco == dataHoje);
+          mapas[alarme.id!] = mapa;
         }
         alarmesAtualizados.add(alarme);
       }
@@ -115,6 +121,7 @@ class FamiliaTabState extends State<FamiliaTab> with WidgetsBindingObserver {
         setState(() {
           _alarmes = alarmesAtualizados;
           _pausadoHojeMap = pausadoHojeMap;
+          _mapasAlarmes = mapas;
           _carregandoAlarmes = false;
         });
       }
@@ -158,21 +165,32 @@ class FamiliaTabState extends State<FamiliaTab> with WidgetsBindingObserver {
     if (!mounted) return false;
     final l10n = AppLocalizations.of(context)!;
     final config = await _db.getUserConfig();
-    final pinReal = config?['pin_real'] as String? ?? '1234';
+    final pinReal = config?['pin_real'] as String?;
+    if (!mounted) return false;
+    if (pinReal == null || pinReal.isEmpty) {
+      // Sem PIN definido não há como confirmar (nunca um PIN padrão).
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.despertadorDefinaPin), behavior: SnackBarBehavior.floating),
+      );
+      return false;
+    }
 
     bool confirmado = false;
-    if (!mounted) return false;
     await exibirDialogoPin(
       context: context,
       pinEsperado: pinReal,
       mostrarBotaoCancelar: true,
-      limiteErrosConsecutivos: 2,
+      limiteErrosConsecutivos: 3,
       aoConfirmarPinCorreto: () async {
         confirmado = true;
       },
-      aoAtingirLimiteDeErros: () => _dispararAlertaPinIncorretoNaFamilia(
-        motivo: l10n.familiaPinMotivoTexto(acaoDescricao),
-      ),
+      aoAtingirLimiteDeErros: () async {
+        // 3º erro: o teclado fecha e o alerta sai aos contatos.
+        if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
+        await _dispararAlertaPinIncorretoNaFamilia(
+          motivo: l10n.despertadorTentativaApagarMotivo(acaoDescricao),
+        );
+      },
     );
     return confirmado;
   }
@@ -183,16 +201,70 @@ class FamiliaTabState extends State<FamiliaTab> with WidgetsBindingObserver {
   /// [FirebaseSyncService.dispararAlertaTentativaDesarmeIncorreto] e
   /// [EmergencyAlertService.dispararAlertaTentativaDesarmeIncorreto].
   Future<void> _dispararAlertaPinIncorretoNaFamilia({required String motivo}) async {
+    // "Tentativa de apagar/pausar o despertador com senha incorreta": nuvem
+    // primeiro, Histórico protegido com o status real e a posição.
     try {
-      await FirebaseSyncService().dispararAlertaTentativaDesarmeIncorreto(motivo: motivo);
+      await HistoricoAlertasService().dispararAlertaCronometro(
+        tipo: TipoAlertaHistorico.despertadorTentativaApagar,
+        motivo: motivo,
+      );
     } catch (e) {
-      debugPrint('⚠️ [Família] Falha ao disparar alerta prioritário na nuvem: $e');
+      debugPrint('⚠️ [Família] Falha ao disparar o alerta de PIN incorreto: $e');
     }
     try {
-      await EmergencyAlertService().dispararAlertaTentativaDesarmeIncorreto(motivo: motivo);
-    } catch (e) {
-      debugPrint('⚠️ [Família] Falha ao disparar alerta de tentativa de desarme incorreta: $e');
-    }
+      final l10n = await L10nHeadlessService.obter();
+      await NotificacaoService.exibirAvisoDespertador(
+        id: 1999999993,
+        titulo: l10n.despertadorAlertaEnviadoTitulo,
+        corpo: l10n.despertadorAlertaEnviadoCorpo,
+      );
+    } catch (_) {}
+  }
+
+  /// Confirmação + PIN para apagar. `true` só com o PIN correto.
+  Future<bool> _confirmarExcluir(AlarmeRotina alarme) async {
+    final acaoExcluir = AppLocalizations.of(context)!.familiaAcaoExcluir;
+    final confirmouIntencao = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(AppLocalizations.of(ctx)!.familiaExcluirAlarmeTitulo),
+            content: Text(AppLocalizations.of(ctx)!.familiaExcluirAlarmeConteudo(
+                alarme.etiquetaExibida(AppLocalizations.of(ctx)!), alarme.horarioFormatado)),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppLocalizations.of(ctx)!.cancelar)),
+              FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(AppLocalizations.of(ctx)!.excluir)),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmouIntencao || !mounted) return false;
+    return _confirmarComPin(acaoExcluir);
+  }
+
+  /// Confirmação + PIN para pausar por hoje. `true` só com o PIN correto.
+  Future<bool> _confirmarPausar(AlarmeRotina alarme) async {
+    final acaoPausar = AppLocalizations.of(context)!.familiaAcaoPausar;
+    final confirmouIntencao = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(AppLocalizations.of(ctx)!.familiaPausarAlarmeTitulo),
+            content: Text(AppLocalizations.of(ctx)!.familiaPausarAlarmeConteudo(
+                alarme.etiquetaExibida(AppLocalizations.of(ctx)!), alarme.horarioFormatado)),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppLocalizations.of(ctx)!.cancelar)),
+              FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.blue),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(AppLocalizations.of(ctx)!.familiaPausarBotao)),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmouIntencao || !mounted) return false;
+    return _confirmarComPin(acaoPausar);
   }
 
 Future<void> _alternarAtivo(AlarmeRotina alarme, bool ativo) async {
@@ -213,6 +285,13 @@ Future<void> _alternarAtivo(AlarmeRotina alarme, bool ativo) async {
     if (estaPausado && ativo) {
       await _despausarAlarmeManual(alarme);
       return;
+    }
+
+    // PROTEÇÃO: religar um alarme desligado também pede o PIN.
+    if (ativo) {
+      final confirmado =
+          await _confirmarComPin(AppLocalizations.of(context)!.familiaAcaoReativar);
+      if (!confirmado) return;
     }
 
     // PROTEÇÃO: desativar pelo switch é, na prática, uma forma de
@@ -327,6 +406,56 @@ Future<void> _pausarAlarmePorHoje(AlarmeRotina alarme) async {
       );
     }
   }
+  /// Botões visíveis Pausar e Apagar (o arrastar continua valendo), com
+  /// a mesma confirmação e o mesmo PIN do gesto.
+  Widget _botoesAlarme(AlarmeRotina alarme, bool estaPausadoHoje) {
+    final l10n = AppLocalizations.of(context)!;
+    return Wrap(
+      spacing: 4,
+      children: [
+        if (!estaPausadoHoje && alarme.ativo)
+          TextButton.icon(
+            onPressed: () async {
+              if (await _confirmarPausar(alarme)) await _pausarAlarmePorHoje(alarme);
+            },
+            icon: const Icon(Icons.pause_circle_outline, size: 18),
+            label: Text(l10n.familiaPausarBotao),
+          ),
+        TextButton.icon(
+          style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
+          onPressed: () async {
+            if (await _confirmarExcluir(alarme)) await _excluirAlarme(alarme);
+          },
+          icon: const Icon(Icons.delete_outline, size: 18),
+          label: Text(l10n.despertadorApagarBotao),
+        ),
+      ],
+    );
+  }
+
+  /// Próxima ocorrência real (respeitando a pausa de hoje e os dias da
+  /// semana): "HH:MM" e o dia abreviado.
+  ({String horario, String dia}) _proximoRetorno(AlarmeRotina alarme, AppLocalizations l10n) {
+    final mapa = alarme.id != null ? _mapasAlarmes[alarme.id!] : null;
+    final proxima = mapa == null ? null : RotinaAlarmeService.proximoDisparoPrevisto(mapa);
+    if (proxima == null) {
+      return (horario: alarme.horarioFormatado, dia: _obterDiaRetorno(alarme, l10n));
+    }
+    final siglas = [
+      l10n.familiaDiaAbrevSeg,
+      l10n.familiaDiaAbrevTer,
+      l10n.familiaDiaAbrevQua,
+      l10n.familiaDiaAbrevQui,
+      l10n.familiaDiaAbrevSex,
+      l10n.familiaDiaAbrevSab,
+      l10n.familiaDiaAbrevDom,
+    ];
+    return (
+      horario: '${proxima.hour.toString().padLeft(2, '0')}:${proxima.minute.toString().padLeft(2, '0')}',
+      dia: siglas[proxima.weekday - 1],
+    );
+  }
+
   String _obterDiaRetorno(AlarmeRotina alarme, AppLocalizations l10n) {
     final diasSiglas = [
       l10n.familiaDiaAbrevSeg,
@@ -349,6 +478,9 @@ Future<void> _despausarAlarmeManual(AlarmeRotina alarme) async {
     // alarme nativo, inseria histórico e sincronizava com o backend sem
     // nenhuma proteção contra duas chamadas concorrentes, ex: usuário
     // batendo duas vezes rápido no switch ou no "toque para reativar").
+    if (_processandoDespausa) return;
+    // Reativar também pede o PIN.
+    if (!await _confirmarComPin(AppLocalizations.of(context)!.familiaAcaoReativar)) return;
     if (_processandoDespausa) return;
     _processandoDespausa = true;
 
@@ -883,40 +1015,9 @@ Widget _construirListaAlarmes() {
             ),
           ),
           confirmDismiss: (direction) async {
-            // Capturados ANTES de qualquer 'await' para nunca usar o
-            // BuildContext após um async gap.
-            final acaoExcluir = AppLocalizations.of(context)!.familiaAcaoExcluir;
-            final acaoPausar = AppLocalizations.of(context)!.familiaAcaoPausar;
-            if (direction == DismissDirection.endToStart) {
-              final confirmouIntencao = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: Text(AppLocalizations.of(ctx)!.familiaExcluirAlarmeTitulo),
-                      content: Text(AppLocalizations.of(ctx)!.familiaExcluirAlarmeConteudo(alarme.etiquetaExibida(AppLocalizations.of(ctx)!), alarme.horarioFormatado)),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppLocalizations.of(ctx)!.cancelar)),
-                        FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.of(ctx).pop(true), child: Text(AppLocalizations.of(ctx)!.excluir)),
-                      ],
-                    ),
-                  ) ?? false;
-              // PROTEÇÃO: exclusão só prossegue com o PIN correto.
-              if (!confirmouIntencao) return false;
-              return await _confirmarComPin(acaoExcluir);
-            } else if (direction == DismissDirection.startToEnd && !estaPausadoHoje) {
-              final confirmouIntencao = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: Text(AppLocalizations.of(ctx)!.familiaPausarAlarmeTitulo),
-                      content: Text(AppLocalizations.of(ctx)!.familiaPausarAlarmeConteudo(alarme.etiquetaExibida(AppLocalizations.of(ctx)!), alarme.horarioFormatado)),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppLocalizations.of(ctx)!.cancelar)),
-                        FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.blue), onPressed: () => Navigator.of(ctx).pop(true), child: Text(AppLocalizations.of(ctx)!.familiaPausarBotao)),
-                      ],
-                    ),
-                  ) ?? false;
-              // PROTEÇÃO: pausa só prossegue com o PIN correto.
-              if (!confirmouIntencao) return false;
-              return await _confirmarComPin(acaoPausar);
+            if (direction == DismissDirection.endToStart) return _confirmarExcluir(alarme);
+            if (direction == DismissDirection.startToEnd && !estaPausadoHoje) {
+              return _confirmarPausar(alarme);
             }
             return false;
           },
@@ -958,8 +1059,8 @@ Widget _construirListaAlarmes() {
                             const SizedBox(height: 2),
                             Text(
                               AppLocalizations.of(context)!.familiaRetorna(
-                                  alarme.horarioFormatado,
-                                  _obterDiaRetorno(alarme, AppLocalizations.of(context)!)),
+                                  _proximoRetorno(alarme, AppLocalizations.of(context)!).horario,
+                                  _proximoRetorno(alarme, AppLocalizations.of(context)!).dia),
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade800),
                             ),
                             const SizedBox(height: 2),
@@ -977,6 +1078,7 @@ Widget _construirListaAlarmes() {
                                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
                               ),
                             ),
+                            _botoesAlarme(alarme, estaPausadoHoje),
                           ] else ...[
                             Text(
                               alarme.horarioFormatado,
@@ -991,6 +1093,7 @@ Widget _construirListaAlarmes() {
                               alarme.etiquetaExibida(AppLocalizations.of(context)!),
                               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                             ),
+                            _botoesAlarme(alarme, estaPausadoHoje),
                           ],
                         ],
                       ),

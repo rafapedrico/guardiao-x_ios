@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "Kamera wird geöffnet",
   "sosCameraIndisponivelSemConexao": "Kamera nicht verfügbar — dein Alarm wird an deine Kontakte gesendet, sobald Empfang besteht",
   "mensagemEnviadaAvisoSemFoto": "ACHTUNG, EINE NACHRICHT MIT DEINEM STANDORT WURDE AN DIE FAMILIE GESENDET. DIESER VORGANG KANN NICHT RÜCKGÄNGIG GEMACHT WERDEN.",
-  "mensagemAvisoSemConexao": "ACHTUNG, DEIN ALARM WIRD AN DIE FAMILIE GESENDET, SOBALD EINE VERBINDUNG BESTEHT."
+  "mensagemAvisoSemConexao": "ACHTUNG, DEIN ALARM WIRD AN DIE FAMILIE GESENDET, SOBALD EINE VERBINDUNG BESTEHT.",
+  "despertadorDesativarAcao": "Wecker ausschalten",
+  "despertadorPararSomAcao": "Ton stoppen",
+  "despertadorNotifCorpo": "Tippe auf „Wecker ausschalten“ und gib deine PIN ein. Ohne Bestätigung innerhalb der Toleranz werden deine Notfallkontakte alarmiert.",
+  "despertadorAvisoReagendarTitulo": "Öffne Guardian-X",
+  "despertadorAvisoReagendarCorpo": "Öffne die App, damit der Wecker „{etiqueta}“ um {horario} geplant bleibt.",
+  "despertadorDesativadoTitulo": "Wecker ausgeschaltet (pausiert)",
+  "despertadorDesativadoCorpo": "„{etiqueta}“ wurde mit der richtigen PIN bestätigt. Es wurde kein Alarm gesendet.",
+  "despertadorAlertaEnviadoTitulo": "Alarm gesendet",
+  "despertadorAlertaEnviadoCorpo": "Ein Notfallalarm wurde an deine gespeicherten Kontakte gesendet.",
+  "despertadorTelaInstrucao": "Gib deine PIN ein, um den Wecker auszuschalten. Verbleibende Zeit: {tempo}",
+  "despertadorSemContatoTitulo": "Notfallkontakt hinzufügen",
+  "despertadorSemContatoConteudo": "Der Wecker alarmiert deine Notfallkontakte, wenn du nicht rechtzeitig bestätigst. Füge in den Einstellungen mindestens einen Kontakt hinzu, um einen Wecker zu erstellen.",
+  "despertadorAbrirConfiguracoes": "Einstellungen öffnen",
+  "despertadorDefinaPin": "Lege in den Einstellungen eine PIN fest, um diese Aktion zu bestätigen.",
+  "despertadorTentativaApagarMotivo": "PIN 3-mal hintereinander falsch eingegeben beim Versuch, einen Wecker zu {acao}.",
+  "despertadorApagarBotao": "Löschen",
+  "familiaAcaoReativar": "reaktivieren"
 }

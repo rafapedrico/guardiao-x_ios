@@ -5,6 +5,8 @@ import 'package:security_check_app/l10n/app_localizations.dart';
 import '../main.dart' show iniciarServicosPosLoginOuDashboard;
 import '../services/alertas_recebidos_service.dart';
 import '../services/area_protegida_historico_service.dart';
+import '../services/contatos_emergencia_service.dart';
+import '../services/database_helper.dart';
 import '../services/battery_optimization_service.dart';
 import '../services/sms_permission_service.dart';
 import '../services/sos_widget_status_service.dart';
@@ -120,6 +122,25 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _mostrandoInicio = true);
   }
 
+  Future<void> _avisarSemContato(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final abrir = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.despertadorSemContatoTitulo),
+        content: Text(l10n.despertadorSemContatoConteudo),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(l10n.cancelar)),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.despertadorAbrirConfiguracoes),
+          ),
+        ],
+      ),
+    );
+    if (abrir == true && context.mounted) _abrirConfiguracoes(context);
+  }
+
   void _abrirConfiguracoes(BuildContext context) {
     Navigator.push(
       context,
@@ -170,11 +191,24 @@ class _HomeScreenState extends State<HomeScreen> {
             ? null
             : Text(titulos[_indiceAbaAtual], style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: [
+          // Sem contato de emergência, o "+" fica desabilitado (cinza): o
+          // toque só leva a Configurações, onde os contatos são cadastrados.
           if (!_mostrandoInicio && _indiceAbaAtual == 1)
-            IconButton(
-              icon: const Icon(Icons.add_alarm),
-              tooltip: l10n.tooltipAdicionarAlarme,
-              onPressed: () => _familiaTabKey.currentState?.abrirModalAdicionarAlarme(),
+            ValueListenableBuilder<int>(
+              valueListenable: ContatosEmergenciaService.versaoContatos,
+              builder: (context, _, __) => FutureBuilder<List<Map<String, dynamic>>>(
+                future: DatabaseHelper().getContatosEmergencia(),
+                builder: (context, snapshot) {
+                  final semContato = snapshot.hasData && snapshot.data!.isEmpty;
+                  return IconButton(
+                    icon: Icon(Icons.add_alarm, color: semContato ? Colors.grey : null),
+                    tooltip: semContato ? l10n.despertadorSemContatoTitulo : l10n.tooltipAdicionarAlarme,
+                    onPressed: semContato
+                        ? () => _avisarSemContato(context)
+                        : () => _familiaTabKey.currentState?.abrirModalAdicionarAlarme(),
+                  );
+                },
+              ),
             ),
           if (!_mostrandoInicio && _indiceAbaAtual == 2)
             IconButton(

@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 
 import '../models/alarme_agendado_model.dart';
+import '../models/alarme_rotina.dart';
 import 'alarme_agendado_cloud_service.dart';
 import 'alarme_service.dart';
+import 'ciclo_despertador.dart';
 import 'database_helper.dart';
 import 'firebase_auth_service.dart';
+import 'l10n_headless_service.dart';
 import 'location_service.dart';
 import 'rotina_alarme_service.dart';
 
@@ -223,39 +227,65 @@ class BackgroundLocationHeartbeatService {
     try {
       final usuarioId = FirebaseAuthService().uidAtual;
       if (usuarioId == null) return;
-
-      final idAlarme = (alarmeMap['id'] as int?)?.toString();
-      if (idAlarme == null) return;
-
-      final proximoDisparo = RotinaAlarmeService.proximoDisparoPrevisto(alarmeMap);
-      if (proximoDisparo == null) return;
-
-      final minutosTolerancia = alarmeMap['minutos_tolerancia'] as int? ?? 10;
-      final prazoFinal = proximoDisparo
-          .add(Duration(minutes: minutosTolerancia))
-          .add(RotinaAlarmeService.duracaoJanelaFinal);
-
-      final contatos = await _resolverContatosEmergencia();
-
-      final modelo = AlarmeAgendadoModel(
-        idAlarme: idAlarme,
-        usuarioId: usuarioId,
-        dataHoraDisparo: proximoDisparo,
-        prazoFinalDisparo: prazoFinal,
-        contatosEmergencia: contatos,
-        etiqueta: (alarmeMap['etiqueta'] as String?) ?? '',
-        contextoPersonalizado:
-            (alarmeMap['contexto_personalizado'] as String?) ?? '',
-      );
-
-      await AlarmeAgendadoCloudService().reiniciarCicloComoPendente(modelo);
+      final modelo = await _modeloDoDespertador(alarmeMap, usuarioId, null);
+      if (modelo == null) return;
+      // Regras de ciclo (ver AlarmeAgendadoCloudService.sincronizarCicloDespertador):
+      // nunca sobrescreve uma ocorrência ainda em aberto.
+      await AlarmeAgendadoCloudService().sincronizarCicloDespertador(modelo);
       debugPrint(
-          '☁️ [BackgroundLocationHeartbeatService] Alarme de rotina #$idAlarme '
-          'registrado IMEDIATAMENTE na nuvem (sem esperar a janela de 48h).');
+          '☁️ [BackgroundLocationHeartbeatService] Despertador #${modelo.idAlarme} '
+          'sincronizado na nuvem (ocorrência ${modelo.dataHoraDisparo}).');
     } catch (e) {
       debugPrint(
           '⚠️ [BackgroundLocationHeartbeatService] Falha ao registrar alarme '
           'de rotina imediatamente na nuvem: $e');
+    }
+  }
+
+  /// Prazo que o servidor usa como reserva para a ocorrência: no iOS, o fim
+  /// da tolerância (o próprio app envia o alerta nesse instante, sem a
+  /// janela extra de 60 s); no Android, tolerância + janela final.
+  static DateTime prazoDaOcorrencia(OcorrenciaDespertador ocorrencia) => Platform.isIOS
+      ? ocorrencia.fimTolerancia
+      : ocorrencia.fimTolerancia.add(RotinaAlarmeService.duracaoJanelaFinal);
+
+  /// Documento `alarmes_agendados` da ocorrência ALVO de [alarmeMap] (ver
+  /// [CicloDespertador.alvo]), com a etiqueta já traduzida — nunca a chave
+  /// interna `KEY_ALARME_ROTINA`.
+  Future<AlarmeAgendadoModel?> _modeloDoDespertador(
+    Map<String, dynamic> alarmeMap,
+    String usuarioId,
+    UltimaLocalizacaoModel? localizacao, {
+    OcorrenciaDespertador? ocorrencia,
+    List<Map<String, dynamic>>? contatos,
+  }) async {
+    final alvo = ocorrencia ?? await CicloDespertador.alvo(alarmeMap);
+    if (alvo == null) return null;
+    final l10n = await L10nHeadlessService.obter();
+    return AlarmeAgendadoModel(
+      idAlarme: alvo.idAlarme.toString(),
+      usuarioId: usuarioId,
+      dataHoraDisparo: alvo.horario,
+      prazoFinalDisparo: prazoDaOcorrencia(alvo),
+      contatosEmergencia: contatos ?? await _resolverContatosEmergencia(),
+      etiqueta: AlarmeRotina.fromMap(alarmeMap).etiquetaExibida(l10n),
+      contextoPersonalizado: (alarmeMap['contexto_personalizado'] as String?) ?? '',
+      ultimaLocalizacao: localizacao,
+      cicloEpochMs: alvo.ciclo,
+    );
+  }
+
+  /// Sessão de localização ligada pelo heartbeat enquanto algum
+  /// despertador estiver a 2 h ou menos (até o fim da tolerância).
+  bool _sessaoLocalizacaoDespertador = false;
+
+  void _ajustarSessaoLocalizacao(bool ligar) {
+    if (ligar == _sessaoLocalizacaoDespertador) return;
+    _sessaoLocalizacaoDespertador = ligar;
+    if (ligar) {
+      LocationService().iniciarCicloDeAtualizacao();
+    } else {
+      LocationService().pararCicloDeAtualizacao();
     }
   }
 
@@ -277,57 +307,22 @@ class BackgroundLocationHeartbeatService {
         bool reiniciarComoPendente,
       })>[];
 
+      // Despertadores: a ocorrência ALVO de cada um (a tocando agora ou a
+      // próxima), dentro de 48 h; localização só a 2 h ou menos dela, até o
+      // fim da tolerância.
+      final despertadores = <({Map<String, dynamic> alarme, OcorrenciaDespertador ocorrencia})>[];
       for (final alarme in alarmes) {
-        final ativo = (alarme['ativo'] as int?) == 1;
-        if (!ativo) continue;
-
-        final proximoDisparo = RotinaAlarmeService.proximoDisparoPrevisto(alarme);
-        if (proximoDisparo == null) continue;
-
-        final faltam = proximoDisparo.difference(agora);
-        if (faltam.isNegative || faltam > janelaRegistro48h) continue;
-
-        final idAlarme = (alarme['id'] as int?)?.toString();
-        if (idAlarme == null) continue;
-
-        final minutosTolerancia = alarme['minutos_tolerancia'] as int? ?? 10;
-        final prazoFinal = proximoDisparo
-            .add(Duration(minutes: minutosTolerancia))
-            .add(RotinaAlarmeService.duracaoJanelaFinal);
-
-        candidatos.add((
-          idAlarme: idAlarme,
-          proximoDisparo: proximoDisparo,
-          prazoFinal: prazoFinal,
-          dentroDaJanelaDeLocalizacao: faltam <= janelaLocalizacao2h,
-          etiqueta: (alarme['etiqueta'] as String?) ?? '',
-          contextoPersonalizado:
-              (alarme['contexto_personalizado'] as String?) ?? '',
-          // CORREÇÃO DE DÉBITO TÉCNICO (2026-08-15): antes, sempre `false`
-          // — o documento deste alarme (id FIXO, reaproveitado a cada
-          // repetição) nunca voltava a PENDENTE depois do primeiro ciclo,
-          // desarmando a proteção da Cloud Function para as ocorrências
-          // seguintes. Consome (lê E remove) a sinalização gravada pelos
-          // caminhos de resolução de ciclo (PIN correto, alerta disparado,
-          // reativação manual) — ver
-          // [AlarmeAgendadoCloudService.sinalizarNovoCiclo].
-          reiniciarComoPendente: AlarmeAgendadoCloudService()
-              .consumirSinalizacaoDeNovoCiclo(idAlarme),
-        ));
+        final ocorrencia = await CicloDespertador.alvo(alarme);
+        if (ocorrencia == null) continue;
+        final faltam = ocorrencia.horario.difference(agora);
+        if (faltam > janelaRegistro48h) continue;
+        despertadores.add((alarme: alarme, ocorrencia: ocorrencia));
       }
+      bool naJanelaDeLocalizacao(OcorrenciaDespertador o) =>
+          o.horario.difference(agora) <= janelaLocalizacao2h && agora.isBefore(o.fimTolerancia);
+      final despertadorNaJanela = despertadores.any((d) => naJanelaDeLocalizacao(d.ocorrencia));
+      _ajustarSessaoLocalizacao(despertadorNaJanela);
 
-      // Cronômetro de check-in ATIVO da aba Segurança (ver
-      // [registrarCheckinAtivo]), se houver — mesma janela de registro
-      // (48h) e de localização (2h) usada pelos alarmes de rotina.
-      // [prazoFinal] = [checkinDisparo] + 60s (reespecificação do
-      // usuário, 2026-08-10, ajustada de 180s para 60s em 2026-08-11):
-      // ao zerar, o Cronômetro concede uma tolerância sonora de 60
-      // segundos com o teclado de PIN aberto
-      // (ver `AlarmeService.duracaoJanelaFinalCronometro`/
-      // `cronometro_disparado_screen.dart`) antes de qualquer alerta real
-      // ser disparado — o mesmo prazo usado por
-      // `functions/scheduledAlarmMonitor.js` como rede de segurança
-      // offline precisa refletir esse fim real, não mais o zero puro.
       final checkinDisparo = _checkinDataHoraDisparoAtiva;
       if (checkinDisparo != null) {
         final faltam = checkinDisparo.difference(agora);
@@ -346,10 +341,10 @@ class BackgroundLocationHeartbeatService {
         }
       }
 
-      if (candidatos.isEmpty) return;
+      if (candidatos.isEmpty && despertadores.isEmpty) return;
 
       final precisaLocalizacao =
-          candidatos.any((c) => c.dentroDaJanelaDeLocalizacao);
+          candidatos.any((c) => c.dentroDaJanelaDeLocalizacao) || despertadorNaJanela;
       final posicao =
           precisaLocalizacao ? await LocationService().capturarLocalizacaoAtual() : null;
 
@@ -379,11 +374,30 @@ class BackgroundLocationHeartbeatService {
         }
       }
 
+      for (final despertador in despertadores) {
+        final idAlarme = despertador.ocorrencia.idAlarme.toString();
+        final modelo = await _modeloDoDespertador(
+          despertador.alarme,
+          usuarioId,
+          naJanelaDeLocalizacao(despertador.ocorrencia) && posicao != null
+              ? UltimaLocalizacaoModel(lat: posicao.latitude, lng: posicao.longitude)
+              : null,
+          ocorrencia: despertador.ocorrencia,
+          contatos: contatos,
+        );
+        if (modelo == null) continue;
+        await AlarmeAgendadoCloudService().sincronizarCicloDespertador(
+          modelo,
+          forcarNovoCiclo: AlarmeAgendadoCloudService().consumirSinalizacaoDeNovoCiclo(idAlarme),
+        );
+      }
+
       final comLocalizacao =
-          candidatos.where((c) => c.dentroDaJanelaDeLocalizacao).length;
+          candidatos.where((c) => c.dentroDaJanelaDeLocalizacao).length +
+              despertadores.where((d) => naJanelaDeLocalizacao(d.ocorrencia)).length;
       debugPrint(
           '💓 [BackgroundLocationHeartbeatService] Ciclo executado — '
-          '${candidatos.length} candidato(s) dentro da janela de 48h '
+          '${candidatos.length + despertadores.length} candidato(s) dentro da janela de 48h '
           '($comLocalizacao com localização, dentro de 2h).');
     } catch (e) {
       debugPrint(

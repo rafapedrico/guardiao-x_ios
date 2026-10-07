@@ -1037,5 +1037,22 @@
   "sosAbrindoCamera": "جارٍ فتح الكاميرا",
   "sosCameraIndisponivelSemConexao": "الكاميرا غير متاحة — سيُرسل تنبيهك إلى جهات اتصالك فور توفر الإشارة",
   "mensagemEnviadaAvisoSemFoto": "تنبيه، تم إرسال رسالة إلى العائلة تحتوي على موقعك. لا يمكن التراجع عن هذا الإجراء.",
-  "mensagemAvisoSemConexao": "تنبيه، سيُرسل تنبيهك إلى العائلة فور توفر الاتصال."
+  "mensagemAvisoSemConexao": "تنبيه، سيُرسل تنبيهك إلى العائلة فور توفر الاتصال.",
+  "despertadorDesativarAcao": "إيقاف المنبه",
+  "despertadorPararSomAcao": "إيقاف الصوت",
+  "despertadorNotifCorpo": "اضغط على \"إيقاف المنبه\" وأدخل رمز PIN. بدون تأكيد خلال مهلة السماح، سيتم تنبيه جهات اتصال الطوارئ.",
+  "despertadorAvisoReagendarTitulo": "افتح Guardian-X",
+  "despertadorAvisoReagendarCorpo": "افتح التطبيق لإبقاء المنبه \"{etiqueta}\" في {horario} مجدولًا.",
+  "despertadorDesativadoTitulo": "تم إيقاف المنبه (مؤقتًا)",
+  "despertadorDesativadoCorpo": "تم تأكيد \"{etiqueta}\" برمز PIN الصحيح. لم يُرسل أي تنبيه.",
+  "despertadorAlertaEnviadoTitulo": "تم إرسال التنبيه",
+  "despertadorAlertaEnviadoCorpo": "تم إرسال تنبيه طوارئ إلى جهات اتصالك المسجلة.",
+  "despertadorTelaInstrucao": "أدخل رمز PIN لإيقاف المنبه. الوقت المتبقي: {tempo}",
+  "despertadorSemContatoTitulo": "أضف جهة اتصال للطوارئ",
+  "despertadorSemContatoConteudo": "ينبّه المنبه جهات اتصال الطوارئ إذا لم تؤكد في الوقت المحدد. أضف جهة اتصال واحدة على الأقل في الإعدادات لإنشاء منبه.",
+  "despertadorAbrirConfiguracoes": "فتح الإعدادات",
+  "despertadorDefinaPin": "عيّن رمز PIN في الإعدادات لتأكيد هذا الإجراء.",
+  "despertadorTentativaApagarMotivo": "تم إدخال رمز PIN بشكل خاطئ 3 مرات متتالية عند محاولة {acao} منبه.",
+  "despertadorApagarBotao": "حذف",
+  "familiaAcaoReativar": "إعادة التفعيل"
 }
