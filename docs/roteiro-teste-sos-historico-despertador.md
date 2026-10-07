@@ -168,6 +168,6 @@ Sem contato de emergência: o "+" fica cinza e leva a Configurações.
 9. Sons: no despertador (AlarmKit e notificações) e no cronômetro, o som é o
    `som_N.caf` escolhido; um Push de alerta recebido toca o `som_N.caf` do
    destinatário (enviado pelo servidor). O som 10 ("Sirene") é o mesmo
-   toque de alarme do Android (16 s) — nenhum som é mudo.
+   sirene do Android (16 s) — nenhum som é mudo.
 10. Com o iPhone bloqueado, um alerta recebido e um aviso de entrega entram
     no Histórico (banco com proteção até o primeiro desbloqueio).
