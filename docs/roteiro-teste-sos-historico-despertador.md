@@ -141,3 +141,32 @@ Sem contato de emergência: o "+" fica cinza e leva a Configurações.
    "{nome} recebeu seu alerta.", "Não foi possível entregar…") chegam como
    notificação; no detalhe do alerta, "Entrega aos contatos" mostra cada
    contato com Entregue / Tentando / Não entregue e o texto do aviso.
+
+## 10. Fim do cronômetro no iOS, sons .caf e proteção do banco
+
+1. Sem PIN cadastrado, o cronômetro não começa ("Cadastre um PIN").
+2. Cronômetro de 1 min; bloqueie o iPhone. No fim: notificação "Cronômetro
+   de segurança" com o som escolhido em Configurações, repetida a cada ~15 s
+   durante os 60 s de tolerância, com a ação "Desligar alerta de emergência"
+   → abre o app direto no teclado do PIN.
+3. App aberto no fim: a tela abre sozinha e o som toca em loop até o PIN ou
+   o fim dos 60 s.
+4. PIN correto: notificação "Senha correta. O alerta de emergência não foi
+   enviado.", doc `alarmes_agendados/{uid}_checkin_seguranca` em
+   CONFIRMADO_SEGURA, nenhum alerta ao contato, Histórico "Cronômetro
+   desarmado".
+5. 3 PINs errados: o teclado fecha, alerta `tentativa_desarme_incorreto` e
+   notificação "Houve 3 tentativas…".
+6. Sem PIN até o fim (app em segundo plano): o próprio app envia
+   `cronometro_expirado` (id `cronometro_{fim}`) e mostra a notificação; doc
+   em ALERTA_DISPARADO; o servidor não manda um segundo.
+7. Durante a tolerância, tentar iniciar outro cronômetro mostra "O
+   cronômetro anterior ainda está na tolerância…".
+8. Do início até o fim da tolerância, com o app em segundo plano, a posição
+   em `monitoramento/atual` é atualizada (indicador azul de localização),
+   no máximo 1x/min e só com 30 m de deslocamento ou a cada 5 min parado.
+9. Sons: no despertador (AlarmKit e notificações) e no cronômetro, o som é o
+   `som_N.caf` escolhido; um Push de alerta recebido toca o `som_N.caf` do
+   destinatário (enviado pelo servidor). "Toque Silencioso" (som 10) não toca.
+10. Com o iPhone bloqueado, um alerta recebido e um aviso de entrega entram
+    no Histórico (banco com proteção até o primeiro desbloqueio).

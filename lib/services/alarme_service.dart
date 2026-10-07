@@ -1,8 +1,11 @@
+import 'dart:io' show Platform;
+
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'cronometro_ios_service.dart';
 import 'database_helper.dart';
 import '../screens/cronometro_disparado_screen.dart' show chaveCronometroFluxoResolvido;
 
@@ -117,6 +120,14 @@ class AlarmeService {
     // destruído/fechado imediatamente". Resetar aqui, no início de CADA
     // novo ciclo (chamado por `SegurancaTab._iniciarTimer` sempre que o
     // cronômetro é armado), garante que a flag só reflita o ciclo atual.
+    // iOS: notificações com "Desligar alerta de emergência", sessão de
+    // localização até o fim da tolerância e o alerta pelo próprio app — ver
+    // CronometroIosService. O alarme nativo abaixo só existe no Android.
+    if (Platform.isIOS) {
+      await CronometroIosService().armar(timestampExpiracao);
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(chaveCronometroFluxoResolvido);
@@ -190,6 +201,10 @@ class AlarmeService {
   }
 
   Future<void> cancelarAlarme() async {
+    if (Platform.isIOS) {
+      await CronometroIosService().cancelar();
+      return;
+    }
     try {
       await _canalRotinaAlarme.invokeMethod('cancelarAlarmeNativo', {
         'idAlarme': idAlarmeCronometroSeguranca,

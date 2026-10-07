@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "送达联系人",
   "historicoEntregaEntregue": "已送达",
   "historicoEntregaTentando": "正在尝试",
-  "historicoEntregaNaoEntregue": "未送达"
+  "historicoEntregaNaoEntregue": "未送达",
+  "cronometroNotificacaoCorpo": "关闭紧急警报 — 点按输入您的PIN",
+  "cronometroNotificacaoTituloAlerta": "安全计时器",
+  "notifCronometroExpiradoCorpo": "计时器时间已到且未输入密码。紧急警报已发送给您的联系人。",
+  "notifPinCorretoCronometroCorpo": "密码正确。紧急警报未发送。",
+  "notif3PinsCronometroCorpo": "有3次使用错误密码关闭计时器的尝试。紧急警报已发送给您的联系人。",
+  "segurancaCronometroEmAndamento": "上一个计时器仍在宽限时间内或警报正在发送。请等待其结束后再启动新的计时器。",
+  "pinCadastroNecessarioTitulo": "请登记PIN",
+  "pinCadastroNecessarioConteudo": "要使用此功能，请先在设置中登记您的4位PIN。",
+  "cronometroAcaoDesligar": "关闭紧急警报",
+  "cronometroTelaInstrucao": "输入 PIN 以关闭紧急警报。剩余时间：{tempo}"
 }

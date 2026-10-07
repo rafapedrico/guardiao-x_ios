@@ -11,6 +11,7 @@ import '../app_navigator.dart';
 import '../models/alarme_rotina.dart';
 import '../screens/despertador_ios_screen.dart';
 import 'ciclo_despertador.dart';
+import 'cronometro_ios_service.dart';
 import 'database_helper.dart';
 import 'firebase_auth_service.dart';
 import 'l10n_headless_service.dart';
@@ -106,15 +107,16 @@ class DespertadorIosService with WidgetsBindingObserver {
     }
   }
 
-  /// Som escolhido em Configurações, já convertido para .caf.
-  Future<String?> _somEscolhido() async {
+  /// Som escolhido em Configurações: `som_N.caf`, no bundle do Runner (ver
+  /// ios/scripts/adicionar_sons_caf.rb) — o mesmo nome que o servidor usa
+  /// em `aps.sound`.
+  static Future<String> somEscolhido() async {
     try {
       final config = await DatabaseHelper().getUserConfig();
       final numero = config?['som_alarme_selecionado'] as int? ?? 1;
-      return await _canal.invokeMethod<String>('prepararSom', {'asset': 'assets/sounds/som_$numero.mp3'});
-    } catch (e) {
-      debugPrint('⚠️ [Despertador] Som escolhido indisponível — som padrão: $e');
-      return null;
+      return 'som_$numero.caf';
+    } catch (_) {
+      return 'som_1.caf';
     }
   }
 
@@ -155,7 +157,7 @@ class DespertadorIosService with WidgetsBindingObserver {
     await _definirJanelasLocalizacao(alarmes);
 
     final l10n = await L10nHeadlessService.obter();
-    final som = await _somEscolhido();
+    final som = await somEscolhido();
     String tituloDe(OcorrenciaDespertador o) => AlarmeRotina.fromMap(o.alarme).etiquetaExibida(l10n);
 
     var usouAlarmKit = false;
@@ -332,6 +334,10 @@ class DespertadorIosService with WidgetsBindingObserver {
   }
 
   Future<void> abrirPorPayload(String payload, {bool tecladoDireto = false}) async {
+    if (payload.startsWith(CronometroIosService.prefixoPayload)) {
+      await CronometroIosService().abrirPorPayload(payload, tecladoDireto: tecladoDireto);
+      return;
+    }
     final partes = payload.substring(prefixoPayload.length).split(':');
     if (partes.length != 2) return;
     final id = int.tryParse(partes[0]);

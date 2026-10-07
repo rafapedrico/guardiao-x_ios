@@ -1500,5 +1500,22 @@
   "historicoEntregaTitulo": "Entrega aos contatos",
   "historicoEntregaEntregue": "Entregue",
   "historicoEntregaTentando": "Tentando",
-  "historicoEntregaNaoEntregue": "Não entregue"
+  "historicoEntregaNaoEntregue": "Não entregue",
+  "cronometroNotificacaoCorpo": "Desligue o alerta de emergência — toque para digitar seu PIN",
+  "cronometroNotificacaoTituloAlerta": "Cronômetro de segurança",
+  "notifCronometroExpiradoCorpo": "O tempo do cronômetro acabou sem a senha. O alerta de emergência foi enviado aos seus contatos.",
+  "notifPinCorretoCronometroCorpo": "Senha correta. O alerta de emergência não foi enviado.",
+  "notif3PinsCronometroCorpo": "Houve 3 tentativas de desligar o cronômetro com senha incorreta. O alerta de emergência foi enviado aos seus contatos.",
+  "segurancaCronometroEmAndamento": "O cronômetro anterior ainda está na tolerância ou com o alerta sendo enviado. Aguarde terminar para iniciar outro.",
+  "pinCadastroNecessarioTitulo": "Cadastre um PIN",
+  "pinCadastroNecessarioConteudo": "Para usar este recurso, cadastre primeiro o seu PIN de 4 dígitos em Configurações.",
+  "cronometroAcaoDesligar": "Desligar alerta de emergência",
+  "cronometroTelaInstrucao": "Digite seu PIN para desligar o alerta de emergência. Tempo restante: {tempo}",
+  "@cronometroTelaInstrucao": {
+    "placeholders": {
+      "tempo": {
+        "type": "String"
+      }
+    }
+  }
 }

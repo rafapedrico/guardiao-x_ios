@@ -112,6 +112,14 @@ jobs:
       # Gera ios/Flutter/Generated.xcconfig com versão/build number e o
       # pacote SPM efêmero dos plugins, sem compilar nada ainda — o
       # archive abaixo (xcodebuild) é quem compila e assina.
+      # Sons do alarme (som_N.caf) no bundle do Runner — ver
+      # ios/scripts/adicionar_sons_caf.rb (idempotente).
+      - name: Incluir sons .caf no bundle
+        working-directory: ios
+        run: |
+          gem list -i xcodeproj >/dev/null || gem install xcodeproj --no-document
+          ruby scripts/adicionar_sons_caf.rb
+
       - name: Generate Xcode config (flutter build ios --config-only)
         run: |
           flutter build ios --release --config-only --no-codesign \

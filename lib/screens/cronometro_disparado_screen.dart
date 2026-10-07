@@ -288,7 +288,7 @@ class _CronometroDisparadoScreenState extends State<CronometroDisparadoScreen>
   Future<void> _abrirTecladoPin() async {
     try {
       final config = await DatabaseHelper().getUserConfig();
-      final pinReal = config?['pin_real'] as String? ?? '1234';
+      final pinReal = config?['pin_real'] as String?;
       if (!mounted) return;
 
       bool pinConfirmadoComSucesso = false;

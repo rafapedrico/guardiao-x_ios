@@ -44,6 +44,7 @@ import 'services/relatorio_falha_entrega_service.dart';
 import 'services/retry_upload_service.dart';
 import 'services/historico_alertas_service.dart';
 import 'services/despertador_ios_service.dart';
+import 'services/cronometro_ios_service.dart';
 import 'services/rotina_alarme_service.dart';
 import 'services/sessao_revogada_service.dart';
 import 'services/sos_deep_link_service.dart';
@@ -739,6 +740,7 @@ Future<void> iniciarServicosPosLoginOuDashboard() async {
   // notificações), abre a tela se o app foi aberto pelo alarme.
   if (Platform.isIOS) {
     etapa('DespertadorIos', () => unawaited(DespertadorIosService().iniciar()));
+    etapa('CronometroIos', () => unawaited(CronometroIosService().iniciar()));
   }
   if (Platform.isAndroid) {
     await etapaAssincrona('VolumeSos', VolumeSosService().iniciarMonitoramento);

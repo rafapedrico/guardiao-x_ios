@@ -71,6 +71,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pods-
 
+      # Sons do alarme (som_N.caf) no bundle do Runner — ver
+      # ios/scripts/adicionar_sons_caf.rb (idempotente).
+      - name: Incluir sons .caf no bundle
+        working-directory: ios
+        run: |
+          gem list -i xcodeproj >/dev/null || gem install xcodeproj --no-document
+          ruby scripts/adicionar_sons_caf.rb
+
       - name: Build iOS (release, no codesign)
         run: flutter build ios --release --no-codesign
 

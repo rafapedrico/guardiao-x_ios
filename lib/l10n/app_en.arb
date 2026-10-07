@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "Delivery to contacts",
   "historicoEntregaEntregue": "Delivered",
   "historicoEntregaTentando": "Trying",
-  "historicoEntregaNaoEntregue": "Not delivered"
+  "historicoEntregaNaoEntregue": "Not delivered",
+  "cronometroNotificacaoCorpo": "Turn off the emergency alert — tap to enter your PIN",
+  "cronometroNotificacaoTituloAlerta": "Safety timer",
+  "notifCronometroExpiradoCorpo": "The timer ran out without the password. The emergency alert was sent to your contacts.",
+  "notifPinCorretoCronometroCorpo": "Correct password. The emergency alert was not sent.",
+  "notif3PinsCronometroCorpo": "There were 3 attempts to turn off the timer with an incorrect password. The emergency alert was sent to your contacts.",
+  "segurancaCronometroEmAndamento": "The previous timer is still in its grace period or its alert is being sent. Wait for it to finish before starting another one.",
+  "pinCadastroNecessarioTitulo": "Set up a PIN",
+  "pinCadastroNecessarioConteudo": "To use this feature, first set up your 4-digit PIN in Settings.",
+  "cronometroAcaoDesligar": "Turn off emergency alert",
+  "cronometroTelaInstrucao": "Enter your PIN to turn off the emergency alert. Time left: {tempo}"
 }

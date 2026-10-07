@@ -1,4 +1,4 @@
-import AVFoundation
+import CoreLocation
 import Flutter
 import UIKit
 import WidgetKit
@@ -176,7 +176,9 @@ final class SosDispatchPlugin: NSObject, FlutterPlugin {
 
 /// Canal "guardiaox/protecao_arquivo" (ver
 /// lib/services/protecao_arquivo_service.dart): aplica
-/// `FileProtectionType.complete` aos arquivos sensíveis (banco SQLite com o
+/// `FileProtectionType.completeUntilFirstUserAuthentication` aos arquivos
+/// sensíveis — cifrados até o primeiro desbloqueio depois de ligar o
+/// aparelho e graváveis com a tela bloqueada (banco SQLite com o
 /// PIN e o histórico de alertas, cópias das fotos do SOS). Caminhos que não
 /// existem são ignorados; para uma pasta, os arquivos criados nela depois
 /// herdam a mesma proteção.
@@ -199,7 +201,7 @@ final class ProtecaoArquivoPlugin: NSObject, FlutterPlugin {
       var falhas: [String] = []
       for caminho in caminhos where gerenciador.fileExists(atPath: caminho) {
         do {
-          try gerenciador.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: caminho)
+          try gerenciador.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: caminho)
         } catch {
           falhas.append(caminho)
         }
@@ -279,9 +281,8 @@ final class SOSWidgetStatusPlugin: NSObject, FlutterPlugin {
 ///     direto na tela do despertador com o teclado do PIN
 ///     ([AbrirDespertadorIntent]); parar o som pelo sistema NÃO cancela o
 ///     alerta — só o PIN correto, no app.
-///   - `prepararSom`: converte o .mp3 do som escolhido (asset do Flutter)
-///     num .caf em Library/Sounds — é de lá que o iOS toca o som das
-///     notificações e dos alarmes do AlarmKit.
+///   - os sons (`som_N.caf`) ficam no bundle do Runner — ver
+///     ios/scripts/adicionar_sons_caf.rb.
 ///   - `fusoHorario`: identificador do fuso local, para os gatilhos.
 ///   - `consumirAbertura`: ocorrência que abriu o app pelo botão do alarme.
 ///   - `definirJanelasLocalizacao`: janelas (2 h antes até o fim da
@@ -325,21 +326,21 @@ final class DespertadorPlugin: NSObject, FlutterPlugin {
     switch chamada.method {
     case "fusoHorario":
       resultado(TimeZone.current.identifier)
-    case "prepararSom":
-      guard let asset = argumentos["asset"] as? String else {
-        resultado(nil)
-        return
-      }
-      DispatchQueue.global(qos: .userInitiated).async {
-        let nome = Self.prepararSom(asset: asset)
-        DispatchQueue.main.async { resultado(nome) }
-      }
     case "consumirAbertura":
       let pendente = UserDefaults.standard.dictionary(forKey: Self.chaveAberturaPendente)
       UserDefaults.standard.removeObject(forKey: Self.chaveAberturaPendente)
       resultado(pendente)
     case "definirJanelasLocalizacao":
       UserDefaults.standard.set(argumentos["janelas"] as? [[String: Any]] ?? [], forKey: Self.chaveJanelas)
+      resultado(nil)
+    case "iniciarSessaoLocalizacao":
+      let ateMs = (argumentos["ateMs"] as? NSNumber)?.doubleValue ?? 0
+      SessaoLocalizacaoSeguranca.shared.iniciar(
+        consumidor: argumentos["consumidor"] as? String ?? "app",
+        ate: Date(timeIntervalSince1970: ateMs / 1000))
+      resultado(nil)
+    case "pararSessaoLocalizacao":
+      SessaoLocalizacaoSeguranca.shared.parar(consumidor: argumentos["consumidor"] as? String ?? "app")
       resultado(nil)
     case "alarmKitDisponivel":
       resultado(Self.alarmKitDisponivel())
@@ -354,53 +355,6 @@ final class DespertadorPlugin: NSObject, FlutterPlugin {
       resultado(nil)
     default:
       resultado(FlutterMethodNotImplemented)
-    }
-  }
-
-  // MARK: Som
-
-  /// Converte o asset .mp3 em .caf (PCM, até 29 s — o limite de som de
-  /// notificação é 30 s) em Library/Sounds. Devolve o nome do arquivo.
-  private static func prepararSom(asset: String) -> String? {
-    let chave = FlutterDartProject.lookupKey(forAsset: asset)
-    guard let origem = Bundle.main.path(forResource: chave, ofType: nil) else { return nil }
-    let base = ((asset as NSString).lastPathComponent as NSString).deletingPathExtension
-    let nome = "gx_\(base).caf"
-    let gerenciador = FileManager.default
-    guard let biblioteca = gerenciador.urls(for: .libraryDirectory, in: .userDomainMask).first else { return nil }
-    let pasta = biblioteca.appendingPathComponent("Sounds", isDirectory: true)
-    let destino = pasta.appendingPathComponent(nome)
-    if gerenciador.fileExists(atPath: destino.path) { return nome }
-    do {
-      try gerenciador.createDirectory(at: pasta, withIntermediateDirectories: true)
-      let entrada = try AVAudioFile(forReading: URL(fileURLWithPath: origem))
-      let formato = entrada.processingFormat
-      let configuracao: [String: Any] = [
-        AVFormatIDKey: kAudioFormatLinearPCM,
-        AVSampleRateKey: formato.sampleRate,
-        AVNumberOfChannelsKey: formato.channelCount,
-        AVLinearPCMBitDepthKey: 16,
-        AVLinearPCMIsFloatKey: false,
-        AVLinearPCMIsBigEndianKey: false,
-      ]
-      let temporario = pasta.appendingPathComponent("tmp_\(nome)")
-      try? gerenciador.removeItem(at: temporario)
-      let saida = try AVAudioFile(
-        forWriting: temporario, settings: configuracao, commonFormat: formato.commonFormat,
-        interleaved: formato.isInterleaved)
-      let limite = AVAudioFramePosition(formato.sampleRate * 29)
-      let capacidade: AVAudioFrameCount = 8192
-      while entrada.framePosition < min(entrada.length, limite) {
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: formato, frameCapacity: capacidade) else { break }
-        try entrada.read(into: buffer, frameCount: capacidade)
-        if buffer.frameLength == 0 { break }
-        try saida.write(from: buffer)
-      }
-      try gerenciador.moveItem(at: temporario, to: destino)
-      return nome
-    } catch {
-      NSLog("[Despertador] Falha ao preparar o som \(asset): \(error)")
-      return nil
     }
   }
 
@@ -544,3 +498,79 @@ struct AbrirDespertadorIntent: LiveActivityIntent {
   }
 }
 #endif
+
+/// Sessão de localização em segundo plano do cronômetro e do despertador
+/// (canal "guardiaox/despertador": `iniciarSessaoLocalizacao` /
+/// `pararSessaoLocalizacao`). Enquanto houver um consumidor dentro do prazo
+/// — o cronômetro até o fim da tolerância, o despertador de 2 h antes até o
+/// fim da tolerância —, o GPS continua com o app em segundo plano e, no
+/// máximo uma vez por minuto, a posição vai para `monitoramento/atual` com
+/// a regra de 30 m / 5 min (ver RastreamentoContinuo.gravarPeloApp). Isso
+/// também mantém o app vivo para tocar o som e enviar o alerta no fim da
+/// tolerância.
+final class SessaoLocalizacaoSeguranca: NSObject, CLLocationManagerDelegate {
+  static let shared = SessaoLocalizacaoSeguranca()
+
+  private let gerente = CLLocationManager()
+  private var consumidores: [String: Date] = [:]
+  private var ultimaEntrega: Date?
+  private var timerPrazo: Timer?
+
+  private override init() {
+    super.init()
+    gerente.delegate = self
+    gerente.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+    gerente.distanceFilter = 10
+    gerente.pausesLocationUpdatesAutomatically = false
+    gerente.activityType = .other
+  }
+
+  func iniciar(consumidor: String, ate: Date) {
+    guard ate > Date() else {
+      parar(consumidor: consumidor)
+      return
+    }
+    consumidores[consumidor] = ate
+    aplicar()
+  }
+
+  func parar(consumidor: String) {
+    consumidores.removeValue(forKey: consumidor)
+    aplicar()
+  }
+
+  private func aplicar() {
+    let agora = Date()
+    consumidores = consumidores.filter { $0.value > agora }
+    timerPrazo?.invalidate()
+    guard let fim = consumidores.values.max() else {
+      gerente.stopUpdatingLocation()
+      return
+    }
+    let autorizacao = gerente.authorizationStatus
+    guard autorizacao == .authorizedAlways || autorizacao == .authorizedWhenInUse else { return }
+    gerente.allowsBackgroundLocationUpdates = true
+    gerente.showsBackgroundLocationIndicator = true
+    gerente.startUpdatingLocation()
+    timerPrazo = Timer.scheduledTimer(withTimeInterval: max(1, fim.timeIntervalSince(agora)), repeats: false) {
+      [weak self] _ in self?.aplicar()
+    }
+  }
+
+  func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    if !consumidores.isEmpty { aplicar() }
+  }
+
+  func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    guard let local = locations.last, local.horizontalAccuracy >= 0, local.horizontalAccuracy <= 1500 else { return }
+    if let ultima = ultimaEntrega, Date().timeIntervalSince(ultima) < 60 { return }
+    ultimaEntrega = Date()
+    let origem = consumidores.keys.sorted().first ?? "app"
+    RastreamentoContinuo.shared.gravarPeloApp(
+      latitude: local.coordinate.latitude, longitude: local.coordinate.longitude,
+      precisao: local.horizontalAccuracy, origem: origem, porDeslocamento: true
+    ) { _ in }
+  }
+
+  func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {}
+}

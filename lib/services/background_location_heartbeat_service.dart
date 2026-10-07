@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../models/alarme_agendado_model.dart';
 import '../models/alarme_rotina.dart';
@@ -280,7 +281,17 @@ class BackgroundLocationHeartbeatService {
   /// despertador estiver a 2 h ou menos (até o fim da tolerância).
   bool _sessaoLocalizacaoDespertador = false;
 
-  void _ajustarSessaoLocalizacao(bool ligar) {
+  void _ajustarSessaoLocalizacao(bool ligar, {DateTime? ate}) {
+    if (Platform.isIOS) {
+      // iOS: sessão nativa em segundo plano até o fim da tolerância (a
+      // mesma do cronômetro), 1x/min com a regra de 30 m / 5 min.
+      unawaited(_canalDespertador.invokeMethod<void>(
+        ligar && ate != null ? 'iniciarSessaoLocalizacao' : 'pararSessaoLocalizacao',
+        {'consumidor': 'despertador', if (ate != null) 'ateMs': ate.millisecondsSinceEpoch},
+      ).catchError((Object _) {}));
+      _sessaoLocalizacaoDespertador = ligar;
+      return;
+    }
     if (ligar == _sessaoLocalizacaoDespertador) return;
     _sessaoLocalizacaoDespertador = ligar;
     if (ligar) {
@@ -289,6 +300,8 @@ class BackgroundLocationHeartbeatService {
       LocationService().pararCicloDeAtualizacao();
     }
   }
+
+  static const MethodChannel _canalDespertador = MethodChannel('guardiaox/despertador');
 
   Future<void> _executarCiclo() async {
     try {
@@ -322,7 +335,13 @@ class BackgroundLocationHeartbeatService {
       bool naJanelaDeLocalizacao(OcorrenciaDespertador o) =>
           o.horario.difference(agora) <= janelaLocalizacao2h && agora.isBefore(o.fimTolerancia);
       final despertadorNaJanela = despertadores.any((d) => naJanelaDeLocalizacao(d.ocorrencia));
-      _ajustarSessaoLocalizacao(despertadorNaJanela);
+      DateTime? fimDaJanela;
+      for (final d in despertadores) {
+        if (!naJanelaDeLocalizacao(d.ocorrencia)) continue;
+        final fim = d.ocorrencia.fimTolerancia;
+        if (fimDaJanela == null || fim.isAfter(fimDaJanela)) fimDaJanela = fim;
+      }
+      _ajustarSessaoLocalizacao(despertadorNaJanela, ate: fimDaJanela);
 
       final checkinDisparo = _checkinDataHoraDisparoAtiva;
       if (checkinDisparo != null) {

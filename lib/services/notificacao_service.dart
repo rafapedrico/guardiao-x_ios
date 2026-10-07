@@ -21,6 +21,7 @@ import '../screens/alerta_recebido_screen.dart';
 import '../screens/home_screen.dart';
 import '../widgets/monitoramento_decisao_dialog.dart';
 import 'database_helper.dart';
+import 'cronometro_ios_service.dart';
 import 'despertador_ios_service.dart';
 import 'firebase_auth_service.dart';
 import 'l10n_headless_service.dart';
@@ -161,6 +162,7 @@ class NotificacaoService {
       _labelAcaoRecusarMonitoramento = l10n.notifMonitAcaoRecusar;
       _labelAcaoPausarAlarme = l10n.notifPausarAlarmeAcao;
       _labelAcaoDesativarDespertador = l10n.despertadorDesativarAcao;
+      _labelAcaoDesligarCronometro = l10n.cronometroAcaoDesligar;
       canalAlertaEnviadoNome = l10n.notifCanalAlertaEnviadoNome;
       canalAlertaEnviadoDescricao = l10n.notifCanalAlertaEnviadoDescricao;
     } catch (e) {
@@ -194,6 +196,9 @@ class NotificacaoService {
   /// despertador, com o teclado do PIN.
   static String _labelAcaoDesativarDespertador = 'Desativar despertador';
   static const String categoriaIosDespertador = 'despertador';
+  static const String categoriaIosCronometro = 'cronometro';
+  static const String acaoDesligarCronometroId = 'desligar_cronometro';
+  static String _labelAcaoDesligarCronometro = 'Desligar alerta de emergência';
   static const String acaoDesativarDespertadorId = 'desativar_despertador';
 
   /// Payload `despertador:<idAlarme>:<ciclo>` de uma notificação do
@@ -275,7 +280,8 @@ class NotificacaoService {
   static void _capturarPayloadSolicitacaoPendente(String? payload, {String? actionId}) {
     if (payload == null) return;
 
-    if (payload.startsWith(DespertadorIosService.prefixoPayload)) {
+    if (payload.startsWith(DespertadorIosService.prefixoPayload) ||
+        payload.startsWith(CronometroIosService.prefixoPayload)) {
       despertadorPendente = payload;
       return;
     }
@@ -533,6 +539,16 @@ class NotificacaoService {
       requestBadgePermission: false,
       requestSoundPermission: false,
       notificationCategories: [
+        DarwinNotificationCategory(
+          categoriaIosCronometro,
+          actions: [
+            DarwinNotificationAction.plain(
+              acaoDesligarCronometroId,
+              _labelAcaoDesligarCronometro,
+              options: {DarwinNotificationActionOption.foreground},
+            ),
+          ],
+        ),
         DarwinNotificationCategory(
           categoriaIosDespertador,
           actions: [
@@ -1505,6 +1521,7 @@ class NotificacaoService {
     required String corpo,
     required String payload,
     String? som,
+    String categoria = categoriaIosDespertador,
   }) async {
     if (!Platform.isIOS || !quando.isAfter(DateTime.now())) return;
     await inicializar();
@@ -1520,8 +1537,8 @@ class NotificacaoService {
           presentBanner: false,
           presentList: true,
           interruptionLevel: InterruptionLevel.timeSensitive,
-          categoryIdentifier: categoriaIosDespertador,
-          threadIdentifier: 'despertador',
+          categoryIdentifier: categoria,
+          threadIdentifier: categoria,
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -1852,7 +1869,8 @@ class NotificacaoService {
 
     // Despertador do iOS: toque na notificação ou em "Desativar
     // despertador" abre a tela do despertador com o idAlarme e a ocorrência.
-    if (payload.startsWith(DespertadorIosService.prefixoPayload)) {
+    if (payload.startsWith(DespertadorIosService.prefixoPayload) ||
+        payload.startsWith(CronometroIosService.prefixoPayload)) {
       unawaited(DespertadorIosService().abrirPorPayload(payload, tecladoDireto: true));
       return;
     }

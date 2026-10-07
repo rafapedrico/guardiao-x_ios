@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "Entrega a los contactos",
   "historicoEntregaEntregue": "Entregado",
   "historicoEntregaTentando": "Intentando",
-  "historicoEntregaNaoEntregue": "No entregado"
+  "historicoEntregaNaoEntregue": "No entregado",
+  "cronometroNotificacaoCorpo": "Apaga la alerta de emergencia — toca para escribir tu PIN",
+  "cronometroNotificacaoTituloAlerta": "Temporizador de seguridad",
+  "notifCronometroExpiradoCorpo": "El tiempo del temporizador terminó sin la contraseña. La alerta de emergencia se envió a tus contactos.",
+  "notifPinCorretoCronometroCorpo": "Contraseña correcta. La alerta de emergencia no se envió.",
+  "notif3PinsCronometroCorpo": "Hubo 3 intentos de apagar el temporizador con contraseña incorrecta. La alerta de emergencia se envió a tus contactos.",
+  "segurancaCronometroEmAndamento": "El temporizador anterior todavía está en la tolerancia o con la alerta enviándose. Espera a que termine para iniciar otro.",
+  "pinCadastroNecessarioTitulo": "Registra un PIN",
+  "pinCadastroNecessarioConteudo": "Para usar esta función, registra primero tu PIN de 4 dígitos en Configuración.",
+  "cronometroAcaoDesligar": "Apagar alerta de emergencia",
+  "cronometroTelaInstrucao": "Ingresa tu PIN para apagar la alerta de emergencia. Tiempo restante: {tempo}"
 }

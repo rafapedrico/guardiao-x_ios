@@ -79,6 +79,7 @@ class HistoricoAlertasService {
 
   /// Liga a importação do Firestore a cada sessão que abrir.
   void iniciar() {
+    unawaited(_reprotegerFotos());
     if (_assinaturaAuth != null || Firebase.apps.isEmpty) return;
     _assinaturaAuth = FirebaseAuth.instance.authStateChanges().listen((usuario) {
       if (usuario == null) {
@@ -313,7 +314,7 @@ class HistoricoAlertasService {
   }
 
   /// Cópia da foto do SOS na pasta privada do app (Documents, com proteção
-  /// de arquivo completa — nunca na galeria), para o Histórico. Devolve o
+  /// de arquivo até o primeiro desbloqueio — nunca na galeria), para o Histórico. Devolve o
   /// caminho, ou `null` se a cópia falhar.
   Future<String?> guardarCopiaLocalFoto(String caminhoOrigem, String alertaId) async {
     try {
@@ -329,6 +330,19 @@ class HistoricoAlertasService {
       debugPrint('⚠️ [HistoricoAlertas] Falha ao guardar a cópia local da foto: $e');
       return null;
     }
+  }
+
+  /// Fotos já guardadas por builds anteriores (proteção "complete"): passam
+  /// para a mesma proteção do banco (até o primeiro desbloqueio).
+  Future<void> _reprotegerFotos() async {
+    if (!Platform.isIOS) return;
+    try {
+      final documentos = await getApplicationDocumentsDirectory();
+      final pasta = Directory(p.join(documentos.path, _pastaFotos));
+      if (!await pasta.exists()) return;
+      final caminhos = [pasta.path, ...pasta.listSync().whereType<File>().map((f) => f.path)];
+      await ProtecaoArquivoService().proteger(caminhos);
+    } catch (_) {}
   }
 
   /// Apaga a cópia local da foto de uma entrada que está sendo removida.

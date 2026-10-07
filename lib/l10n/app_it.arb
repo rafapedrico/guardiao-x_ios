@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "Consegna ai contatti",
   "historicoEntregaEntregue": "Consegnato",
   "historicoEntregaTentando": "In corso",
-  "historicoEntregaNaoEntregue": "Non consegnato"
+  "historicoEntregaNaoEntregue": "Non consegnato",
+  "cronometroNotificacaoCorpo": "Disattiva l’allerta di emergenza — tocca per inserire il tuo PIN",
+  "cronometroNotificacaoTituloAlerta": "Timer di sicurezza",
+  "notifCronometroExpiradoCorpo": "Il tempo del timer è scaduto senza la password. L’allerta di emergenza è stata inviata ai tuoi contatti.",
+  "notifPinCorretoCronometroCorpo": "Password corretta. L’allerta di emergenza non è stata inviata.",
+  "notif3PinsCronometroCorpo": "Ci sono stati 3 tentativi di spegnere il timer con password errata. L’allerta di emergenza è stata inviata ai tuoi contatti.",
+  "segurancaCronometroEmAndamento": "Il timer precedente è ancora nella tolleranza o la sua allerta è in invio. Attendi che finisca prima di avviarne un altro.",
+  "pinCadastroNecessarioTitulo": "Registra un PIN",
+  "pinCadastroNecessarioConteudo": "Per usare questa funzione, registra prima il tuo PIN di 4 cifre nelle Impostazioni.",
+  "cronometroAcaoDesligar": "Disattiva l'allerta di emergenza",
+  "cronometroTelaInstrucao": "Inserisci il PIN per disattivare l'allerta di emergenza. Tempo rimanente: {tempo}"
 }

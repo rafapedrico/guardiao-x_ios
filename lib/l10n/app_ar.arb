@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "التسليم إلى جهات الاتصال",
   "historicoEntregaEntregue": "تم التسليم",
   "historicoEntregaTentando": "جارٍ المحاولة",
-  "historicoEntregaNaoEntregue": "لم يتم التسليم"
+  "historicoEntregaNaoEntregue": "لم يتم التسليم",
+  "cronometroNotificacaoCorpo": "أوقف تنبيه الطوارئ — اضغط لإدخال رمز PIN",
+  "cronometroNotificacaoTituloAlerta": "مؤقت الأمان",
+  "notifCronometroExpiradoCorpo": "انتهى وقت المؤقت دون إدخال كلمة المرور. تم إرسال تنبيه الطوارئ إلى جهات اتصالك.",
+  "notifPinCorretoCronometroCorpo": "كلمة المرور صحيحة. لم يتم إرسال تنبيه الطوارئ.",
+  "notif3PinsCronometroCorpo": "حدثت 3 محاولات لإيقاف المؤقت بكلمة مرور غير صحيحة. تم إرسال تنبيه الطوارئ إلى جهات اتصالك.",
+  "segurancaCronometroEmAndamento": "المؤقت السابق ما زال في مهلة السماح أو يجري إرسال تنبيهه. انتظر حتى ينتهي قبل تشغيل مؤقت آخر.",
+  "pinCadastroNecessarioTitulo": "سجّل رمز PIN",
+  "pinCadastroNecessarioConteudo": "لاستخدام هذه الميزة، سجّل أولًا رمز PIN المكوّن من 4 أرقام في الإعدادات.",
+  "cronometroAcaoDesligar": "إيقاف تنبيه الطوارئ",
+  "cronometroTelaInstrucao": "أدخل رمز PIN لإيقاف تنبيه الطوارئ. الوقت المتبقي: {tempo}"
 }

@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "Zustellung an die Kontakte",
   "historicoEntregaEntregue": "Zugestellt",
   "historicoEntregaTentando": "Wird versucht",
-  "historicoEntregaNaoEntregue": "Nicht zugestellt"
+  "historicoEntregaNaoEntregue": "Nicht zugestellt",
+  "cronometroNotificacaoCorpo": "Schalte den Notfallalarm aus — tippe, um deine PIN einzugeben",
+  "cronometroNotificacaoTituloAlerta": "Sicherheits-Timer",
+  "notifCronometroExpiradoCorpo": "Die Zeit des Timers ist ohne das Passwort abgelaufen. Der Notfallalarm wurde an deine Kontakte gesendet.",
+  "notifPinCorretoCronometroCorpo": "Passwort korrekt. Der Notfallalarm wurde nicht gesendet.",
+  "notif3PinsCronometroCorpo": "Es gab 3 Versuche, den Timer mit falschem Passwort auszuschalten. Der Notfallalarm wurde an deine Kontakte gesendet.",
+  "segurancaCronometroEmAndamento": "Der vorherige Timer ist noch in der Toleranzzeit oder sein Alarm wird gerade gesendet. Warte, bis er fertig ist, bevor du einen neuen startest.",
+  "pinCadastroNecessarioTitulo": "PIN einrichten",
+  "pinCadastroNecessarioConteudo": "Um diese Funktion zu nutzen, richte zuerst deine 4-stellige PIN in den Einstellungen ein.",
+  "cronometroAcaoDesligar": "Notfallalarm ausschalten",
+  "cronometroTelaInstrucao": "Gib deine PIN ein, um den Notfallalarm auszuschalten. Verbleibende Zeit: {tempo}"
 }

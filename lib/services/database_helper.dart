@@ -45,7 +45,9 @@ class DatabaseHelper {
       onUpgrade: _onUpgrade,
     );
     // iOS: o banco (PIN, histórico de alertas com localização e foto) fica
-    // com proteção de arquivo completa — ilegível com o aparelho bloqueado.
+    // cifrado até o primeiro desbloqueio depois de ligar o aparelho
+    // (completeUntilFirstUserAuthentication) — o app grava com a tela
+    // bloqueada (alertas recebidos, status de entrega, alertas enviados).
     if (Platform.isIOS) {
       await ProtecaoArquivoService().proteger([
         path,

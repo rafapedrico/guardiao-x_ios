@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "Доставка контактам",
   "historicoEntregaEntregue": "Доставлено",
   "historicoEntregaTentando": "Повторная попытка",
-  "historicoEntregaNaoEntregue": "Не доставлено"
+  "historicoEntregaNaoEntregue": "Не доставлено",
+  "cronometroNotificacaoCorpo": "Отключите экстренное оповещение — нажмите, чтобы ввести PIN",
+  "cronometroNotificacaoTituloAlerta": "Таймер безопасности",
+  "notifCronometroExpiradoCorpo": "Время таймера истекло без ввода пароля. Экстренное оповещение отправлено вашим контактам.",
+  "notifPinCorretoCronometroCorpo": "Пароль верный. Экстренное оповещение не отправлено.",
+  "notif3PinsCronometroCorpo": "Было 3 попытки отключить таймер с неверным паролем. Экстренное оповещение отправлено вашим контактам.",
+  "segurancaCronometroEmAndamento": "Предыдущий таймер ещё в периоде ожидания или его оповещение отправляется. Дождитесь окончания, прежде чем запускать новый.",
+  "pinCadastroNecessarioTitulo": "Задайте PIN",
+  "pinCadastroNecessarioConteudo": "Чтобы пользоваться этой функцией, сначала задайте 4-значный PIN в настройках.",
+  "cronometroAcaoDesligar": "Отключить экстренную тревогу",
+  "cronometroTelaInstrucao": "Введите PIN, чтобы отключить экстренную тревогу. Осталось: {tempo}"
 }

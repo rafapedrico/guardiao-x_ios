@@ -13,6 +13,7 @@ import '../../services/emergency_alert_service.dart';
 import '../../services/alarme_service.dart';
 import '../../services/background_location_heartbeat_service.dart';
 import '../../services/captura_dissuasao_service.dart';
+import '../../services/cronometro_ios_service.dart';
 import '../../services/historico_alertas_service.dart';
 import '../../services/sos_disparo_service.dart';
 import '../../services/sos_widget_fluxo_service.dart';
@@ -106,10 +107,25 @@ class _SegurancaTabState extends State<SegurancaTab> {
     // localização do Android, garantindo que o GPS esteja liberado antes
     // mesmo de o usuário ativar o cronômetro de check-in.
     _locationService.garantirPermissaoDeLocalizacao();
+
+    // iOS: o ciclo pode terminar fora desta aba (PIN na tela do fim do
+    // cronômetro, alerta no fim da tolerância) — a aba volta ao início.
+    CronometroIosService().ciclosEncerrados.addListener(_aoCicloEncerradoForaDaAba);
+  }
+
+  void _aoCicloEncerradoForaDaAba() {
+    if (!mounted || (!_isTimerAtivo && _timer == null)) return;
+    _cancelarTimerPrincipal();
+    _locationService.pararCicloDeAtualizacao();
+    setState(() {
+      _isTimerAtivo = false;
+      _segundosRestantes = 0;
+    });
   }
 
   @override
   void dispose() {
+    CronometroIosService().ciclosEncerrados.removeListener(_aoCicloEncerradoForaDaAba);
     _contextoController.dispose();
     _cancelarTodosOsTimers();
     // Interrompe o loop de atualização de localização (se ainda ativo) ao
@@ -297,6 +313,33 @@ class _SegurancaTabState extends State<SegurancaTab> {
     // do ciclo do Plano Free (ver PlanoCicloService), nunca um teto
     // numérico separado.
     if (!await garantirRecursoLiberadoOuExibirUpsell(context)) return;
+    if (!mounted) return;
+
+    // Sem PIN não há como desligar o alerta no fim (nunca um PIN padrão).
+    final config = await _db.getUserConfig();
+    final pin = config?['pin_real'] as String?;
+    if (!mounted) return;
+    if (pin == null || pin.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.pinCadastroNecessarioTitulo),
+          content: Text(l10n.pinCadastroNecessarioConteudo),
+          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l10n.fechar))],
+        ),
+      );
+      return;
+    }
+    // O ciclo anterior ainda está na tolerância (ou com o alerta saindo):
+    // reiniciar agora cancelaria na nuvem um alerta sem PIN.
+    if (await CronometroIosService().cicloEmAndamentoNaTolerancia()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.segurancaCronometroEmAndamento)),
+      );
+      return;
+    }
     if (!mounted) return;
 
     _carregarConfiguracoesSeguranca();

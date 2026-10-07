@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "Remise aux contacts",
   "historicoEntregaEntregue": "Remis",
   "historicoEntregaTentando": "Nouvelle tentative",
-  "historicoEntregaNaoEntregue": "Non remis"
+  "historicoEntregaNaoEntregue": "Non remis",
+  "cronometroNotificacaoCorpo": "Coupez l’alerte d’urgence — touchez pour saisir votre code PIN",
+  "cronometroNotificacaoTituloAlerta": "Minuteur de sécurité",
+  "notifCronometroExpiradoCorpo": "Le temps du minuteur s’est écoulé sans le mot de passe. L’alerte d’urgence a été envoyée à vos contacts.",
+  "notifPinCorretoCronometroCorpo": "Mot de passe correct. L’alerte d’urgence n’a pas été envoyée.",
+  "notif3PinsCronometroCorpo": "Il y a eu 3 tentatives d’arrêter le minuteur avec un mot de passe incorrect. L’alerte d’urgence a été envoyée à vos contacts.",
+  "segurancaCronometroEmAndamento": "Le minuteur précédent est encore dans son délai de tolérance ou son alerte est en cours d’envoi. Attendez la fin pour en lancer un autre.",
+  "pinCadastroNecessarioTitulo": "Enregistrez un code PIN",
+  "pinCadastroNecessarioConteudo": "Pour utiliser cette fonction, enregistrez d’abord votre code PIN à 4 chiffres dans les Paramètres.",
+  "cronometroAcaoDesligar": "Désactiver l'alerte d'urgence",
+  "cronometroTelaInstrucao": "Saisissez votre PIN pour désactiver l'alerte d'urgence. Temps restant : {tempo}"
 }

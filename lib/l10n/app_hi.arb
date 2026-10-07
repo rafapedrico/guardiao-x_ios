@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "संपर्कों तक डिलीवरी",
   "historicoEntregaEntregue": "पहुँच गया",
   "historicoEntregaTentando": "कोशिश जारी",
-  "historicoEntregaNaoEntregue": "नहीं पहुँचा"
+  "historicoEntregaNaoEntregue": "नहीं पहुँचा",
+  "cronometroNotificacaoCorpo": "आपातकालीन अलर्ट बंद करें — अपना PIN डालने के लिए टैप करें",
+  "cronometroNotificacaoTituloAlerta": "सुरक्षा टाइमर",
+  "notifCronometroExpiradoCorpo": "पासवर्ड डाले बिना टाइमर का समय समाप्त हो गया। आपातकालीन अलर्ट आपके संपर्कों को भेज दिया गया।",
+  "notifPinCorretoCronometroCorpo": "पासवर्ड सही है। आपातकालीन अलर्ट नहीं भेजा गया।",
+  "notif3PinsCronometroCorpo": "गलत पासवर्ड से टाइमर बंद करने के 3 प्रयास हुए। आपातकालीन अलर्ट आपके संपर्कों को भेज दिया गया।",
+  "segurancaCronometroEmAndamento": "पिछला टाइमर अभी भी छूट के समय में है या उसका अलर्ट भेजा जा रहा है। नया टाइमर शुरू करने से पहले उसके खत्म होने तक प्रतीक्षा करें।",
+  "pinCadastroNecessarioTitulo": "PIN सेट करें",
+  "pinCadastroNecessarioConteudo": "इस सुविधा का उपयोग करने के लिए, पहले सेटिंग्स में अपना 4 अंकों का PIN सेट करें।",
+  "cronometroAcaoDesligar": "आपातकालीन अलर्ट बंद करें",
+  "cronometroTelaInstrucao": "आपातकालीन अलर्ट बंद करने के लिए अपना PIN डालें। शेष समय: {tempo}"
 }

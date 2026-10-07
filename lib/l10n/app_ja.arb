@@ -1061,5 +1061,15 @@
   "historicoEntregaTitulo": "連絡先への配信",
   "historicoEntregaEntregue": "配信済み",
   "historicoEntregaTentando": "再試行中",
-  "historicoEntregaNaoEntregue": "未配信"
+  "historicoEntregaNaoEntregue": "未配信",
+  "cronometroNotificacaoCorpo": "緊急アラートを止めてください — タップしてPINを入力",
+  "cronometroNotificacaoTituloAlerta": "セキュリティタイマー",
+  "notifCronometroExpiradoCorpo": "パスワードが入力されないままタイマーの時間が終了しました。緊急アラートが連絡先に送信されました。",
+  "notifPinCorretoCronometroCorpo": "パスワードが正しいです。緊急アラートは送信されませんでした。",
+  "notif3PinsCronometroCorpo": "誤ったパスワードでタイマーを止めようとする試みが3回ありました。緊急アラートが連絡先に送信されました。",
+  "segurancaCronometroEmAndamento": "前のタイマーがまだ猶予時間中か、アラートを送信中です。終了してから新しいタイマーを開始してください。",
+  "pinCadastroNecessarioTitulo": "PINを登録してください",
+  "pinCadastroNecessarioConteudo": "この機能を使うには、まず設定で4桁のPINを登録してください。",
+  "cronometroAcaoDesligar": "緊急アラートを解除",
+  "cronometroTelaInstrucao": "PIN を入力して緊急アラートを解除してください。残り時間：{tempo}"
 }
