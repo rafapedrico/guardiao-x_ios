@@ -344,16 +344,12 @@ class BackgroundLocationHeartbeatService {
 
       if (candidatos.isEmpty && despertadores.isEmpty) return;
 
-      final precisaLocalizacao =
-          candidatos.any((c) => c.dentroDaJanelaDeLocalizacao) || despertadorNaJanela;
-      final posicao =
-          precisaLocalizacao ? await LocationService().capturarLocalizacaoAtual() : null;
+      // A posição vai só para `monitoramento/atual`, gravada pela sessão de
+      // localização (30 m / 5 min) — nunca em `alarmes_agendados`.
 
       final contatos = await _resolverContatosEmergencia();
 
       for (final candidato in candidatos) {
-        final incluirLocalizacao =
-            candidato.dentroDaJanelaDeLocalizacao && posicao != null;
 
         final modelo = AlarmeAgendadoModel(
           idAlarme: candidato.idAlarme,
@@ -363,9 +359,6 @@ class BackgroundLocationHeartbeatService {
           contatosEmergencia: contatos,
           etiqueta: candidato.etiqueta,
           contextoPersonalizado: candidato.contextoPersonalizado,
-          ultimaLocalizacao: incluirLocalizacao
-              ? UltimaLocalizacaoModel(lat: posicao.latitude, lng: posicao.longitude)
-              : null,
         );
 
         if (candidato.reiniciarComoPendente) {
@@ -380,9 +373,7 @@ class BackgroundLocationHeartbeatService {
         final modelo = await _modeloDoDespertador(
           despertador.alarme,
           usuarioId,
-          naJanelaDeLocalizacao(despertador.ocorrencia) && posicao != null
-              ? UltimaLocalizacaoModel(lat: posicao.latitude, lng: posicao.longitude)
-              : null,
+          null,
           ocorrencia: despertador.ocorrencia,
           contatos: contatos,
         );

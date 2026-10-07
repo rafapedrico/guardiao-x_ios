@@ -409,7 +409,7 @@ class FirebaseSyncService {
   }
 
   /// Sobrescreve (via merge, nunca acumula) a última localização
-  /// conhecida do usuário no documento `usuarios/{usuarioId}`. Deve ser
+  /// conhecida do usuário em `usuarios/{usuarioId}/monitoramento/atual`. Deve ser
   /// chamada periodicamente (a cada 1 minuto, ver
   /// [LocationService.iniciarCicloDeAtualizacao]) enquanto o
   /// monitoramento ativo estiver em andamento (cronômetro de Segurança ou
@@ -424,6 +424,7 @@ class FirebaseSyncService {
     required double longitude,
     double? precisao,
     String origem = 'app',
+    bool porDeslocamento = false,
   }) async {
     if (!_firebaseDisponivel) return;
     if (!await _podeUsarRecursoAvancado()) {
@@ -431,58 +432,34 @@ class FirebaseSyncService {
           'transmissão de localização em tempo real bloqueada.');
       return;
     }
+    // A posição vai SÓ para `usuarios/{uid}/monitoramento/atual` (sem cópia
+    // em `usuarios/{uid}` nem em `alarmes_agendados`, igual ao Android).
+    // [porDeslocamento] (cronômetro e despertador): só grava com 30 m ou
+    // mais desde a última gravação, ou a cada 5 min parado.
     if (Platform.isIOS) {
       await RastreamentoContinuoService().gravarPosicao(
         latitude: latitude,
         longitude: longitude,
         precisao: precisao,
         origem: origem,
+        porDeslocamento: porDeslocamento,
       );
       return;
     }
-    final agora = FieldValue.serverTimestamp();
-    try {
-      await _documentoUsuario.set(
-        {
-          'latitude': latitude,
-          'longitude': longitude,
-          'atualizadoEm': agora,
-        },
-        SetOptions(merge: true),
-      ).timeout(_timeoutFirestore);
-    } catch (e) {
-      debugPrint(
-          '⚠️ [FirebaseSyncService] Falha ao atualizar localização no Firestore: $e');
-    }
-
-    // Espelha a MESMA leitura de GPS em `usuarios/{uid}/monitoramento/atual`
-    // — documento SEPARADO do principal acima, com regra de leitura
-    // própria (ver firestore.rules) que permite acesso a qualquer usuário
-    // com permissão "aprovado" na aba Monitoramento (MonitoramentoService),
-    // sem expor os demais campos privados do documento principal
-    // (fcmToken). Best-effort e independente da escrita acima —
-    // uma falha aqui nunca deve impedir o heartbeat usado pelo alarme de
-    // pânico.
-    //
-    // Merge: sem ele, este `set` apagava os campos que o outro caminho grava
-    // no mesmo documento (`plataforma`, `rastreamentoContinuo`, `origem`,
-    // `precisao`). Este trecho nunca roda no iOS (o nativo grava acima e
-    // retorna), por isso `plataforma` é a real e não um "ios" fixo.
     try {
       await _documentoUsuario.collection('monitoramento').doc('atual').set(
         {
           'latitude': latitude,
           'longitude': longitude,
-          'atualizadoEm': agora,
+          'atualizadoEm': FieldValue.serverTimestamp(),
           'origem': origem,
-          'plataforma': Platform.isIOS ? 'ios' : Platform.operatingSystem,
+          'plataforma': Platform.operatingSystem,
           if (precisao != null) 'precisao': precisao,
         },
         SetOptions(merge: true),
       ).timeout(_timeoutFirestore);
     } catch (e) {
-      debugPrint(
-          '⚠️ [FirebaseSyncService] Falha ao espelhar localização para a aba Monitoramento: $e');
+      debugPrint('⚠️ [FirebaseSyncService] Falha ao gravar a localização em monitoramento/atual: $e');
     }
   }
 

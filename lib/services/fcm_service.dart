@@ -10,6 +10,7 @@ import '../firebase_options.dart';
 import '../screens/alerta_recebido_screen.dart';
 import '../widgets/monitoramento_decisao_dialog.dart';
 import 'alertas_recebidos_service.dart';
+import 'aviso_entrega_service.dart';
 import 'firebase_auth_service.dart';
 import 'firebase_sync_service.dart';
 import 'notificacao_service.dart';
@@ -436,6 +437,14 @@ class FcmService {
 
     if (tipo == _tipoAlertaEmergencia) {
       await _tratarAlertaEmergencia(data, exibirNotificacaoLocal: exibirNotificacaoLocal);
+      return;
+    }
+
+    if (tipo != null && AvisoEntregaService.tipos.contains(tipo)) {
+      // Aviso ao REMETENTE sobre a entrega do alerta a um contato:
+      // notificação visível com o título/corpo do servidor + status por
+      // contato no detalhe do alerta no Histórico.
+      await AvisoEntregaService.processar(data, exibirNotificacao: exibirNotificacaoLocal);
       return;
     }
 

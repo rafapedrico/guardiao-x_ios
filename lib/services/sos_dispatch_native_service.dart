@@ -64,6 +64,19 @@ class SosDispatchNativeService {
   /// começar, parado num `finally` assim que [corpo] terminar, com
   /// sucesso OU falha. Nunca deixa uma exceção de [corpo] impedir o
   /// `parar()` (o que deixaria o Service preso rodando).
+  /// Foto do SOS reduzida antes do upload: no máximo 1600 px no lado maior,
+  /// JPEG qualidade 75, na orientação certa (nativo). Sem o nativo ou se
+  /// falhar, devolve [caminho] (a original).
+  Future<String> reduzirFoto(String caminho) async {
+    try {
+      final reduzida = await _canal.invokeMethod<String>('reduzirFoto', {'caminho': caminho});
+      if (reduzida != null && reduzida.isNotEmpty) return reduzida;
+    } catch (e) {
+      debugPrint('⚠️ [SosDispatchNativeService] Falha ao reduzir a foto — usando a original: $e');
+    }
+    return caminho;
+  }
+
   Future<T> executarComServicoAtivo<T>(Future<T> Function() corpo) async {
     await _iniciar();
     try {

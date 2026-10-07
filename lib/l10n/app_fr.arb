@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "réactiver",
   "termosPrivacidadeTitulo8": "8. Conservation des données après la suppression du compte",
   "termosPrivacidadeCorpo8": "Lors de la suppression du compte, l’inscription, le code PIN et les contacts d’urgence sont effacés immédiatement. L’historique des alertes envoyées (date et heure, type, texte, localisations et photographies) est conservé pendant 30 jours, exclusivement à titre de preuve en cas d’incident ou de réquisition d’une autorité compétente, puis il est effacé définitivement.",
-  "historicoDetalheMotivo": "MOTIF"
+  "historicoDetalheMotivo": "MOTIF",
+  "historicoEntregaTitulo": "Remise aux contacts",
+  "historicoEntregaEntregue": "Remis",
+  "historicoEntregaTentando": "Nouvelle tentative",
+  "historicoEntregaNaoEntregue": "Non remis"
 }

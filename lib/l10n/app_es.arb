@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "reactivar",
   "termosPrivacidadeTitulo8": "8. Conservación de los datos tras la eliminación de la cuenta",
   "termosPrivacidadeCorpo8": "Al eliminar la cuenta, el registro, el PIN y los contactos de emergencia se borran de inmediato. El historial de alertas enviadas (fecha y hora, tipo, texto, ubicaciones y fotografías) se conserva durante 30 días, exclusivamente como prueba en caso de incidentes o de requerimiento de una autoridad competente, y después se borra definitivamente.",
-  "historicoDetalheMotivo": "MOTIVO"
+  "historicoDetalheMotivo": "MOTIVO",
+  "historicoEntregaTitulo": "Entrega a los contactos",
+  "historicoEntregaEntregue": "Entregado",
+  "historicoEntregaTentando": "Intentando",
+  "historicoEntregaNaoEntregue": "No entregado"
 }

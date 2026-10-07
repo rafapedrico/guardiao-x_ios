@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/aviso_entrega_service.dart';
+import '../services/database_helper.dart';
 import '../services/historico_alertas_service.dart';
 
 /// Rótulo e cor do status de envio de um alerta do Histórico.
@@ -166,6 +168,8 @@ class DetalheAlertaEnviadoScreen extends StatelessWidget {
                     ],
                   ),
           ),
+          if (evento['alerta_id'] != null && !TipoAlertaHistorico.semEnvio.contains(tipo))
+            _EntregasDoAlerta(alertaId: evento['alerta_id'] as String),
           if (motivo != null && motivo.isNotEmpty && motivo != contexto)
             secao(l10n.historicoDetalheMotivo, Text(motivo, style: const TextStyle(fontSize: 15))),
           if (contexto != null && contexto.isNotEmpty)
@@ -173,5 +177,97 @@ class DetalheAlertaEnviadoScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// "Entrega aos contatos": status de cada contato (avisos do servidor ao
+/// remetente, ver AvisoEntregaService), com o mesmo texto da notificação.
+class _EntregasDoAlerta extends StatelessWidget {
+  const _EntregasDoAlerta({required this.alertaId});
+
+  final String alertaId;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ValueListenableBuilder<int>(
+      valueListenable: DatabaseHelper.historicoAtualizadoNotifier,
+      builder: (context, _, __) => FutureBuilder<List<Map<String, dynamic>>>(
+        future: DatabaseHelper().entregasDoAlerta(alertaId),
+        builder: (context, snap) {
+          final entregas = snap.data ?? const [];
+          if (entregas.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.historicoEntregaTitulo.toUpperCase(),
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade600, letterSpacing: 0.5)),
+                const SizedBox(height: 6),
+                for (final e in entregas)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(_icone(e['status'] as String?), size: 18, color: _cor(e['status'] as String?)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${((e['nome'] as String?) ?? '').isNotEmpty ? '${e['nome']} — ' : ''}'
+                                '${_rotulo(e['status'] as String?, l10n)}',
+                                style: TextStyle(fontWeight: FontWeight.w600, color: _cor(e['status'] as String?)),
+                              ),
+                              if (((e['texto'] as String?) ?? '').isNotEmpty) Text(e['texto'] as String),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  static String _rotulo(String? status, AppLocalizations l10n) {
+    switch (status) {
+      case StatusEntregaContato.entregue:
+        return l10n.historicoEntregaEntregue;
+      case StatusEntregaContato.naoEntregue:
+        return l10n.historicoEntregaNaoEntregue;
+      default:
+        return l10n.historicoEntregaTentando;
+    }
+  }
+
+  static Color _cor(String? status) {
+    switch (status) {
+      case StatusEntregaContato.entregue:
+        return Colors.green.shade700;
+      case StatusEntregaContato.naoEntregue:
+        return Colors.red.shade700;
+      default:
+        return Colors.orange.shade800;
+    }
+  }
+
+  static IconData _icone(String? status) {
+    switch (status) {
+      case StatusEntregaContato.entregue:
+        return Icons.check_circle;
+      case StatusEntregaContato.naoEntregue:
+        return Icons.cancel;
+      default:
+        return Icons.schedule;
+    }
   }
 }

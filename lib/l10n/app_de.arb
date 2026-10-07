@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "reaktivieren",
   "termosPrivacidadeTitulo8": "8. Aufbewahrung der Daten nach dem Löschen des Kontos",
   "termosPrivacidadeCorpo8": "Beim Löschen des Kontos werden die Registrierung, die PIN und die Notfallkontakte sofort gelöscht. Der Verlauf der gesendeten Alarme (Datum und Uhrzeit, Typ, Text, Standorte und Fotos) wird 30 Tage lang aufbewahrt, ausschließlich als Beweismittel bei Vorfällen oder auf Anordnung einer zuständigen Behörde, und danach endgültig gelöscht.",
-  "historicoDetalheMotivo": "GRUND"
+  "historicoDetalheMotivo": "GRUND",
+  "historicoEntregaTitulo": "Zustellung an die Kontakte",
+  "historicoEntregaEntregue": "Zugestellt",
+  "historicoEntregaTentando": "Wird versucht",
+  "historicoEntregaNaoEntregue": "Nicht zugestellt"
 }

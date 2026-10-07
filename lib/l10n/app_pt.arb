@@ -1496,5 +1496,9 @@
   "familiaAcaoReativar": "reativar",
   "termosPrivacidadeTitulo8": "8. Retenção dos dados após a exclusão da conta",
   "termosPrivacidadeCorpo8": "Ao excluir a conta, o cadastro, o PIN e os contatos de emergência são apagados imediatamente. O histórico de alertas enviados (data e hora, tipo, texto, localizações e fotografias) fica guardado por 30 dias, exclusivamente para fins de prova em caso de incidentes ou de requisição de autoridade competente, e depois é apagado definitivamente.",
-  "historicoDetalheMotivo": "MOTIVO"
+  "historicoDetalheMotivo": "MOTIVO",
+  "historicoEntregaTitulo": "Entrega aos contatos",
+  "historicoEntregaEntregue": "Entregue",
+  "historicoEntregaTentando": "Tentando",
+  "historicoEntregaNaoEntregue": "Não entregue"
 }

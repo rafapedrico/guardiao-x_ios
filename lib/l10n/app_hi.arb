@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "फिर से चालू करना",
   "termosPrivacidadeTitulo8": "8. खाता हटाने के बाद डेटा का संग्रहण",
   "termosPrivacidadeCorpo8": "खाता हटाने पर पंजीकरण, PIN और आपातकालीन संपर्क तुरंत मिटा दिए जाते हैं। भेजे गए अलर्ट का इतिहास (तारीख और समय, प्रकार, टेक्स्ट, स्थान और तस्वीरें) 30 दिनों तक रखा जाता है, केवल घटनाओं के मामले में सबूत के लिए या सक्षम प्राधिकारी के अनुरोध पर, और फिर स्थायी रूप से मिटा दिया जाता है।",
-  "historicoDetalheMotivo": "कारण"
+  "historicoDetalheMotivo": "कारण",
+  "historicoEntregaTitulo": "संपर्कों तक डिलीवरी",
+  "historicoEntregaEntregue": "पहुँच गया",
+  "historicoEntregaTentando": "कोशिश जारी",
+  "historicoEntregaNaoEntregue": "नहीं पहुँचा"
 }

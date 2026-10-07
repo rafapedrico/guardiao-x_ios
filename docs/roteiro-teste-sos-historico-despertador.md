@@ -126,3 +126,18 @@ Sem contato de emergência: o "+" fica cinza e leva a Configurações.
    PENDENTE, com `pausadoAte` = 00h00 de amanhã.
 6. Trocar o som em Configurações grava `usuarios/{uid}.somAlerta = "som_N"`.
 7. Termos e Privacidade: seção 8, retenção de 30 dias.
+
+## 9. Alinhamento final (localização, foto, avisos de entrega)
+
+1. Cronômetro ou despertador ativo: a posição aparece só em
+   `usuarios/{uid}/monitoramento/atual` — nada novo em `usuarios/{uid}`
+   (latitude/longitude) nem em `alarmes_agendados/...ultimaLocalizacao`.
+   Parado, uma gravação a cada ~5 min; andando, a cada 30 m ou mais.
+2. Rastreamento contínuo: mesmos intervalos de antes, também só em
+   `monitoramento/atual`.
+3. Foto do SOS no Storage: lado maior ≤ 1600 px, JPEG, em pé (sem girar);
+   a miniatura do Histórico e a foto da fila de reenvio são a reduzida.
+4. Depois de um SOS, os avisos do servidor ("{nome} ainda não recebeu…",
+   "{nome} recebeu seu alerta.", "Não foi possível entregar…") chegam como
+   notificação; no detalhe do alerta, "Entrega aos contatos" mostra cada
+   contato com Entregue / Tentando / Não entregue e o texto do aviso.

@@ -324,6 +324,7 @@ class RastreamentoContinuoService {
     required double longitude,
     double? precisao,
     required String origem,
+    bool porDeslocamento = false,
   }) async {
     try {
       return await _canal.invokeMethod<bool>('gravarPosicao', {
@@ -331,6 +332,7 @@ class RastreamentoContinuoService {
             'longitude': longitude,
             'precisao': precisao,
             'origem': origem,
+            'porDeslocamento': porDeslocamento,
           }) ??
           false;
     } catch (e) {

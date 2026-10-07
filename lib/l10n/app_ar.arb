@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "إعادة التفعيل",
   "termosPrivacidadeTitulo8": "8. الاحتفاظ بالبيانات بعد حذف الحساب",
   "termosPrivacidadeCorpo8": "عند حذف الحساب، يتم مسح بيانات التسجيل ورمز PIN وجهات اتصال الطوارئ فورًا. يُحتفظ بسجل التنبيهات المرسلة (التاريخ والوقت والنوع والنص والمواقع والصور) لمدة 30 يومًا، حصريًا كدليل في حال وقوع حوادث أو بناءً على طلب جهة مختصة، ثم يُمسح نهائيًا.",
-  "historicoDetalheMotivo": "السبب"
+  "historicoDetalheMotivo": "السبب",
+  "historicoEntregaTitulo": "التسليم إلى جهات الاتصال",
+  "historicoEntregaEntregue": "تم التسليم",
+  "historicoEntregaTentando": "جارٍ المحاولة",
+  "historicoEntregaNaoEntregue": "لم يتم التسليم"
 }

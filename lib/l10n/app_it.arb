@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "riattivare",
   "termosPrivacidadeTitulo8": "8. Conservazione dei dati dopo l’eliminazione dell’account",
   "termosPrivacidadeCorpo8": "Quando l’account viene eliminato, la registrazione, il PIN e i contatti di emergenza vengono cancellati immediatamente. La cronologia delle allerte inviate (data e ora, tipo, testo, posizioni e fotografie) viene conservata per 30 giorni, esclusivamente come prova in caso di incidenti o di richiesta di un’autorità competente, e poi viene cancellata definitivamente.",
-  "historicoDetalheMotivo": "MOTIVO"
+  "historicoDetalheMotivo": "MOTIVO",
+  "historicoEntregaTitulo": "Consegna ai contatti",
+  "historicoEntregaEntregue": "Consegnato",
+  "historicoEntregaTentando": "In corso",
+  "historicoEntregaNaoEntregue": "Non consegnato"
 }

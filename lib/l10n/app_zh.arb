@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "重新启用",
   "termosPrivacidadeTitulo8": "8. 删除账户后的数据保留",
   "termosPrivacidadeCorpo8": "删除账户时，注册信息、PIN和紧急联系人会立即清除。已发送警报的历史记录（日期和时间、类型、文本、位置和照片）将保存30天，仅用于发生事件时作为证据或应主管机关的要求，之后将被永久清除。",
-  "historicoDetalheMotivo": "原因"
+  "historicoDetalheMotivo": "原因",
+  "historicoEntregaTitulo": "送达联系人",
+  "historicoEntregaEntregue": "已送达",
+  "historicoEntregaTentando": "正在尝试",
+  "historicoEntregaNaoEntregue": "未送达"
 }

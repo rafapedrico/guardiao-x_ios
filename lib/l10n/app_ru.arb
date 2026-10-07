@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "включить снова",
   "termosPrivacidadeTitulo8": "8. Хранение данных после удаления аккаунта",
   "termosPrivacidadeCorpo8": "При удалении аккаунта регистрационные данные, PIN и экстренные контакты удаляются сразу. История отправленных оповещений (дата и время, тип, текст, геопозиции и фотографии) хранится 30 дней исключительно в качестве доказательства в случае происшествий или по запросу уполномоченного органа, после чего удаляется окончательно.",
-  "historicoDetalheMotivo": "ПРИЧИНА"
+  "historicoDetalheMotivo": "ПРИЧИНА",
+  "historicoEntregaTitulo": "Доставка контактам",
+  "historicoEntregaEntregue": "Доставлено",
+  "historicoEntregaTentando": "Повторная попытка",
+  "historicoEntregaNaoEntregue": "Не доставлено"
 }

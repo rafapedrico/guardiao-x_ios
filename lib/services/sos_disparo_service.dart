@@ -472,8 +472,11 @@ class SosDisparoService {
   ///     [RetryUploadService]; gravação que não confirma a tempo continua na
   ///     fila do próprio Firestore. Nos dois casos o fluxo segue.
   /// Retorna `true` só quando a foto chegou ao servidor dentro do limite.
-  Future<bool> dispararFotoDoSos(XFile foto, {required String origem, String? alertaId}) async {
+  Future<bool> dispararFotoDoSos(XFile fotoOriginal, {required String origem, String? alertaId}) async {
     final inicio = DateTime.now();
+    // Reduzida (1600 px, JPEG 75, orientação certa): é ela que vai ao
+    // Storage, à cópia do Histórico e à fila de reenvio.
+    final foto = XFile(await SosDispatchNativeService().reduzirFoto(fotoOriginal.path));
     Duration restante() {
       final r = _limiteFoto - DateTime.now().difference(inicio);
       return r < const Duration(seconds: 1) ? const Duration(seconds: 1) : r;

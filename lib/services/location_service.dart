@@ -211,6 +211,7 @@ class LocationService {
       longitude: posicao.longitude,
       precisao: posicao.accuracy,
       origem: 'cronometro',
+      porDeslocamento: true,
     );
   }
 

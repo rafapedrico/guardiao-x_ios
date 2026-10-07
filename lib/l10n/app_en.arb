@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "reactivate",
   "termosPrivacidadeTitulo8": "8. Data retention after account deletion",
   "termosPrivacidadeCorpo8": "When the account is deleted, the registration, the PIN and the emergency contacts are erased immediately. The history of sent alerts (date and time, type, text, locations and photographs) is kept for 30 days, exclusively as evidence in case of incidents or requests from a competent authority, and is then permanently erased.",
-  "historicoDetalheMotivo": "REASON"
+  "historicoDetalheMotivo": "REASON",
+  "historicoEntregaTitulo": "Delivery to contacts",
+  "historicoEntregaEntregue": "Delivered",
+  "historicoEntregaTentando": "Trying",
+  "historicoEntregaNaoEntregue": "Not delivered"
 }

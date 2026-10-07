@@ -229,8 +229,18 @@ final class RastreamentoContinuo: NSObject, CLLocationManagerDelegate {
 
   /// Gravação pedida pelo Dart (aceite de solicitação, cronômetro, SOS) —
   /// mesmo formato de documento da gravação nativa.
+  /// [porDeslocamento] (cronômetro e despertador): só grava com 30 m ou mais
+  /// desde a última gravação (do app ou do rastreamento) ou a cada 5 min
+  /// parado.
   func gravarPeloApp(latitude: Double, longitude: Double, precisao: Double?, origem: String,
+                     porDeslocamento: Bool = false,
                      conclusao: @escaping (Bool) -> Void) {
+    if porDeslocamento, let motivo = motivoSemDeslocamento(latitude: latitude, longitude: longitude) {
+      registrar(origem: origem, gravou: false, motivo: motivo,
+                latitude: latitude, longitude: longitude, precisao: precisao)
+      conclusao(true)
+      return
+    }
     gravarPosicao(
       latitude: latitude, longitude: longitude, precisao: precisao, origem: origem,
       atividade: atividadeAtual, doApp: true
@@ -620,50 +630,43 @@ final class RastreamentoContinuo: NSObject, CLLocationManagerDelegate {
 
   /// Despertador de check-in (ver DespertadorPlugin em AppDelegate.swift):
   /// dentro da janela de um despertador (2 h antes até o fim da
-  /// tolerância), toda posição recebida — inclusive com o app reaberto pelo
-  /// sistema por mudança significativa ou visita — também sobrescreve
-  /// `alarmes_agendados/{doc}.ultimaLocalizacao`, no máximo a cada 60 s.
-  /// Fora da janela, nada vai para o despertador.
+  /// tolerância), uma posição recebida com o rastreamento desligado —
+  /// inclusive com o app reaberto pelo sistema por mudança significativa ou
+  /// visita — também é gravada em `monitoramento/atual`, com a regra de
+  /// 30 m / 5 min. Com o rastreamento ligado, a gravação normal já cobre.
+  /// Fora da janela, nada é gravado para o despertador.
   private func gravarNoDespertadorSeNaJanela(_ local: CLLocation) {
+    guard !monitoresAtivos else { return }
     let agoraMs = Date().timeIntervalSince1970 * 1000
     let janelas = defaults.array(forKey: DespertadorPlugin.chaveJanelas) as? [[String: Any]] ?? []
-    let documentos = janelas.compactMap { janela -> String? in
-      guard let doc = janela["doc"] as? String,
-            let inicio = (janela["inicioMs"] as? NSNumber)?.doubleValue,
-            let fim = (janela["fimMs"] as? NSNumber)?.doubleValue,
-            agoraMs >= inicio, agoraMs <= fim else { return nil }
-      return doc
+    let naJanela = janelas.contains { janela in
+      guard let inicio = (janela["inicioMs"] as? NSNumber)?.doubleValue,
+            let fim = (janela["fimMs"] as? NSNumber)?.doubleValue else { return false }
+      return agoraMs >= inicio && agoraMs <= fim
     }
-    guard !documentos.isEmpty else { return }
-    let chave = "gx_despertador_ultima_gravacao"
-    if let ultima = defaults.object(forKey: chave) as? Double, agoraMs - ultima < 55_000 { return }
-    defaults.set(agoraMs, forKey: chave)
+    guard naJanela else { return }
     let tarefa = UIApplication.shared.beginBackgroundTask(withName: "gx_despertador_posicao", expirationHandler: nil)
-    comToken(exigirContaConfigurada: false, { _, token, projeto in
-      let escritas: [[String: Any]] = documentos.map { doc in
-        [
-          "update": [
-            "name": "projects/\(projeto)/databases/(default)/documents/alarmes_agendados/\(doc)",
-            "fields": [
-              "ultimaLocalizacao": ["mapValue": ["fields": [
-                "lat": ["doubleValue": local.coordinate.latitude],
-                "lng": ["doubleValue": local.coordinate.longitude],
-              ]]],
-            ],
-          ],
-          "updateMask": ["fieldPaths": ["ultimaLocalizacao.lat", "ultimaLocalizacao.lng"]],
-          "updateTransforms": [["fieldPath": "ultimaLocalizacao.timestamp", "setToServerValue": "REQUEST_TIME"]],
-          "currentDocument": ["exists": true],
-        ]
-      }
-      self.commit(projeto: projeto, token: token, escritas: escritas) { ok, motivo in
-        self.registrar(origem: "despertador", gravou: ok, motivo: motivo, local: local)
-        if tarefa != .invalid { UIApplication.shared.endBackgroundTask(tarefa) }
-      }
-    }, falha: { motivo in
-      self.registrar(origem: "despertador", gravou: false, motivo: motivo, local: local)
+    gravarPeloApp(
+      latitude: local.coordinate.latitude, longitude: local.coordinate.longitude,
+      precisao: local.horizontalAccuracy, origem: "despertador", porDeslocamento: true
+    ) { _ in
       if tarefa != .invalid { UIApplication.shared.endBackgroundTask(tarefa) }
-    })
+    }
+  }
+
+  /// Regra do cronômetro e do despertador: grava só com deslocamento de
+  /// 30 m ou mais, ou depois de 5 min sem gravar.
+  private func motivoSemDeslocamento(latitude: Double, longitude: Double) -> String? {
+    guard let ultima = defaults.dictionary(forKey: Chave.ultimaGravacao),
+      let ts = ultima["ts"] as? Double, let lat = ultima["lat"] as? Double, let lng = ultima["lng"] as? Double
+    else { return nil }
+    let decorrido = Date().timeIntervalSince1970 - ts
+    let distancia = CLLocation(latitude: latitude, longitude: longitude)
+      .distance(from: CLLocation(latitude: lat, longitude: lng))
+    if distancia < 30 && decorrido < 5 * 60 {
+      return "andou \(Int(distancia)) m (< 30 m) e gravou há \(Int(decorrido)) s"
+    }
+    return nil
   }
 
   private func marcarGravacao(latitude: Double, longitude: Double) {
@@ -813,15 +816,11 @@ final class RastreamentoContinuo: NSObject, CLLocationManagerDelegate {
       return
     }
     comToken(exigirContaConfigurada: !doApp, { uid, token, projeto in
+      // Só `monitoramento/atual` — a posição não é mais copiada em
+      // `usuarios/{uid}` (igual ao Android).
       let base = "projects/\(projeto)/databases/(default)/documents/usuarios/\(uid)"
       let horario: [[String: Any]] = [["fieldPath": "atualizadoEm", "setToServerValue": "REQUEST_TIME"]]
-      let camposUsuario = DocumentoPosicao.camposUsuario(latitude: latitude, longitude: longitude)
       let escritas: [[String: Any]] = [
-        [
-          "update": ["name": base, "fields": camposUsuario],
-          "updateMask": ["fieldPaths": Array(camposUsuario.keys)],
-          "updateTransforms": horario,
-        ],
         [
           "update": [
             "name": "\(base)/monitoramento/atual",
@@ -1020,7 +1019,8 @@ final class RastreamentoPlugin: NSObject, FlutterPlugin {
       }
       rastreamento.gravarPeloApp(
         latitude: lat, longitude: lng, precisao: (args["precisao"] as? NSNumber)?.doubleValue,
-        origem: args["origem"] as? String ?? "app"
+        origem: args["origem"] as? String ?? "app",
+        porDeslocamento: args["porDeslocamento"] as? Bool ?? false
       ) { resultado($0) }
     default:
       resultado(FlutterMethodNotImplemented)

@@ -103,6 +103,16 @@ final class SosDispatchPlugin: NSObject, FlutterPlugin {
       case "parar":
         instancia.parar()
         resultado(nil)
+      case "reduzirFoto":
+        guard let argumentos = chamada.arguments as? [String: Any],
+              let caminho = argumentos["caminho"] as? String else {
+          resultado(nil)
+          return
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+          let reduzida = SosDispatchPlugin.reduzirFoto(caminho)
+          DispatchQueue.main.async { resultado(reduzida) }
+        }
       default:
         resultado(FlutterMethodNotImplemented)
       }
@@ -127,6 +137,33 @@ final class SosDispatchPlugin: NSObject, FlutterPlugin {
   private func parar() {
     envios = max(0, envios - 1)
     if envios == 0 { encerrarTarefa() }
+  }
+
+  /// Foto do SOS antes do upload: no máximo 1600 px no lado maior, JPEG
+  /// qualidade 75, já na orientação certa (a orientação do EXIF é aplicada
+  /// aos pixels). Devolve o caminho do arquivo novo, ou `nil` se falhar.
+  static func reduzirFoto(_ caminho: String) -> String? {
+    guard let imagem = UIImage(contentsOfFile: caminho) else { return nil }
+    let ladoMaior = max(imagem.size.width, imagem.size.height)
+    guard ladoMaior > 0 else { return nil }
+    let escala = min(1, 1600 / ladoMaior)
+    let tamanho = CGSize(width: (imagem.size.width * escala).rounded(),
+                         height: (imagem.size.height * escala).rounded())
+    let formato = UIGraphicsImageRendererFormat.default()
+    formato.scale = 1
+    formato.opaque = true
+    let desenhada = UIGraphicsImageRenderer(size: tamanho, format: formato).image { _ in
+      imagem.draw(in: CGRect(origin: .zero, size: tamanho))
+    }
+    guard let dados = desenhada.jpegData(compressionQuality: 0.75) else { return nil }
+    let destino = (NSTemporaryDirectory() as NSString)
+      .appendingPathComponent("sos_\(Int(Date().timeIntervalSince1970 * 1000)).jpg")
+    do {
+      try dados.write(to: URL(fileURLWithPath: destino), options: .atomic)
+      return destino
+    } catch {
+      return nil
+    }
   }
 
   private func encerrarTarefa() {

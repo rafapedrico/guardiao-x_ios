@@ -1057,5 +1057,9 @@
   "familiaAcaoReativar": "再開",
   "termosPrivacidadeTitulo8": "8. アカウント削除後のデータ保持",
   "termosPrivacidadeCorpo8": "アカウントを削除すると、登録情報、PIN、緊急連絡先は直ちに消去されます。送信したアラートの履歴（日時、種類、テキスト、位置情報、写真）は、事故の際の証拠または権限のある当局の要請のためだけに30日間保管され、その後完全に消去されます。",
-  "historicoDetalheMotivo": "理由"
+  "historicoDetalheMotivo": "理由",
+  "historicoEntregaTitulo": "連絡先への配信",
+  "historicoEntregaEntregue": "配信済み",
+  "historicoEntregaTentando": "再試行中",
+  "historicoEntregaNaoEntregue": "未配信"
 }
