@@ -664,7 +664,7 @@
   "somNome7": "सुरक्षा हॉर्न",
   "somNome8": "औद्योगिक अलार्म",
   "somNome9": "पुलिस सायरन",
-  "somNome10": "बीप अलार्म",
+  "somNome10": "सायरन",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta}: सहनशीलता समय समाप्त होने के बाद भी, अंतिम 60 सेकंड की समय सीमा के भीतर नियमित चेक-इन की पुष्टि नहीं हुई।",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}: नियमित अलार्म का चेक-इन कन्फ़र्म करने की कोशिश करते समय पिन लगातार 3 बार गलत डाला गया।",
   "@historicoCheckinRotinaPinIncorretoMotivo": {

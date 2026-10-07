@@ -664,7 +664,7 @@
   "somNome7": "Bocina de Seguridad",
   "somNome8": "Alarma Industrial",
   "somNome9": "Sirena Policial",
-  "somNome10": "Alarma de pitidos",
+  "somNome10": "Sirena",
   "historicoCheckinRotinaFalhaMotivo": "El check-in de rutina de {etiqueta} no fue confirmado dentro del plazo final de 60 segundos, incluso después de que ya había expirado el tiempo de tolerancia.",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}: el PIN se ingresó incorrectamente 3 veces seguidas al intentar confirmar el check-in de la alarma de rutina.",
   "@historicoCheckinRotinaPinIncorretoMotivo": {

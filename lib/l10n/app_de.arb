@@ -664,7 +664,7 @@
   "somNome7": "Sicherheitshupe",
   "somNome8": "Industriealarm",
   "somNome9": "Polizeisirene",
-  "somNome10": "Piepalarm",
+  "somNome10": "Sirene",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta}: Der Routine-Check-in wurde nicht innerhalb der letzten 60-Sekunden-Frist bestätigt, selbst nachdem die Toleranzzeit bereits abgelaufen war.",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}: Die PIN wurde beim Versuch, den Check-in des Routine-Alarms zu bestätigen, 3-mal hintereinander falsch eingegeben.",
   "@historicoCheckinRotinaPinIncorretoMotivo": {

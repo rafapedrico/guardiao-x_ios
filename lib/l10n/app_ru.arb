@@ -664,7 +664,7 @@
   "somNome7": "Сигнал безопасности",
   "somNome8": "Промышленная сигнализация",
   "somNome9": "Полицейская сирена",
-  "somNome10": "Сигнал-бип",
+  "somNome10": "Сирена",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta}: плановая проверка не была подтверждена в течение последних 60 секунд, даже после истечения времени ожидания.",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}: PIN-код был введён неверно 3 раза подряд при попытке подтвердить плановую проверку будильника.",
   "@historicoCheckinRotinaPinIncorretoMotivo": {

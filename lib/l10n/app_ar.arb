@@ -664,7 +664,7 @@
   "somNome7": "بوق الأمان",
   "somNome8": "إنذار صناعي",
   "somNome9": "صفارة الشرطة",
-  "somNome10": "منبه صفير",
+  "somNome10": "صفارة إنذار",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta}: لم يتم تأكيد تسجيل الوصول الروتيني خلال المهلة الأخيرة البالغة 60 ثانية، حتى بعد انتهاء وقت التسامح بالفعل.",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}: تم إدخال رمز PIN بشكل غير صحيح 3 مرات متتالية أثناء محاولة تأكيد تسجيل الوصول لمنبه الروتين.",
   "@historicoCheckinRotinaPinIncorretoMotivo": {
