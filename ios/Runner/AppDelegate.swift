@@ -3,6 +3,7 @@ import Flutter
 import UIKit
 import WidgetKit
 #if canImport(AlarmKit)
+import ActivityKit
 import AlarmKit
 import AppIntents
 #endif

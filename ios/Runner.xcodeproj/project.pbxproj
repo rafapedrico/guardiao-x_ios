@@ -563,6 +563,8 @@
 					"-weak_framework",
 					AlarmKit,
 					"-weak_framework",
+					ActivityKit,
+					"-weak_framework",
 					AppIntents,
 				);
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -841,6 +843,8 @@
 					"-weak_framework",
 					AlarmKit,
 					"-weak_framework",
+					ActivityKit,
+					"-weak_framework",
 					AppIntents,
 				);
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -873,6 +877,8 @@
 					"$(inherited)",
 					"-weak_framework",
 					AlarmKit,
+					"-weak_framework",
+					ActivityKit,
 					"-weak_framework",
 					AppIntents,
 				);
