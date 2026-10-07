@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "Timer gestartet",
   "historicoTipoCronometroDesarmado": "Timer mit der richtigen PIN entschärft",
   "historicoTipoDespertadorConfirmado": "Wecker mit der richtigen PIN bestätigt",
-  "historicoTipoDespertadorExpirado": "Alarm: Wecker nicht rechtzeitig bestätigt",
+  "historicoTipoDespertadorExpirado": "Weckeralarm",
   "historicoTipoDespertadorPinIncorreto": "Alarm: 3-mal falsche PIN beim Wecker",
   "historicoTipoDespertadorTentativaApagar": "Alarm: Versuch, den Wecker mit falscher PIN zu löschen/pausieren",
   "historicoTipoAlertaServidor": "Alarm vom Server gesendet",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "Lege in den Einstellungen eine PIN fest, um diese Aktion zu bestätigen.",
   "despertadorTentativaApagarMotivo": "PIN 3-mal hintereinander falsch eingegeben beim Versuch, einen Wecker zu {acao}.",
   "despertadorApagarBotao": "Löschen",
-  "familiaAcaoReativar": "reaktivieren"
+  "familiaAcaoReativar": "reaktivieren",
+  "termosPrivacidadeTitulo8": "8. Aufbewahrung der Daten nach dem Löschen des Kontos",
+  "termosPrivacidadeCorpo8": "Beim Löschen des Kontos werden die Registrierung, die PIN und die Notfallkontakte sofort gelöscht. Der Verlauf der gesendeten Alarme (Datum und Uhrzeit, Typ, Text, Standorte und Fotos) wird 30 Tage lang aufbewahrt, ausschließlich als Beweismittel bei Vorfällen oder auf Anordnung einer zuständigen Behörde, und danach endgültig gelöscht.",
+  "historicoDetalheMotivo": "GRUND"
 }

@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "タイマーを開始しました",
   "historicoTipoCronometroDesarmado": "正しい PIN でタイマーを解除しました",
   "historicoTipoDespertadorConfirmado": "正しい PIN でアラームを確認しました",
-  "historicoTipoDespertadorExpirado": "アラート：アラームが時間内に確認されませんでした",
+  "historicoTipoDespertadorExpirado": "アラームのアラート",
   "historicoTipoDespertadorPinIncorreto": "アラート：アラームで PIN を 3 回間違えました",
   "historicoTipoDespertadorTentativaApagar": "アラート：誤ったパスワードでアラームの削除/一時停止が試みられました",
   "historicoTipoAlertaServidor": "サーバーが送信したアラート",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "この操作を確認するには設定で PIN を設定してください。",
   "despertadorTentativaApagarMotivo": "アラームを{acao}しようとして PIN を 3 回続けて間違えました。",
   "despertadorApagarBotao": "削除",
-  "familiaAcaoReativar": "再開"
+  "familiaAcaoReativar": "再開",
+  "termosPrivacidadeTitulo8": "8. アカウント削除後のデータ保持",
+  "termosPrivacidadeCorpo8": "アカウントを削除すると、登録情報、PIN、緊急連絡先は直ちに消去されます。送信したアラートの履歴（日時、種類、テキスト、位置情報、写真）は、事故の際の証拠または権限のある当局の要請のためだけに30日間保管され、その後完全に消去されます。",
+  "historicoDetalheMotivo": "理由"
 }

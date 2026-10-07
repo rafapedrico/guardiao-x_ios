@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:security_check_app/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../app_navigator.dart';
 import '../../services/database_helper.dart';
+import '../../services/despertador_ios_service.dart';
 import '../../services/device_admin_service.dart';
 import '../../services/wallpaper_service.dart';
 import '../../services/font_scale_service.dart';
@@ -309,6 +313,10 @@ Future<void> _selecionarSom(int? numero) async {
     setState(() => _somSelecionado = numero);
     await _alarmeSonoroService.salvarSomSelecionado(numero);
     await _db.salvarSomAlarmeSelecionado(numero);
+    // `somAlerta: "som_N"` no perfil (igual ao Android) e o toque do
+    // despertador do iOS com o som novo.
+    unawaited(FirebaseSyncService().salvarSomAlerta(numero));
+    if (Platform.isIOS) unawaited(DespertadorIosService().reagendar());
 
     // 🟢 GRAVAÇÃO DIRETA NO SHAREDPREFERENCES PARA O BOTÃO AZUL LER:
     final prefs = await SharedPreferences.getInstance();

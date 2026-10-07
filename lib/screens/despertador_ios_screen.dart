@@ -150,7 +150,7 @@ class _DespertadorIosScreenState extends State<DespertadorIosScreen>
           Navigator.of(context).pop();
         }
         _dialogoAberto = false;
-        await _enviarAlerta(TipoAlertaHistorico.despertadorPinIncorreto);
+        await _enviarAlerta(porPinErrado: true);
       },
     );
     _dialogoAberto = false;
@@ -200,10 +200,12 @@ class _DespertadorIosScreenState extends State<DespertadorIosScreen>
       if (mounted) setState(() => _alertaEnviado = true);
       return;
     }
-    await _enviarAlerta(TipoAlertaHistorico.despertadorExpirado);
+    await _enviarAlerta();
   }
 
-  Future<void> _enviarAlerta(String tipo) async {
+  /// Alerta `despertador_expirado` (tempo esgotado ou 3 PINs errados — o
+  /// motivo diz qual).
+  Future<void> _enviarAlerta({bool porPinErrado = false}) async {
     if (_encerrado) return;
     _encerrado = true;
     _timerTolerancia?.cancel();
@@ -212,7 +214,7 @@ class _DespertadorIosScreenState extends State<DespertadorIosScreen>
         CicloDespertador.ocorrenciaDoCiclo(_alarme ?? {'id': widget.idAlarme}, widget.ciclo);
     final l10n = await _l10n();
     final etiqueta = _etiqueta(l10n);
-    final motivo = tipo == TipoAlertaHistorico.despertadorPinIncorreto
+    final motivo = porPinErrado
         ? l10n.historicoCheckinRotinaPinIncorretoMotivo(etiqueta)
         : l10n.historicoCheckinRotinaFalhaMotivo(etiqueta);
 
@@ -228,8 +230,9 @@ class _DespertadorIosScreenState extends State<DespertadorIosScreen>
     if (mounted) setState(() => _alertaEnviado = true);
 
     await HistoricoAlertasService().dispararAlertaCronometro(
-      tipo: tipo,
+      tipo: TipoAlertaHistorico.despertadorExpirado,
       motivo: motivo,
+      contexto: (_alarme?['contexto_personalizado'] as String?) ?? '',
       posicao: LocationService().ultimaPosicao,
       eventoId: ocorrencia.eventoId,
     );

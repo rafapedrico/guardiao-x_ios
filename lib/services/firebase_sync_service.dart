@@ -545,8 +545,11 @@ class FirebaseSyncService {
       return false;
     }
     try {
-      await _documentoUsuario.collection('alertas').add({
+      final doc = _documentoUsuario.collection('alertas').doc();
+      await doc.set({
         'tipo': 'sos_fisico',
+        'alertaId': doc.id,
+        'contextoPersonalizado': '',
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         'origem': origem,
@@ -589,6 +592,7 @@ class FirebaseSyncService {
     double? longitude,
     double? precisao,
     required String origem,
+    String? contextoPersonalizado,
     required VoidCallback aoDemorarOuFalhar,
     int tentativasMaximas = 40,
   }) async {
@@ -597,10 +601,12 @@ class FirebaseSyncService {
     final referencia = alertaId != null ? colecao.doc(alertaId) : colecao.doc();
     final dados = <String, dynamic>{
       'tipo': 'sos_fisico',
+      'alertaId': referencia.id,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (precisao != null) 'precisao': precisao,
       'origem': origem,
+      'contextoPersonalizado': (contextoPersonalizado ?? '').trim(),
       'criadoEm': FieldValue.serverTimestamp(),
       'processado': false,
     };
@@ -660,11 +666,16 @@ class FirebaseSyncService {
       return false;
     }
     try {
-      await _documentoUsuario.collection('alertas').add({
+      // Id `{alertaId}_foto` (igual ao Android): o reenvio da mesma foto
+      // nunca cria um segundo documento (e um segundo Push).
+      final colecao = _documentoUsuario.collection('alertas');
+      final doc = alertaId != null ? colecao.doc('${alertaId}_foto') : colecao.doc();
+      await doc.set({
         'tipo': 'sos_fisico_foto',
         'fotoUrl': fotoUrl,
         'origem': origem,
-        if (alertaId != null) 'alertaId': alertaId,
+        'alertaId': alertaId ?? doc.id,
+        'contextoPersonalizado': '',
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (precisao != null) 'precisao': precisao,
@@ -681,11 +692,50 @@ class FirebaseSyncService {
     }
   }
 
-  /// Alerta do cronômetro (tempo esgotado ou 3 PINs errados) com id fixo
-  /// [alertaId] — o mesmo da entrada do Histórico — e a posição do momento.
-  /// Mesmo documento `tentativa_desarme_incorreto` de
-  /// [dispararAlertaTentativaDesarmeIncorreto] (a Cloud Function trata
-  /// igual), com [subtipo] para o Histórico distinguir os dois casos.
+  /// Posição precisa que chegou depois do alerta [alertaId]: um documento
+  /// NOVO em `usuarios/{uid}/alertas/{alertaId}/atualizacoes_localizacao`
+  /// (só criação) — o alerta original nunca é alterado.
+  Future<void> registrarAtualizacaoLocalizacao({
+    required String alertaId,
+    required double latitude,
+    required double longitude,
+    double? precisao,
+  }) async {
+    if (!_firebaseDisponivel) return;
+    try {
+      await _documentoUsuario
+          .collection('alertas')
+          .doc(alertaId)
+          .collection('atualizacoes_localizacao')
+          .add({
+        'latitude': latitude,
+        'longitude': longitude,
+        if (precisao != null) 'precisao': precisao,
+        'criadoEm': FieldValue.serverTimestamp(),
+      }).timeout(_timeoutFirestore);
+    } catch (e) {
+      debugPrint('⚠️ [FirebaseSyncService] Falha ao registrar a posição precisa do alerta $alertaId: $e');
+    }
+  }
+
+  /// Som escolhido em Configurações (`somAlerta: "som_N"`, merge) — igual ao
+  /// Android: o servidor usa para tocar o alerta recebido com o som do
+  /// destinatário.
+  Future<void> salvarSomAlerta(int numeroSom) async {
+    if (!_firebaseDisponivel) return;
+    try {
+      await _documentoUsuario
+          .set({'somAlerta': 'som_$numeroSom'}, SetOptions(merge: true))
+          .timeout(_timeoutFirestore);
+    } catch (e) {
+      debugPrint('⚠️ [FirebaseSyncService] Falha ao gravar somAlerta: $e');
+    }
+  }
+
+  /// Alerta do cronômetro ou do despertador com id fixo [alertaId] — o mesmo
+  /// da entrada do Histórico —, a posição do momento e o texto do usuário.
+  /// [tipo] (igual ao Android): `cronometro_expirado`,
+  /// `tentativa_desarme_incorreto` ou `despertador_expirado`.
   ///
   /// Devolve o status do envio para o Histórico: "enviado" (confirmado pelo
   /// servidor), "pendente" (sem confirmação a tempo — a escrita fica na fila
@@ -693,8 +743,9 @@ class FirebaseSyncService {
   /// Free bloqueado ou erro).
   Future<String> enviarAlertaCronometro({
     required String alertaId,
-    required String subtipo,
+    required String tipo,
     String? motivo,
+    String? contextoPersonalizado,
     double? latitude,
     double? longitude,
     double? precisao,
@@ -703,19 +754,20 @@ class FirebaseSyncService {
     if (!await _podeUsarRecursoAvancado()) return 'falhou';
     try {
       await _documentoUsuario.collection('alertas').doc(alertaId).set({
-        'tipo': 'tentativa_desarme_incorreto',
-        'subtipo': subtipo,
+        'tipo': tipo,
+        'alertaId': alertaId,
         if (motivo != null) 'motivo': motivo,
+        'contextoPersonalizado': (contextoPersonalizado ?? '').trim(),
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (precisao != null) 'precisao': precisao,
         'criadoEm': FieldValue.serverTimestamp(),
         'processado': false,
       }).timeout(_timeoutFirestore);
-      debugPrint('☁️ [FirebaseSyncService] Alerta do cronômetro ($subtipo) confirmado pelo servidor.');
+      debugPrint('☁️ [FirebaseSyncService] Alerta "$tipo" confirmado pelo servidor.');
       return 'enviado';
     } on TimeoutException {
-      debugPrint('⏳ [FirebaseSyncService] Alerta do cronômetro ($subtipo) sem confirmação — na fila.');
+      debugPrint('⏳ [FirebaseSyncService] Alerta "$tipo" sem confirmação — na fila.');
       return 'pendente';
     } catch (e) {
       debugPrint('⚠️ [FirebaseSyncService] Falha ao enviar o alerta do cronômetro: $e');
@@ -791,6 +843,8 @@ class FirebaseSyncService {
           if (snapshotAtual.exists) return false;
           tx.set(documentoEvento, {
             'tipo': 'tentativa_desarme_incorreto',
+            'alertaId': eventoId,
+            'contextoPersonalizado': '',
             if (motivo != null) 'motivo': motivo,
             'criadoEm': FieldValue.serverTimestamp(),
             'processado': false,
@@ -805,8 +859,11 @@ class FirebaseSyncService {
           return false;
         }
       } else {
-        await _documentoUsuario.collection('alertas').add({
+        final doc = _documentoUsuario.collection('alertas').doc();
+        await doc.set({
           'tipo': 'tentativa_desarme_incorreto',
+          'alertaId': doc.id,
+          'contextoPersonalizado': '',
           if (motivo != null) 'motivo': motivo,
           'criadoEm': FieldValue.serverTimestamp(),
           'processado': false,

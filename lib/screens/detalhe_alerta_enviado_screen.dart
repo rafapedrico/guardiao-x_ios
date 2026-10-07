@@ -101,6 +101,7 @@ class DetalheAlertaEnviadoScreen extends StatelessWidget {
     final locale = Localizations.localeOf(context).toString();
     final status = StatusAlertaVisual.de(l10n, evento['status'] as String?);
     final contexto = (evento['contexto'] as String?)?.trim();
+    final motivo = (evento['descricao'] as String?)?.trim();
     final lat = _latitude;
     final lng = _longitude;
     final precisao = _precisao;
@@ -165,6 +166,8 @@ class DetalheAlertaEnviadoScreen extends StatelessWidget {
                     ],
                   ),
           ),
+          if (motivo != null && motivo.isNotEmpty && motivo != contexto)
+            secao(l10n.historicoDetalheMotivo, Text(motivo, style: const TextStyle(fontSize: 15))),
           if (contexto != null && contexto.isNotEmpty)
             secao(l10n.historicoDetalheTexto, Text(contexto, style: const TextStyle(fontSize: 15))),
         ],

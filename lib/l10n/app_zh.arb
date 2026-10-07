@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "计时器已启动",
   "historicoTipoCronometroDesarmado": "已用正确 PIN 解除计时器",
   "historicoTipoDespertadorConfirmado": "已用正确 PIN 确认闹钟",
-  "historicoTipoDespertadorExpirado": "警报：闹钟未按时确认",
+  "historicoTipoDespertadorExpirado": "闹钟警报",
   "historicoTipoDespertadorPinIncorreto": "警报：闹钟 PIN 连续输错 3 次",
   "historicoTipoDespertadorTentativaApagar": "警报：试图用错误密码删除/暂停闹钟",
   "historicoTipoAlertaServidor": "服务器发送的警报",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "请在设置中设置 PIN 以确认此操作。",
   "despertadorTentativaApagarMotivo": "尝试{acao}闹钟时连续 3 次输错 PIN。",
   "despertadorApagarBotao": "删除",
-  "familiaAcaoReativar": "重新启用"
+  "familiaAcaoReativar": "重新启用",
+  "termosPrivacidadeTitulo8": "8. 删除账户后的数据保留",
+  "termosPrivacidadeCorpo8": "删除账户时，注册信息、PIN和紧急联系人会立即清除。已发送警报的历史记录（日期和时间、类型、文本、位置和照片）将保存30天，仅用于发生事件时作为证据或应主管机关的要求，之后将被永久清除。",
+  "historicoDetalheMotivo": "原因"
 }

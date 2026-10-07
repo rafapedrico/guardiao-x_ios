@@ -272,6 +272,7 @@ class BackgroundLocationHeartbeatService {
       contextoPersonalizado: (alarmeMap['contexto_personalizado'] as String?) ?? '',
       ultimaLocalizacao: localizacao,
       cicloEpochMs: alvo.ciclo,
+      pausadoAte: CicloDespertador.pausadoAte(alarmeMap),
     );
   }
 

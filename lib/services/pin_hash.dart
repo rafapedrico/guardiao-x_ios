@@ -15,7 +15,7 @@ class PinHash {
   PinHash._();
 
   static const String _prefixo = 'pbkdf2';
-  static const int _iteracoes = 10000;
+  static const int _iteracoes = 20000;
   static const int _bytesSal = 16;
   static const int _bytesHash = 32;
 

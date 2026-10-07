@@ -164,6 +164,13 @@ class AlarmeAgendadoModel {
   /// `CicloDespertador`). `null` no cronômetro de check-in.
   final int? cicloEpochMs;
 
+  /// Fim da pausa ("pausado por hoje" = 00h00 do dia seguinte); `null` sem
+  /// pausa. Gravado em todo documento, igual ao Android.
+  final DateTime? pausadoAte;
+
+  /// Ciclo efetivo: [cicloEpochMs] ou, sem ele, o horário.
+  int get ciclo => cicloEpochMs ?? dataHoraDisparo.millisecondsSinceEpoch;
+
   const AlarmeAgendadoModel({
     required this.idAlarme,
     required this.dataHoraDisparo,
@@ -175,6 +182,7 @@ class AlarmeAgendadoModel {
     this.etiqueta = '',
     this.contextoPersonalizado = '',
     this.cicloEpochMs,
+    this.pausadoAte,
   });
 
   Map<String, dynamic> toFirestore() => {
@@ -188,7 +196,8 @@ class AlarmeAgendadoModel {
         'contatosEmergencia': contatosEmergencia,
         'etiqueta': etiqueta,
         'contextoPersonalizado': contextoPersonalizado,
-        if (cicloEpochMs != null) 'cicloEpochMs': cicloEpochMs,
+        'cicloEpochMs': ciclo,
+        'pausadoAte': pausadoAte != null ? Timestamp.fromDate(pausadoAte!) : null,
       };
 
   factory AlarmeAgendadoModel.fromFirestore(
@@ -215,6 +224,7 @@ class AlarmeAgendadoModel {
       etiqueta: (dados['etiqueta'] as String?) ?? '',
       contextoPersonalizado: (dados['contextoPersonalizado'] as String?) ?? '',
       cicloEpochMs: (dados['cicloEpochMs'] as num?)?.toInt(),
+      pausadoAte: (dados['pausadoAte'] as Timestamp?)?.toDate(),
     );
   }
 }

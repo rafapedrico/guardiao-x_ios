@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "Minuteur activé",
   "historicoTipoCronometroDesarmado": "Minuteur désarmé avec le bon PIN",
   "historicoTipoDespertadorConfirmado": "Réveil confirmé avec le bon PIN",
-  "historicoTipoDespertadorExpirado": "Alerte : réveil non confirmé à temps",
+  "historicoTipoDespertadorExpirado": "Alerte du réveil",
   "historicoTipoDespertadorPinIncorreto": "Alerte : PIN incorrect 3 fois sur le réveil",
   "historicoTipoDespertadorTentativaApagar": "Alerte : tentative de supprimer/mettre en pause le réveil avec un mauvais code",
   "historicoTipoAlertaServidor": "Alerte envoyée par le serveur",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "Définissez un PIN dans Réglages pour confirmer cette action.",
   "despertadorTentativaApagarMotivo": "PIN saisi incorrectement 3 fois de suite en essayant de {acao} un réveil.",
   "despertadorApagarBotao": "Supprimer",
-  "familiaAcaoReativar": "réactiver"
+  "familiaAcaoReativar": "réactiver",
+  "termosPrivacidadeTitulo8": "8. Conservation des données après la suppression du compte",
+  "termosPrivacidadeCorpo8": "Lors de la suppression du compte, l’inscription, le code PIN et les contacts d’urgence sont effacés immédiatement. L’historique des alertes envoyées (date et heure, type, texte, localisations et photographies) est conservé pendant 30 jours, exclusivement à titre de preuve en cas d’incident ou de réquisition d’une autorité compétente, puis il est effacé définitivement.",
+  "historicoDetalheMotivo": "MOTIF"
 }

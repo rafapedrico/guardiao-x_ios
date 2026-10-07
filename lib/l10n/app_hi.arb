@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "टाइमर शुरू हुआ",
   "historicoTipoCronometroDesarmado": "सही PIN से टाइमर बंद किया गया",
   "historicoTipoDespertadorConfirmado": "सही PIN से अलार्म की पुष्टि हुई",
-  "historicoTipoDespertadorExpirado": "अलर्ट: अलार्म की समय पर पुष्टि नहीं हुई",
+  "historicoTipoDespertadorExpirado": "अलार्म अलर्ट",
   "historicoTipoDespertadorPinIncorreto": "अलर्ट: अलार्म पर 3 बार गलत PIN",
   "historicoTipoDespertadorTentativaApagar": "अलर्ट: गलत पासवर्ड से अलार्म हटाने/रोकने की कोशिश",
   "historicoTipoAlertaServidor": "सर्वर द्वारा भेजा गया अलर्ट",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "इस कार्रवाई की पुष्टि के लिए सेटिंग्स में PIN सेट करें।",
   "despertadorTentativaApagarMotivo": "अलार्म को {acao} करने की कोशिश में लगातार 3 बार गलत PIN डाला गया।",
   "despertadorApagarBotao": "हटाएं",
-  "familiaAcaoReativar": "फिर से चालू करना"
+  "familiaAcaoReativar": "फिर से चालू करना",
+  "termosPrivacidadeTitulo8": "8. खाता हटाने के बाद डेटा का संग्रहण",
+  "termosPrivacidadeCorpo8": "खाता हटाने पर पंजीकरण, PIN और आपातकालीन संपर्क तुरंत मिटा दिए जाते हैं। भेजे गए अलर्ट का इतिहास (तारीख और समय, प्रकार, टेक्स्ट, स्थान और तस्वीरें) 30 दिनों तक रखा जाता है, केवल घटनाओं के मामले में सबूत के लिए या सक्षम प्राधिकारी के अनुरोध पर, और फिर स्थायी रूप से मिटा दिया जाता है।",
+  "historicoDetalheMotivo": "कारण"
 }

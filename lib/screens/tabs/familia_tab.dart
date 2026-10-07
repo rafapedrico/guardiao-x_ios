@@ -205,7 +205,8 @@ class FamiliaTabState extends State<FamiliaTab> with WidgetsBindingObserver {
     // primeiro, Histórico protegido com o status real e a posição.
     try {
       await HistoricoAlertasService().dispararAlertaCronometro(
-        tipo: TipoAlertaHistorico.despertadorTentativaApagar,
+        tipo: TipoAlertaHistorico.tentativaDesarmeIncorreto,
+        contexto: '',
         motivo: motivo,
       );
     } catch (e) {

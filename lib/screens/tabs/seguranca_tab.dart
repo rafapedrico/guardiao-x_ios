@@ -644,6 +644,7 @@ class _SegurancaTabState extends State<SegurancaTab> {
       await HistoricoAlertasService().dispararAlertaCronometro(
         tipo: TipoAlertaHistorico.tentativaDesarmeIncorreto,
         motivo: l10n.historicoCronometroPinIncorretoMotivo,
+        contexto: _contextoController.text.trim(),
         posicao: _locationService.ultimaPosicao,
       );
     } catch (e) {

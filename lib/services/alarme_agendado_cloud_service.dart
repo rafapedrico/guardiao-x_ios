@@ -150,27 +150,24 @@ class AlarmeAgendadoCloudService {
   /// `RotinaAlarmeService.confirmarCheckinRotina`), avisando a nuvem que
   /// o usuário está a salvo antes mesmo de a Cloud Function agendada
   /// rodar novamente e checar o prazo.
-  /// Ciclo do despertador de check-in ([modelo] traz a ocorrência ALVO —
-  /// ver `CicloDespertador.alvo` — em `cicloEpochMs`):
-  ///   - mesma ocorrência do documento: só atualiza posição, contatos e
-  ///     textos — nunca o status;
-  ///   - documento PENDENTE de outra ocorrência: se o prazo ainda não passou,
-  ///     a ocorrência atual continua sendo acompanhada (só a posição é
-  ///     atualizada); com o prazo vencido, é o servidor quem resolve — nada
-  ///     muda aqui. Exceção: horário do alarme editado (outro hora:minuto),
-  ///     que troca a ocorrência na hora;
-  ///   - CONFIRMADO_SEGURA/ALERTA_DISPARADO (ocorrência anterior resolvida):
-  ///     arma a nova como PENDENTE;
-  ///   - PAUSADO: continua pausado até `pausadoAte`; depois, arma;
-  ///   - CANCELADO (alarme desligado e religado) ou sem documento: arma.
-  /// [forcarNovoCiclo]: arma a nova ocorrência em qualquer caso.
+  /// Ciclo do despertador ([modelo] traz a ocorrência ALVO — ver
+  /// `CicloDespertador.alvo` — em `cicloEpochMs`), com a mesma regra do
+  /// Android:
+  ///   - documento do MESMO ciclo: atualiza posição, contatos, textos e
+  ///     `pausadoAte`, nunca o status;
+  ///   - documento de OUTRO ciclo PENDENTE e na tolerância (horário passou,
+  ///     prazo no futuro): não mexe — a próxima ocorrência só entra depois
+  ///     que a atual for resolvida (CONFIRMADO_SEGURA ou ALERTA_DISPARADO);
+  ///   - caso contrário (resolvido, prazo vencido, ocorrência futura trocada
+  ///     por edição ou pausa, sem documento): grava a ocorrência como
+  ///     PENDENTE. A pausa por hoje chega aqui como a próxima ocorrência
+  ///     válida com `pausadoAte` — a de hoje nunca volta como PENDENTE.
+  /// [forcarNovoCiclo]: grava a ocorrência em qualquer caso.
   Future<void> sincronizarCicloDespertador(
     AlarmeAgendadoModel modelo, {
     bool forcarNovoCiclo = false,
   }) async {
     if (!_firebaseDisponivel) return;
-    final ciclo = modelo.cicloEpochMs;
-    if (ciclo == null) return registrarAlarmeAgendado(modelo);
     try {
       final doc = _documento(modelo.idAlarme);
       final snapshot = await doc.get().timeout(_timeoutFirestore);
@@ -179,44 +176,50 @@ class AlarmeAgendadoCloudService {
         await doc.set(modelo.toFirestore()).timeout(_timeoutFirestore);
         return;
       }
-
-      final dataDoc = (dados['dataHoraDisparo'] as Timestamp?)?.toDate();
-      final cicloDoc = (dados['cicloEpochMs'] as num?)?.toInt() ?? dataDoc?.millisecondsSinceEpoch;
-      final status = AlarmeAgendadoStatus.fromFirestore(dados['status'] as String?);
-      final atualizaveis = <String, dynamic>{
-        if (modelo.ultimaLocalizacao != null) 'ultimaLocalizacao': modelo.ultimaLocalizacao!.toMap(),
-        'contatosEmergencia': modelo.contatosEmergencia,
-        'etiqueta': modelo.etiqueta,
-        'contextoPersonalizado': modelo.contextoPersonalizado,
-      };
-
-      Future<void> soAtualizar() =>
-          doc.set(atualizaveis, SetOptions(merge: true)).timeout(_timeoutFirestore);
-      Future<void> armar() => doc.set(modelo.toFirestore()).timeout(_timeoutFirestore);
-
-      if (cicloDoc == ciclo) return soAtualizar();
-
-      switch (status) {
-        case AlarmeAgendadoStatus.pendente:
-          final horarioEditado = dataDoc != null &&
-              (dataDoc.hour != modelo.dataHoraDisparo.hour ||
-                  dataDoc.minute != modelo.dataHoraDisparo.minute);
-          if (horarioEditado) return armar();
-          final prazoDoc = (dados['prazoFinalEpochMs'] as num?)?.toInt() ?? 0;
-          if (prazoDoc > DateTime.now().millisecondsSinceEpoch) return soAtualizar();
-          return;
-        case AlarmeAgendadoStatus.pausado:
-          final ate = (dados['pausadoAte'] as Timestamp?)?.toDate();
-          if (ate != null && DateTime.now().isBefore(ate)) return;
-          return armar();
-        case AlarmeAgendadoStatus.confirmadoSeguro:
-        case AlarmeAgendadoStatus.alertaDisparado:
-        case AlarmeAgendadoStatus.cancelado:
-          return armar();
+      final cicloDoc = _cicloDoDocumento(dados);
+      if (cicloDoc == modelo.ciclo) {
+        final parcial = modelo.toFirestore()..remove('status');
+        if (modelo.ultimaLocalizacao == null) parcial.remove('ultimaLocalizacao');
+        await doc.set(parcial, SetOptions(merge: true)).timeout(_timeoutFirestore);
+        return;
       }
+      if (dados['status'] == AlarmeAgendadoStatus.pendente.valorFirestore) {
+        final agora = DateTime.now().millisecondsSinceEpoch;
+        final prazo = (dados['prazoFinalEpochMs'] as num?)?.toInt() ?? 0;
+        final naTolerancia = cicloDoc != null && cicloDoc <= agora && prazo > agora;
+        if (naTolerancia) {
+          if (modelo.ultimaLocalizacao != null) {
+            await doc.set({'ultimaLocalizacao': modelo.ultimaLocalizacao!.toMap()},
+                SetOptions(merge: true)).timeout(_timeoutFirestore);
+          }
+          return;
+        }
+      }
+      await doc.set(modelo.toFirestore()).timeout(_timeoutFirestore);
     } catch (e) {
       debugPrint('⚠️ [AlarmeAgendadoCloudService] Falha ao sincronizar o ciclo do despertador '
           '#${modelo.idAlarme}: $e');
+    }
+  }
+
+  static int? _cicloDoDocumento(Map<String, dynamic>? dados) {
+    if (dados == null) return null;
+    final ciclo = (dados['cicloEpochMs'] as num?)?.toInt();
+    if (ciclo != null && ciclo > 0) return ciclo;
+    return (dados['dataHoraDisparo'] as Timestamp?)?.toDate().millisecondsSinceEpoch;
+  }
+
+  /// `true` se o documento [idAlarme] ainda é da ocorrência [ciclo] (ou se
+  /// não deu para ler — sem rede, a gravação vai na fila e o servidor
+  /// confere o prazo).
+  Future<bool> _aindaNoCiclo(String idAlarme, int? ciclo) async {
+    if (ciclo == null) return true;
+    try {
+      final snapshot = await _documento(idAlarme).get().timeout(_timeoutFirestore);
+      final cicloDoc = _cicloDoDocumento(snapshot.data());
+      return cicloDoc == null || cicloDoc == ciclo;
+    } catch (_) {
+      return true;
     }
   }
 
@@ -240,6 +243,8 @@ class AlarmeAgendadoCloudService {
   /// [cicloEpochMs]: a ocorrência confirmada (despertador de check-in).
   Future<void> marcarConfirmadoSeguro(String idAlarme, {int? cicloEpochMs}) async {
     if (!_firebaseDisponivel) return;
+    // Nunca muda o documento da próxima ocorrência.
+    if (!await _aindaNoCiclo(idAlarme, cicloEpochMs)) return;
     try {
       await _documento(idAlarme).set(
         {
@@ -279,6 +284,7 @@ class AlarmeAgendadoCloudService {
   /// o servidor não manda um segundo alerta.
   Future<void> marcarAlertaDisparado(String idAlarme, {int? cicloEpochMs, String? eventoId}) async {
     if (!_firebaseDisponivel) return;
+    if (!await _aindaNoCiclo(idAlarme, cicloEpochMs)) return;
     try {
       await _documento(idAlarme).set(
         {

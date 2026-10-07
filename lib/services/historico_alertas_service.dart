@@ -30,8 +30,6 @@ class TipoAlertaHistorico {
   static const String cronometroDesarmado = 'cronometro_desarmado';
   static const String despertadorConfirmado = 'despertador_confirmado';
   static const String despertadorExpirado = 'despertador_expirado';
-  static const String despertadorPinIncorreto = 'despertador_pin_incorreto';
-  static const String despertadorTentativaApagar = 'despertador_tentativa_apagar';
   static const String alertaServidor = 'alerta_servidor';
 
   /// Eventos que não são um alerta aos contatos (não têm status de envio).
@@ -111,10 +109,6 @@ class HistoricoAlertasService {
         return l10n.historicoTipoDespertadorConfirmado;
       case TipoAlertaHistorico.despertadorExpirado:
         return l10n.historicoTipoDespertadorExpirado;
-      case TipoAlertaHistorico.despertadorPinIncorreto:
-        return l10n.historicoTipoDespertadorPinIncorreto;
-      case TipoAlertaHistorico.despertadorTentativaApagar:
-        return l10n.historicoTipoDespertadorTentativaApagar;
       default:
         return l10n.historicoTipoAlertaServidor;
     }
@@ -130,6 +124,7 @@ class HistoricoAlertasService {
     double? longitude,
     double? precisao,
     String? contexto,
+    String? descricao,
     DateTime? quando,
   }) async {
     try {
@@ -139,7 +134,7 @@ class HistoricoAlertasService {
         'tipo': tipo,
         'status': status,
         'titulo': tituloDoTipo(l10n, tipo),
-        'descricao': contexto ?? '',
+        'descricao': descricao ?? contexto ?? '',
         'categoria': categoria,
         'timestamp': (quando ?? DateTime.now()).toIso8601String(),
         'latitude': latitude,
@@ -172,27 +167,48 @@ class HistoricoAlertasService {
   /// Histórico com a posição do momento, documento na nuvem com o mesmo id
   /// (primeiro, como sempre) e o status real do envio; depois o SMS (só
   /// Android). [eventoId] reaproveita um id já reservado pelo chamador.
+  ///
+  /// Tipos no Firestore (iguais ao Android): `cronometro_expirado`,
+  /// `tentativa_desarme_incorreto` (3 PINs no cronômetro, tentativa de
+  /// apagar/pausar um despertador) e `despertador_expirado` (despertador por
+  /// tempo esgotado ou 3 PINs). [contexto] é o texto do usuário
+  /// (`contextoPersonalizado`); sem ele, no cronômetro, vale o texto do
+  /// cronômetro ativo. Posição velha ou imprecisa: a precisa, quando chegar,
+  /// vai para `atualizacoes_localizacao` do alerta (o alerta não muda).
   Future<void> dispararAlertaCronometro({
     required String tipo,
     String? motivo,
+    String? contexto,
     Position? posicao,
     String? eventoId,
   }) async {
     final alertaId = eventoId ?? novoAlertaId();
     final pos = posicao ?? await posicaoConhecida();
+    var textoUsuario = (contexto ?? '').trim();
+    if (contexto == null && tipo != TipoAlertaHistorico.despertadorExpirado) {
+      try {
+        textoUsuario = ((await _db.getUserConfig())?['contexto_timer_ativo'] as String?)?.trim() ?? '';
+      } catch (_) {}
+    }
     await registrarAlerta(
       alertaId: alertaId,
       tipo: tipo,
       latitude: pos?.latitude,
       longitude: pos?.longitude,
       precisao: pos?.accuracy,
-      contexto: motivo,
+      descricao: motivo,
+      contexto: textoUsuario.isEmpty ? null : textoUsuario,
     );
+    final precisa = pos != null &&
+        pos.accuracy <= 50 &&
+        DateTime.now().difference(pos.timestamp) <= const Duration(seconds: 30);
+    if (!precisa) unawaited(atualizarPosicaoPrecisaDoAlerta(alertaId, anterior: pos));
     try {
       final status = await FirebaseSyncService().enviarAlertaCronometro(
         alertaId: alertaId,
-        subtipo: tipo,
+        tipo: tipo,
         motivo: motivo,
+        contextoPersonalizado: textoUsuario,
         latitude: pos?.latitude,
         longitude: pos?.longitude,
         precisao: pos?.accuracy,
@@ -210,6 +226,39 @@ class HistoricoAlertasService {
       );
     } catch (e) {
       debugPrint('⚠️ [HistoricoAlertas] Falha no SMS do alerta do cronômetro: $e');
+    }
+  }
+
+  /// Leitura precisa que chega depois de um alerta: entrada do Histórico,
+  /// posição da conta e um documento novo em
+  /// `usuarios/{uid}/alertas/{alertaId}/atualizacoes_localizacao` — o
+  /// alerta original nunca é alterado.
+  Future<void> atualizarPosicaoPrecisaDoAlerta(String alertaId, {Position? anterior}) async {
+    try {
+      final posicao = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 25),
+      );
+      if (anterior != null &&
+          anterior.accuracy <= posicao.accuracy &&
+          DateTime.now().difference(anterior.timestamp) <= const Duration(seconds: 30)) {
+        return;
+      }
+      await atualizarPosicao(alertaId, posicao);
+      await FirebaseSyncService().registrarAtualizacaoLocalizacao(
+        alertaId: alertaId,
+        latitude: posicao.latitude,
+        longitude: posicao.longitude,
+        precisao: posicao.accuracy,
+      );
+      await FirebaseSyncService().atualizarLocalizacaoAtual(
+        latitude: posicao.latitude,
+        longitude: posicao.longitude,
+        precisao: posicao.accuracy,
+        origem: 'alerta',
+      );
+    } catch (e) {
+      debugPrint('⚠️ [HistoricoAlertas] Sem posição precisa para o alerta $alertaId: $e');
     }
   }
 
@@ -402,7 +451,10 @@ class HistoricoAlertasService {
       latitude: numero(dados['latitude']) ?? (ultima is Map ? numero(ultima['lat']) : null),
       longitude: numero(dados['longitude']) ?? (ultima is Map ? numero(ultima['lng']) : null),
       precisao: numero(dados['precisao']),
-      contexto: (dados['contexto'] as String?) ?? (dados['motivo'] as String?),
+      contexto: (dados['contextoPersonalizado'] as String?)?.trim().isNotEmpty == true
+          ? (dados['contextoPersonalizado'] as String).trim()
+          : (dados['contexto'] as String?),
+      descricao: dados['motivo'] as String?,
       quando: criadoEm,
     );
     existentes[alertaId] = StatusAlertaHistorico.enviado;
@@ -433,8 +485,6 @@ class HistoricoAlertasService {
       case TipoAlertaHistorico.cronometroDesarmado:
       case TipoAlertaHistorico.despertadorConfirmado:
       case TipoAlertaHistorico.despertadorExpirado:
-      case TipoAlertaHistorico.despertadorPinIncorreto:
-      case TipoAlertaHistorico.despertadorTentativaApagar:
         return tipoFirestore;
       default:
         return null;

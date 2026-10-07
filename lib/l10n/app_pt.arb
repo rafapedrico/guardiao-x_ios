@@ -1403,7 +1403,7 @@
   "historicoTipoCronometroAtivado": "Cronômetro ativado",
   "historicoTipoCronometroDesarmado": "Cronômetro desarmado com o PIN correto",
   "historicoTipoDespertadorConfirmado": "Despertador confirmado com o PIN correto",
-  "historicoTipoDespertadorExpirado": "Alerta: despertador não confirmado a tempo",
+  "historicoTipoDespertadorExpirado": "Alerta do despertador",
   "historicoTipoDespertadorPinIncorreto": "Alerta: PIN incorreto 3 vezes no despertador",
   "historicoTipoDespertadorTentativaApagar": "Alerta: tentativa de apagar/pausar o despertador com senha incorreta",
   "historicoTipoAlertaServidor": "Alerta enviado pelo servidor",
@@ -1493,5 +1493,8 @@
     }
   },
   "despertadorApagarBotao": "Apagar",
-  "familiaAcaoReativar": "reativar"
+  "familiaAcaoReativar": "reativar",
+  "termosPrivacidadeTitulo8": "8. Retenção dos dados após a exclusão da conta",
+  "termosPrivacidadeCorpo8": "Ao excluir a conta, o cadastro, o PIN e os contatos de emergência são apagados imediatamente. O histórico de alertas enviados (data e hora, tipo, texto, localizações e fotografias) fica guardado por 30 dias, exclusivamente para fins de prova em caso de incidentes ou de requisição de autoridade competente, e depois é apagado definitivamente.",
+  "historicoDetalheMotivo": "MOTIVO"
 }

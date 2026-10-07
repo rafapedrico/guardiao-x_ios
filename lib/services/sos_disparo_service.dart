@@ -263,6 +263,7 @@ class SosDisparoService {
         longitude: posicao?.longitude,
         precisao: posicao?.accuracy,
         origem: origem,
+        contextoPersonalizado: contexto,
         aoDemorarOuFalhar: () {
           unawaited(historico.marcarStatus(alertaId, StatusAlertaHistorico.pendente));
           aoFalhar();
@@ -323,6 +324,14 @@ class SosDisparoService {
       }
       _posicaoDoAlerta[alertaId] = posicao;
       await HistoricoAlertasService().atualizarPosicao(alertaId, posicao);
+      // O alerta original não muda: a posição precisa vai num documento
+      // novo da subcoleção `atualizacoes_localizacao` do alerta.
+      await FirebaseSyncService().registrarAtualizacaoLocalizacao(
+        alertaId: alertaId,
+        latitude: posicao.latitude,
+        longitude: posicao.longitude,
+        precisao: posicao.accuracy,
+      );
       await FirebaseSyncService().atualizarLocalizacaoAtual(
         latitude: posicao.latitude,
         longitude: posicao.longitude,

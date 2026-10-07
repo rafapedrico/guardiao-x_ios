@@ -399,11 +399,16 @@ class RotinaAlarmeService {
     // registrar o PRÓXIMO disparo (amanhã ou depois), o documento nasça
     // PENDENTE de novo em vez de herdar este CANCELADO de hoje — ver
     // [AlarmeAgendadoCloudService.sinalizarNovoCiclo].
-    final agora = DateTime.now();
-    unawaited(AlarmeAgendadoCloudService().marcarPausado(
-      idAlarme.toString(),
-      pausadoAte: DateTime(agora.year, agora.month, agora.day + 1),
-    ));
+    // Nuvem (igual ao Android): a próxima ocorrência válida, PENDENTE, com
+    // `pausadoAte` = 00h00 de amanhã — a de hoje sai do documento e o
+    // servidor não alerta por ela. `alarme_pausado` já foi gravado pelo
+    // chamador; relê para a ocorrência alvo já pular hoje.
+    unawaited(() async {
+      final atualizado = await DatabaseHelper().buscarAlarmePorId(idAlarme);
+      if (atualizado != null) {
+        await BackgroundLocationHeartbeatService().registrarAlarmeRotinaImediatamente(atualizado);
+      }
+    }());
 
     if (Platform.isAndroid) {
       await AndroidAlarmManager.cancel(_idCheckin(idAlarme));
@@ -427,9 +432,7 @@ class RotinaAlarmeService {
     // iOS: cada ocorrência é agendada uma a uma (ver DespertadorIosService),
     // então a de hoje sai de fato do agendamento — `alarme_pausado` com a
     // data de hoje já foi gravado pelo chamador e `CicloDespertador.proximas`
-    // pula as ocorrências de hoje. Na nuvem, o documento fica PAUSADO com
-    // `pausadoAte` (00:00 de amanhã): o heartbeat não arma a ocorrência de
-    // hoje e o servidor não alerta por ela.
+    // pula as ocorrências de hoje (a nuvem recebe a próxima, acima).
     if (Platform.isIOS) unawaited(DespertadorIosService().reagendar());
 
     debugPrint(

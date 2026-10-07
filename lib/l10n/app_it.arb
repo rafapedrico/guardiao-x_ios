@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "Timer avviato",
   "historicoTipoCronometroDesarmado": "Timer disattivato con il PIN corretto",
   "historicoTipoDespertadorConfirmado": "Sveglia confermata con il PIN corretto",
-  "historicoTipoDespertadorExpirado": "Allerta: sveglia non confermata in tempo",
+  "historicoTipoDespertadorExpirado": "Allerta della sveglia",
   "historicoTipoDespertadorPinIncorreto": "Allerta: PIN errato 3 volte sulla sveglia",
   "historicoTipoDespertadorTentativaApagar": "Allerta: tentativo di eliminare/mettere in pausa la sveglia con password errata",
   "historicoTipoAlertaServidor": "Allerta inviata dal server",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "Imposta un PIN in Impostazioni per confermare questa azione.",
   "despertadorTentativaApagarMotivo": "PIN inserito in modo errato 3 volte di seguito nel tentativo di {acao} una sveglia.",
   "despertadorApagarBotao": "Elimina",
-  "familiaAcaoReativar": "riattivare"
+  "familiaAcaoReativar": "riattivare",
+  "termosPrivacidadeTitulo8": "8. Conservazione dei dati dopo l’eliminazione dell’account",
+  "termosPrivacidadeCorpo8": "Quando l’account viene eliminato, la registrazione, il PIN e i contatti di emergenza vengono cancellati immediatamente. La cronologia delle allerte inviate (data e ora, tipo, testo, posizioni e fotografie) viene conservata per 30 giorni, esclusivamente come prova in caso di incidenti o di richiesta di un’autorità competente, e poi viene cancellata definitivamente.",
+  "historicoDetalheMotivo": "MOTIVO"
 }

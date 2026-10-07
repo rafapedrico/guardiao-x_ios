@@ -150,6 +150,7 @@ class _TermosPrivacidadeScreenState extends State<TermosPrivacidadeScreen>
         _Secao(titulo: l10n.termosPrivacidadeTitulo5, corpo: l10n.termosPrivacidadeCorpo5),
         _Secao(titulo: l10n.termosPrivacidadeTitulo6, corpo: l10n.termosPrivacidadeCorpo6),
         _Secao(titulo: l10n.termosPrivacidadeTitulo7, corpo: l10n.termosPrivacidadeCorpo7),
+        _Secao(titulo: l10n.termosPrivacidadeTitulo8, corpo: l10n.termosPrivacidadeCorpo8),
       ];
 }
 

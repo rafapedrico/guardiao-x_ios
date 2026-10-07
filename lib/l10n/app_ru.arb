@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "Таймер запущен",
   "historicoTipoCronometroDesarmado": "Таймер отключён верным PIN",
   "historicoTipoDespertadorConfirmado": "Будильник подтверждён верным PIN",
-  "historicoTipoDespertadorExpirado": "Тревога: будильник не подтверждён вовремя",
+  "historicoTipoDespertadorExpirado": "Тревога будильника",
   "historicoTipoDespertadorPinIncorreto": "Тревога: неверный PIN 3 раза на будильнике",
   "historicoTipoDespertadorTentativaApagar": "Тревога: попытка удалить/приостановить будильник с неверным паролем",
   "historicoTipoAlertaServidor": "Тревога отправлена сервером",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "Задайте PIN в Настройках, чтобы подтвердить это действие.",
   "despertadorTentativaApagarMotivo": "PIN введён неверно 3 раза подряд при попытке {acao} будильник.",
   "despertadorApagarBotao": "Удалить",
-  "familiaAcaoReativar": "включить снова"
+  "familiaAcaoReativar": "включить снова",
+  "termosPrivacidadeTitulo8": "8. Хранение данных после удаления аккаунта",
+  "termosPrivacidadeCorpo8": "При удалении аккаунта регистрационные данные, PIN и экстренные контакты удаляются сразу. История отправленных оповещений (дата и время, тип, текст, геопозиции и фотографии) хранится 30 дней исключительно в качестве доказательства в случае происшествий или по запросу уполномоченного органа, после чего удаляется окончательно.",
+  "historicoDetalheMotivo": "ПРИЧИНА"
 }

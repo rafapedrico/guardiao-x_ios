@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "تم تشغيل المؤقت",
   "historicoTipoCronometroDesarmado": "تم إيقاف المؤقت برمز PIN الصحيح",
   "historicoTipoDespertadorConfirmado": "تم تأكيد المنبه برمز PIN الصحيح",
-  "historicoTipoDespertadorExpirado": "تنبيه: لم يتم تأكيد المنبه في الوقت المحدد",
+  "historicoTipoDespertadorExpirado": "تنبيه المنبه",
   "historicoTipoDespertadorPinIncorreto": "تنبيه: رمز PIN خاطئ 3 مرات في المنبه",
   "historicoTipoDespertadorTentativaApagar": "تنبيه: محاولة حذف/إيقاف المنبه مؤقتًا بكلمة مرور خاطئة",
   "historicoTipoAlertaServidor": "تنبيه أرسله الخادم",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "عيّن رمز PIN في الإعدادات لتأكيد هذا الإجراء.",
   "despertadorTentativaApagarMotivo": "تم إدخال رمز PIN بشكل خاطئ 3 مرات متتالية عند محاولة {acao} منبه.",
   "despertadorApagarBotao": "حذف",
-  "familiaAcaoReativar": "إعادة التفعيل"
+  "familiaAcaoReativar": "إعادة التفعيل",
+  "termosPrivacidadeTitulo8": "8. الاحتفاظ بالبيانات بعد حذف الحساب",
+  "termosPrivacidadeCorpo8": "عند حذف الحساب، يتم مسح بيانات التسجيل ورمز PIN وجهات اتصال الطوارئ فورًا. يُحتفظ بسجل التنبيهات المرسلة (التاريخ والوقت والنوع والنص والمواقع والصور) لمدة 30 يومًا، حصريًا كدليل في حال وقوع حوادث أو بناءً على طلب جهة مختصة، ثم يُمسح نهائيًا.",
+  "historicoDetalheMotivo": "السبب"
 }

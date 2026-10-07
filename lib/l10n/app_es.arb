@@ -1009,7 +1009,7 @@
   "historicoTipoCronometroAtivado": "Cronómetro activado",
   "historicoTipoCronometroDesarmado": "Cronómetro desactivado con el PIN correcto",
   "historicoTipoDespertadorConfirmado": "Despertador confirmado con el PIN correcto",
-  "historicoTipoDespertadorExpirado": "Alerta: despertador no confirmado a tiempo",
+  "historicoTipoDespertadorExpirado": "Alerta del despertador",
   "historicoTipoDespertadorPinIncorreto": "Alerta: PIN incorrecto 3 veces en el despertador",
   "historicoTipoDespertadorTentativaApagar": "Alerta: intento de borrar/pausar el despertador con contraseña incorrecta",
   "historicoTipoAlertaServidor": "Alerta enviada por el servidor",
@@ -1054,5 +1054,8 @@
   "despertadorDefinaPin": "Define un PIN en Configuración para confirmar esta acción.",
   "despertadorTentativaApagarMotivo": "PIN ingresado incorrectamente 3 veces seguidas al intentar {acao} un despertador.",
   "despertadorApagarBotao": "Borrar",
-  "familiaAcaoReativar": "reactivar"
+  "familiaAcaoReativar": "reactivar",
+  "termosPrivacidadeTitulo8": "8. Conservación de los datos tras la eliminación de la cuenta",
+  "termosPrivacidadeCorpo8": "Al eliminar la cuenta, el registro, el PIN y los contactos de emergencia se borran de inmediato. El historial de alertas enviadas (fecha y hora, tipo, texto, ubicaciones y fotografías) se conserva durante 30 días, exclusivamente como prueba en caso de incidentes o de requerimiento de una autoridad competente, y después se borra definitivamente.",
+  "historicoDetalheMotivo": "MOTIVO"
 }
