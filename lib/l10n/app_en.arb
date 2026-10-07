@@ -664,7 +664,7 @@
   "somNome7": "Security Horn",
   "somNome8": "Industrial Alarm",
   "somNome9": "Police Siren",
-  "somNome10": "Silent Tone",
+  "somNome10": "Beep Alarm",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta}: the routine check-in wasn't confirmed within the final 60-second deadline, even after the tolerance time had already expired.",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}: the PIN was entered incorrectly 3 times in a row while trying to confirm the routine alarm check-in.",
   "@historicoCheckinRotinaPinIncorretoMotivo": {

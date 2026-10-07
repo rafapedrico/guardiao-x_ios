@@ -664,7 +664,7 @@
   "somNome7": "安全喇叭",
   "somNome8": "工业警报",
   "somNome9": "警笛",
-  "somNome10": "静音提示",
+  "somNome10": "蜂鸣警报",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta}：即使容忍时间已经到期，常规签到仍未在最后60秒期限内得到确认。",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}：尝试确认常规闹钟签到时，PIN码连续3次输入错误。",
   "@historicoCheckinRotinaPinIncorretoMotivo": {

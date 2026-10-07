@@ -664,7 +664,7 @@
   "somNome7": "Klaxon de Sécurité",
   "somNome8": "Alarme Industrielle",
   "somNome9": "Sirène de Police",
-  "somNome10": "Tonalité Silencieuse",
+  "somNome10": "Alarme bip",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta} : le check-in de routine n'a pas été confirmé dans le délai final de 60 secondes, même après l'expiration du délai de tolérance.",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta} : le code PIN a été saisi incorrectement 3 fois de suite en essayant de confirmer le check-in de l'alarme de routine.",
   "@historicoCheckinRotinaPinIncorretoMotivo": {

@@ -167,6 +167,7 @@ Sem contato de emergência: o "+" fica cinza e leva a Configurações.
    no máximo 1x/min e só com 30 m de deslocamento ou a cada 5 min parado.
 9. Sons: no despertador (AlarmKit e notificações) e no cronômetro, o som é o
    `som_N.caf` escolhido; um Push de alerta recebido toca o `som_N.caf` do
-   destinatário (enviado pelo servidor). "Toque Silencioso" (som 10) não toca.
+   destinatário (enviado pelo servidor). O som 10 ("Alarme Bipe") é um bipe
+   alto de 15 s — nenhum som é mudo.
 10. Com o iPhone bloqueado, um alerta recebido e um aviso de entrega entram
     no Histórico (banco com proteção até o primeiro desbloqueio).

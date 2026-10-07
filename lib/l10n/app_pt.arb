@@ -884,7 +884,7 @@
   "somNome7": "Buzina de Segurança",
   "somNome8": "Alarme Industrial",
   "somNome9": "Sirene Policial",
-  "somNome10": "Toque Silencioso",
+  "somNome10": "Alarme Bipe",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta}: o check-in de rotina não foi confirmado dentro do prazo final de 60 segundos, mesmo após o tempo de tolerância já ter expirado.",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}: o PIN foi digitado incorretamente 3 vezes seguidas ao tentar confirmar o check-in do alarme de rotina.",
   "@historicoCheckinRotinaPinIncorretoMotivo": {

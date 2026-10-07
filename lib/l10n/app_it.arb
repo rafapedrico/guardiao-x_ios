@@ -664,7 +664,7 @@
   "somNome7": "Clacson di Sicurezza",
   "somNome8": "Allarme Industriale",
   "somNome9": "Sirena della Polizia",
-  "somNome10": "Suoneria Silenziosa",
+  "somNome10": "Allarme bip",
   "historicoCheckinRotinaFalhaMotivo": "{etiqueta}: il check-in di routine non è stato confermato entro il termine finale di 60 secondi, anche dopo la scadenza del tempo di tolleranza.",
   "historicoCheckinRotinaPinIncorretoMotivo": "{etiqueta}: il PIN è stato inserito in modo errato 3 volte di fila durante il tentativo di confermare il check-in dell'allarme di routine.",
   "@historicoCheckinRotinaPinIncorretoMotivo": {
